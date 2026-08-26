@@ -12,10 +12,10 @@
 command -v curl || { sudo apt-get update && sudo apt-get install -y curl; }
 ```
 
-### 2. 執行 chezmoi 安裝腳本
+### 2. 執行安裝腳本
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply gn00678465
+sh -c "$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/main/init.sh)"
 ```
 
 | 時機 | 問什麼 |
