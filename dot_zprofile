@@ -1,7 +1,0 @@
-# mise shims for non-interactive login shells (see mise docs: shims for
-# non-interactive, `mise activate` for interactive).
-# ~/.local/bin is NOT on the default login PATH, so prepend it before probing.
-export PATH="$HOME/.local/bin:$PATH"
-if (( $+commands[mise] )); then
-  eval "$(mise activate zsh --shims)"
-fi
