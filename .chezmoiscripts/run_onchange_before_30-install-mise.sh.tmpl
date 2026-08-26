@@ -1,0 +1,14 @@
+{{- $brewPrefix := "/home/linuxbrew/.linuxbrew" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{-   $brewPrefix = "/opt/homebrew" -}}
+{{-   if ne .chezmoi.arch "arm64" -}}
+{{-     $brewPrefix = "/usr/local" -}}
+{{-   end -}}
+{{- end -}}
+#!/bin/zsh
+# brew packages: mise
+set -euo pipefail
+
+eval "$({{ $brewPrefix }}/bin/brew shellenv)"
+
+brew list --formula mise &>/dev/null || brew install mise

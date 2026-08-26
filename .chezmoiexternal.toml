@@ -41,19 +41,3 @@
     exact = true
     stripComponents = 1
     checksum.sha256 = "d8187d44b697b3a37a8c4896678b4380e717cbf2850179529358348780a2d3d7"
-
-# mise, referenced by the OMZ mise plugin (.zshrc) and the shims in .zprofile.
-# archive-file pulls the single binary out of the tarball; no sudo, no apt repo,
-# no curl|sh.
-# Deliberately NOT pinned: mise ships releases most days, so a pinned tag would
-# be the only external in this file that actually needs regular attention. The
-# other five move once a year or less. Same trade as .oh-my-zsh below -- a
-# moving URL cannot carry a checksum. `mise self-update` will fight chezmoi for
-# ownership of this file; let refreshPeriod do the upgrading.
-# The URL is linux-x64; an arm64 machine needs mise-latest-linux-arm64.tar.gz.
-[".local/bin/mise"]
-    type = "archive-file"
-    url = "https://mise.jdx.dev/mise-latest-linux-x64.tar.gz"
-    path = "mise/bin/mise"
-    executable = true
-    refreshPeriod = "168h"
