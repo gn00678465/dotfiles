@@ -11,4 +11,10 @@ set -euo pipefail
 
 eval "$({{ $brewPrefix }}/bin/brew shellenv)"
 
+# Homebrew 6 made ask mode the default, so a bare `brew install` stops at
+# "Do you want to proceed with the installation? [y/n]". chezmoi runs this
+# unattended. The env var is preferred over `-y`: older Homebrew ignores an
+# unknown variable but would abort on an unknown flag.
+export HOMEBREW_NO_ASK=1
+
 brew list --formula mise &>/dev/null || brew install mise
