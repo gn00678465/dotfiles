@@ -1,7 +1,6 @@
 # dotfiles
 
-用 chezmoi 管理 zsh 環境（Oh My Zsh + zsh-autosuggestions + zsh-syntax-highlighting
-+ fzf-tab + Powerlevel10k + mise）。取代原本的一鍵安裝 shell 腳本。
+用 chezmoi 管理 zsh 環境（Oh My Zsh + zsh-autosuggestions + zsh-syntax-highlighting + fzf-tab + Powerlevel10k + mise）。
 
 ---
 
@@ -16,13 +15,8 @@ command -v curl || { sudo apt-get update && sudo apt-get install -y curl; }
 ### 2. 執行 chezmoi 安裝腳本
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" init --apply gn00678465
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply gn00678465
 ```
-
-`-b "$HOME/.local/bin"` 不能省：安裝腳本的 `BINDIR` 預設是 `./bin`，相對於當下工作目錄，
-腳本全程不會 `cd` 到 `$HOME`。少了它，事後 `chezmoi` 指令不在 PATH 上。
-
-必須在真實終端機執行，過程中有兩次互動：
 
 | 時機 | 問什麼 |
 |---|---|
