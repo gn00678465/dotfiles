@@ -1,0 +1,34 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/bin/sh
+set -eu
+
+zsh_path="$(command -v zsh || true)"
+if [ -z "$zsh_path" ]; then
+    exit 0
+fi
+
+current="$(getent passwd "$(id -un)" | cut -d: -f7)"
+if [ "$current" = "$zsh_path" ]; then
+    exit 0            # already converged: silent no-op
+fi
+
+# /etc/pam.d/chsh has `auth required pam_shells.so`, so a shell outside
+# /etc/shells is refused outright.
+if ! grep -qxF "$zsh_path" /etc/shells; then
+    echo "chezmoi: $zsh_path is not in /etc/shells, so chsh will refuse." >&2
+    echo "chezmoi: run: echo '$zsh_path' | sudo tee -a /etc/shells" >&2
+    exit 0
+fi
+
+if [ ! -t 0 ]; then
+    echo "chezmoi: login shell is $current. From a terminal run: chsh -s $zsh_path" >&2
+    exit 0
+fi
+
+echo "chezmoi: changing login shell to $zsh_path (chsh asks for YOUR password)"
+if chsh -s "$zsh_path"; then
+    echo "chezmoi: log out and back in for the change to take effect."
+else
+    echo "chezmoi: chsh failed. Run it manually: chsh -s $zsh_path" >&2
+fi
+{{ end -}}

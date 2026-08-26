@@ -1,0 +1,59 @@
+# Oh My Zsh itself. `exact` means chezmoi deletes anything in ~/.oh-my-zsh that
+# is not in this tarball -- which is why every plugin/theme below must also be an
+# external, and why cache/ and log/ are in .chezmoiignore.
+# ohmyzsh publishes no git tags; pin a commit SHA here if you want reproducibility.
+[".oh-my-zsh"]
+    type = "archive"
+    url = "https://github.com/ohmyzsh/ohmyzsh/archive/master.tar.gz"
+    exact = true
+    stripComponents = 1
+    refreshPeriod = "168h"
+    # patterns match the pre-stripComponents path inside the archive
+    exclude = ["*/.*"]
+
+[".oh-my-zsh/custom/plugins/zsh-autosuggestions"]
+    type = "archive"
+    url = "https://github.com/zsh-users/zsh-autosuggestions/archive/refs/tags/v0.7.1.tar.gz"
+    exact = true
+    stripComponents = 1
+    checksum.sha256 = "0df7affff21cd87ed298e6a3970ed08a1dd66a6efa676454ee5b091ad503badf"
+
+[".oh-my-zsh/custom/plugins/zsh-syntax-highlighting"]
+    type = "archive"
+    url = "https://github.com/zsh-users/zsh-syntax-highlighting/archive/refs/tags/0.8.0.tar.gz"
+    exact = true
+    stripComponents = 1
+    checksum.sha256 = "5981c19ebaab027e356fe1ee5284f7a021b89d4405cc53dc84b476c3aee9cc32"
+
+# fzf-tab must load BEFORE widget-wrapping plugins (autosuggestions,
+# syntax-highlighting) -- see the plugins=() order in dot_zshrc.tmpl.
+# Also needs the fzf binary, installed by run_onchange_before_10.
+[".oh-my-zsh/custom/plugins/fzf-tab"]
+    type = "archive"
+    url = "https://github.com/Aloxaf/fzf-tab/archive/refs/tags/v1.3.0.tar.gz"
+    exact = true
+    stripComponents = 1
+    checksum.sha256 = "d75ac08c2c8af5a6a0478787b0f11fabbe24951973b7841ae963431e2070ee9a"
+
+[".oh-my-zsh/custom/themes/powerlevel10k"]
+    type = "archive"
+    url = "https://github.com/romkatv/powerlevel10k/archive/refs/tags/v1.20.0.tar.gz"
+    exact = true
+    stripComponents = 1
+    checksum.sha256 = "d8187d44b697b3a37a8c4896678b4380e717cbf2850179529358348780a2d3d7"
+
+# mise, referenced by the OMZ mise plugin (.zshrc) and the shims in .zprofile.
+# archive-file pulls the single binary out of the tarball; no sudo, no apt repo,
+# no curl|sh.
+# Deliberately NOT pinned: mise ships releases most days, so a pinned tag would
+# be the only external in this file that actually needs regular attention. The
+# other five move once a year or less. Same trade as .oh-my-zsh below -- a
+# moving URL cannot carry a checksum. `mise self-update` will fight chezmoi for
+# ownership of this file; let refreshPeriod do the upgrading.
+# The URL is linux-x64; an arm64 machine needs mise-latest-linux-arm64.tar.gz.
+[".local/bin/mise"]
+    type = "archive-file"
+    url = "https://mise.jdx.dev/mise-latest-linux-x64.tar.gz"
+    path = "mise/bin/mise"
+    executable = true
+    refreshPeriod = "168h"

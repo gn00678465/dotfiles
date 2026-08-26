@@ -1,0 +1,31 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/bin/sh
+# packages: zsh git fzf
+set -eu
+
+missing=""
+for pkg in zsh git fzf; do
+    if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q '^install ok installed$'; then
+        missing="$missing $pkg"
+    fi
+done
+if [ -z "$missing" ]; then
+    exit 0
+fi
+
+echo "chezmoi: installing missing packages:$missing"
+if [ "$(id -u)" -eq 0 ]; then
+    apt-get update && apt-get install -y $missing
+elif command -v sudo >/dev/null 2>&1; then
+    # Prime the sudo credential cache first: fails fast and loudly with no tty,
+    # instead of hanging or half-installing.
+    if ! sudo -v; then
+        echo "chezmoi: sudo authentication failed. Run: sudo apt-get install -y$missing" >&2
+        exit 1
+    fi
+    sudo apt-get update && sudo apt-get install -y $missing
+else
+    echo "chezmoi: sudo not available. Run as root: apt-get install -y$missing" >&2
+    exit 1
+fi
+{{ end -}}

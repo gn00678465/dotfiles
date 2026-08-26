@@ -1,0 +1,18 @@
+{{- $isWSL := false -}}
+{{- if eq .chezmoi.os "linux" -}}
+{{-   if hasKey .chezmoi "kernel" -}}
+{{-     if contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
+{{-       $isWSL = true -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+
+{{/* `chezmoi init --source=DIR` does not persist DIR: a later bare
+     `chezmoi apply` would fall back to ~/.local/share/chezmoi and fail. For the
+     normal clone this is just the default, written out explicitly. */}}
+{{- if hasKey .chezmoi "sourceDir" }}
+sourceDir = {{ .chezmoi.sourceDir | quote }}
+{{- end }}
+
+[data]
+    isWSL = {{ $isWSL }}
