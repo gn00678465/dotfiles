@@ -18,10 +18,10 @@ plugins=(git mise fzf-tab zsh-autosuggestions zsh-syntax-highlighting)
 zstyle ':omz:update' mode disabled
 source "$ZSH/oh-my-zsh.sh"
 
-# ---- Homebrew (runtime-guarded, not template-guarded) -------------------
-if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-fi
+{{ if eq .chezmoi.os "linux" }}
+# homebrew setup
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+{{ end }}
 
 # mise is NOT activated here: the OMZ `mise` plugin above already runs
 # `mise activate zsh` and additionally wires up completions. A second
