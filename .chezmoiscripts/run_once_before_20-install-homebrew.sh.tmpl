@@ -1,0 +1,24 @@
+{{- $brewPrefix := "/home/linuxbrew/.linuxbrew" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{-   $brewPrefix = "/opt/homebrew" -}}
+{{-   if ne .chezmoi.arch "arm64" -}}
+{{-     $brewPrefix = "/usr/local" -}}
+{{-   end -}}
+{{- end -}}
+#!/bin/zsh
+# Runs after 10-install-packages, which installs zsh itself plus Homebrew's
+# Linux build requirements.
+set -euo pipefail
+
+if [[ -x {{ $brewPrefix }}/bin/brew ]]; then
+  exit 0
+fi
+
+# NONINTERACTIVE skips the "Press RETURN to continue" prompt. On Linux the
+# installer still needs sudo to create /home/linuxbrew; 10-install-packages has
+# already primed the credential cache.
+echo "chezmoi: installing Homebrew"
+NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+eval "$({{ $brewPrefix }}/bin/brew shellenv)"
+brew analytics off

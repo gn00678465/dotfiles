@@ -1,10 +1,10 @@
 {{ if eq .chezmoi.os "linux" -}}
 #!/bin/sh
-# packages: zsh git fzf
+# packages: zsh git fzf + Homebrew's Linux requirements
 set -eu
 
 missing=""
-for pkg in zsh git fzf; do
+for pkg in zsh git fzf build-essential procps file; do
     if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q '^install ok installed$'; then
         missing="$missing $pkg"
     fi
