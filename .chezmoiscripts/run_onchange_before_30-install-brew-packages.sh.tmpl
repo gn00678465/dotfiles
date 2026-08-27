@@ -6,7 +6,8 @@
 {{-   end -}}
 {{- end -}}
 #!/bin/zsh
-# brew packages: mise
+# brew packages shared by Linux and macOS. Add new tools here, not to
+# 10-install-packages (apt, Linux only).
 set -euo pipefail
 
 eval "$({{ $brewPrefix }}/bin/brew shellenv)"
@@ -17,4 +18,6 @@ eval "$({{ $brewPrefix }}/bin/brew shellenv)"
 # unknown variable but would abort on an unknown flag.
 export HOMEBREW_NO_ASK=1
 
-brew list --formula mise &>/dev/null || brew install mise
+for formula in mise fzf git-lfs; do
+  brew list --formula "$formula" &>/dev/null || brew install "$formula"
+done

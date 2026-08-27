@@ -1,0 +1,20 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+    只管理下面明確列出的 key，其餘一律保留 —— 包含 Claude Code 自己寫進來的
+    theme、editorMode、tui 等狀態，以及日後新增的任何 key。
+    這個檔案不可以有 .tmpl 後綴，見 docs/research/chezmoi-templates-partial-config.md。
+*/ -}}
+{{- $cur := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $cur = fromJson .chezmoi.stdin -}}
+{{- end -}}
+
+{{- /* cc-statusline 由 .chezmoiexternal.toml.tmpl 裝到 ~/.claude/cc-statusline/ */ -}}
+{{- $cur = $cur | setValueAtPath "statusLine" (dict
+      "type"    "command"
+      "command" "STATUSLINE_USAGE_STYLE=dots ~/.claude/cc-statusline/cc-statusline"
+      "padding" 2) -}}
+{{- $cur = $cur | setValueAtPath "autoMemoryEnabled" false -}}
+{{- $cur = $cur | setValueAtPath "authDreamEnabled" false -}}
+
+{{ $cur | toPrettyJson }}

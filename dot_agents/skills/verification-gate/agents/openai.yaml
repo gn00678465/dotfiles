@@ -1,0 +1,7 @@
+interface:
+  display_name: "Verification Gate"
+  short_description: "Post-implementation verification layers and evidence report"
+  default_prompt: "Use $verification-gate to run the gate on this change and write an evidence report."
+
+policy:
+  allow_implicit_invocation: true
