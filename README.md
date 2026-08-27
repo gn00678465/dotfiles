@@ -24,6 +24,19 @@ sh -c "$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/main/i
 | `run_once_before_20-install-homebrew` 裝 Homebrew | `sudo` 密碼（快取通常還在） |
 | `run_after_default-shell` 改登入 shell | **你自己的**密碼（`chsh` 是 setuid，不是 sudo） |
 
+### 安裝指定 branch（測試用）
+
+URL 和 `--branch` 要用同一個 branch 名，這樣跑的是該 branch 自己的 `init.sh`：
+
+```bash
+sh -c "$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/<branch>/init.sh)" -- --branch <branch>
+```
+
+不帶 `--branch` 就是遠端預設 branch（main）。裝完後 `chezmoi update` 會一直追那個 branch，
+branch 合併刪除後要回 main：`chezmoi cd && git checkout main`。
+
+已經裝過的機器重跑 `init.sh` 不會重新 clone，`--branch` 會被忽略；要換 branch 用下面的方式。
+
 ---
 
 ## 日常使用
@@ -32,6 +45,7 @@ sh -c "$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/main/i
 chezmoi diff                 # 看會改什麼
 chezmoi apply                # 套用
 chezmoi add ~/.p10k.zsh      # 跑完 p10k configure 後把結果收回 repo
-chezmoi update               # git pull + apply
+chezmoi update               # git pull + apply（追目前 checkout 的 branch）
+chezmoi cd                   # 進 source dir；git checkout <branch> 後 exit 再 chezmoi apply
 chezmoi apply --refresh-externals   # 強制重抓 external
 ```
