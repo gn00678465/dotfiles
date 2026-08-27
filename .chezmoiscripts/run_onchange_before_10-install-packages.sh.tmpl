@@ -1,10 +1,12 @@
 {{ if eq .chezmoi.os "linux" -}}
 #!/bin/sh
-# packages: zsh git fzf + Homebrew's Linux requirements
+# OS-level prerequisites only: zsh/git/curl plus what the Homebrew installer
+# needs on Linux. Everything else (fzf, mise, git-lfs, ...) is a brew formula
+# in 30-install-brew-packages so the list is shared with macOS.
 set -eu
 
 missing=""
-for pkg in zsh git fzf build-essential procps file; do
+for pkg in zsh git curl build-essential procps file; do
     if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q '^install ok installed$'; then
         missing="$missing $pkg"
     fi
