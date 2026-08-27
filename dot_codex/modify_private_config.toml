@@ -1,0 +1,66 @@
+#!/bin/sh
+# chezmoi modify_ script for ~/.codex/config.toml
+#
+# 只改寫 [tui] 區塊裡 MANAGED 列出的 key，其餘位元組原封不動 ——
+# 註解、key 順序、空行、其他 [table]、Codex 自己寫進來的東西全部保留。
+#
+# 不用 `fromToml | setValueAtPath | toToml` 純模板寫法：那會吃掉全部註解、
+# 把 key 重排成字典序、拆開 [a.b] 表頭，還會把不帶時區 offset 的 TOML date
+# 依本機時區位移。詳見 docs/research/chezmoi-templates-partial-config.md §3.3。
+#
+# 假設：受管的 key 各自寫在一行（key = value）。
+set -eu
+
+TABLE='tui'
+MANAGED='status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "five-hour-limit", "weekly-limit", "context-window-size", "used-tokens"]
+status_line_use_colors = true'
+
+awk -v table="$TABLE" -v managed="$MANAGED" '
+# 把還沒輸出的受管 key 補在目前 [table] 區塊的尾端（跳過區塊末尾的空行，之後再補回）
+function flush(   i, k, appended, blank) {
+    blank = 0
+    while (nbuf > 0 && buf[nbuf] ~ /^[ \t]*$/) { nbuf--; blank++ }
+    for (i = 1; i <= nbuf; i++) print buf[i]
+    nbuf = 0
+    for (i = 1; i <= n; i++) {
+        k = order[i]
+        if (!(k in done)) { print want[k]; done[k] = 1; appended = 1 }
+    }
+    for (i = 1; i <= blank; i++) print ""
+    if (appended && !blank && !ateof) print ""
+}
+BEGIN {
+    n = split(managed, lines, "\n")
+    for (i = 1; i <= n; i++) {
+        line = lines[i]; k = line; sub(/[ \t]*=.*$/, "", k)
+        want[k] = line; order[i] = k
+    }
+    intable = 0; seen = 0
+}
+{
+    if ($0 ~ /^[ \t]*\[/) {                      # 任何表頭
+        if (intable) { flush(); intable = 0 }
+        hdr = $0; sub(/^[ \t]*\[[ \t]*/, "", hdr); sub(/[ \t]*\].*$/, "", hdr)
+        if (hdr == table) { intable = 1; seen = 1 }
+        print; next
+    }
+    if (intable) {
+        k = $0; sub(/^[ \t]*/, "", k); sub(/[ \t]*=.*$/, "", k)
+        if (k in want) {
+            if (!(k in done)) { buf[++nbuf] = want[k]; done[k] = 1 }
+            next                                  # 受管的 key：換成我們的版本，重複的丟掉
+        }
+        buf[++nbuf] = $0; next                    # 區塊內其他行先緩衝，flush 時原樣輸出
+    }
+    print
+}
+END {
+    ateof = 1
+    if (intable) { flush(); exit }
+    if (!seen) {                                  # 整個檔案沒有 [table]：補在最後
+        if (NR > 0) print ""
+        print "[" table "]"
+        for (i = 1; i <= n; i++) print want[order[i]]
+    }
+}
+'
