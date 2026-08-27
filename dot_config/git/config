@@ -1,0 +1,7 @@
+# chezmoi 全檔接管。git 讀 global 設定的順序是先這個檔、再 ~/.gitconfig，
+# 後者覆蓋前者；而 `git config --global` 在 ~/.gitconfig 存在時只會寫那邊。
+# 所以跨機器一致的設定放這裡，機器本地的覆寫與工具（gh、credential helper）
+# 寫入的東西留在 ~/.gitconfig，兩邊不打架。~/.gitconfig 由 create_empty_dot_gitconfig
+# 保證存在，否則新機器上第一次 `git config --global` 會寫進這個檔。
+[init]
+	defaultBranch = main
