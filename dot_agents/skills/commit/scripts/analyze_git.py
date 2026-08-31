@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.10"
 # ///
-"""分析 staged git 變更，輸出結構化 JSON 供 commit-message skill 使用。"""
+"""分析 staged git 變更，輸出結構化 JSON 供 commit skill 使用。"""
 
 from __future__ import annotations
 
