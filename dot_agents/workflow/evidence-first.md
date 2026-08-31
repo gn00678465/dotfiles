@@ -5,9 +5,7 @@ no workflow tool fits. The human will NOT read the implementation. Their
 confidence comes entirely from two artifacts: the **SPEC** they approve
 before code exists (owned by this workflow), and the **EVIDENCE** report
 proving the code ran the gate (owned by the `verification-gate` skill). This
-file owns the front half of the loop; the skill owns the back half. Do not
-duplicate the gate's layers here, and never hand-roll an evidence report in
-place of the skill.
+file owns the front half of the loop; the skill owns the back half.
 
 ```
 SPEC → SPEC REVIEW (human approves spec, not code)
@@ -48,8 +46,7 @@ The spec contains:
   step.
 - **Approval** — append-only record of the structured act that approved each
   spec version: the approving words verbatim, the date, and the version they
-  bind. Filled at SPEC REVIEW and committed with the spec, so the gate reads
-  `confirmed` from git instead of from the conversation.
+  bind. Filled at SPEC REVIEW and committed with the spec.
 - **Revisions** — append-only log. If implementation reveals the spec was
   wrong, say so explicitly and revise it visibly here — never silently drift.
   A revision invalidates prior approval: bump the version and re-request.
@@ -70,9 +67,7 @@ spec and record each round's settled decisions under Revisions. Facts are
 your job, never the human's: look up (or dispatch a subagent for) anything
 the environment can answer, and put only decisions to the human. Exploration
 ends when the frontier is empty — nothing left silently assumed. Bump the
-spec version once at the end, not per round. Every answer in this stage is
-an INPUT that changes the spec, never approval: signing is a separate
-exchange, after it, always.
+spec version once at the end, not per round.
 
 ### Signing — the structured act
 
@@ -89,18 +84,14 @@ Show the final spec to the human in plain language and get approval.
 - **Approval is a structured act bound to one spec version, not a parsed
   phrase.** Request it with an explicit structured prompt whose question
   names the version being approved; quote the selection verbatim into the
-  spec's `## Approval` section (words, date, version bound) and commit it
-  with the spec. That makes the gate's `intent_status: confirmed`
-  mechanically readable from git — and it survives compaction, which the
-  conversation does not.
+  spec's `## Approval` section (words, date, version bound) and commit the
+  spec (the setup plan is where that was authorized). A committed,
+  human-approved spec makes later drift a literal `git diff`, makes the
+  gate's `intent_status: confirmed` mechanically readable from git, and
+  survives compaction, which the conversation does not.
 - **If the spec is rejected**, revise the file in place, record the reason
   under Revisions, and re-request approval. Do not start a clean file — what
   the human turned down, and why, is the most useful thing in it.
-- **Commit the spec at approval** (where repo conventions allow — the setup
-  plan is where that was authorized). A committed spec makes later drift a
-  literal `git diff`, and gives the gate its strongest intent source: a
-  human-approved file with provenance, so intent status is `confirmed`
-  instead of reconstructed.
 - **Autonomous mode** (no human available): state the spec in your response
   and proceed, but the correlation-breaking review never happened — record
   `spec approval: not obtained (autonomous run)` and claim correspondingly
@@ -173,8 +164,7 @@ On a gate failure, send the failing output back to the same subagent
 verbatim (resume its context rather than re-briefing); after three rejected
 rounds, escalate to the human. Delegation does not replace Tier 3
 independent verification — implementor and orchestrator share a model, so
-the verifier's fresh context stays necessary. Background and rationale:
-`docs/research/subagent-implementor.md` in the dotfiles repo.
+the verifier's fresh context stays necessary.
 
 ## Phase 4 — VERIFY (hand off to `verification-gate`)
 
@@ -185,8 +175,8 @@ point, the layer stack, and the report.
 - Use `gate` iteratively while fixing failures; use `evidence` exactly once,
   after the last code edit, to produce the final report.
 - Hand it: the base ref, the change set, the tier from the SPEC, and the
-  committed SPEC path as the intent record. Point it at the spec file rather
-  than letting it reconstruct intent from the conversation.
+  committed SPEC path as the intent record — never leave it to reconstruct
+  intent from the conversation.
 - **A failing gate blocks done.** You are not finished while any layer
   fails; if genuinely blocked, report the failure verbatim as the outcome.
 

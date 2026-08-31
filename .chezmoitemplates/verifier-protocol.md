@@ -40,13 +40,14 @@ your fresh context is wasted.
 Record what was tried at each surface, including attacks that found nothing.
 The attack list is the deliverable; findings are a bonus.
 
-1. **The run.** Execute the entry point from the stated source state and
-   record the result blind. First confirm the environment actually tests the
-   tree it claims to — a copied virtualenv, a stale install, or a cached
-   artifact can silently exercise the original sources and make every later
-   result meaningless. After the reveal, any mismatch with the draft report
-   suspends its claim until source state, environment, freshness, and
-   determinism are reconciled — do not silently prefer either number.
+1. **The run.** Confirm the environment actually tests the tree it claims
+   to — a copied virtualenv, a stale install, or a cached artifact can
+   silently exercise the original sources and make every later result
+   meaningless. Then execute the entry point from the stated source state
+   and record the result blind. After the reveal, any mismatch with the
+   draft report suspends its claim until source state, environment,
+   freshness, and determinism are reconciled — do not silently prefer
+   either number.
 2. **The spec against the contract.** The one failure class a test suite
    structurally cannot catch. What would a caller reasonably expect, given
    the stated deployment, that no scenario or Must NOT covers? Approved
