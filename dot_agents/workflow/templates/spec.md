@@ -61,6 +61,8 @@ approval you do not have — an answer to a question is not one.
 
 Append-only. If implementation reveals the spec was wrong, revise visibly
 here — never silently drift. What the human turned down, and why, stays on
-record.
+record. Exploration rounds land here too: one entry per round, listing the
+decisions that round settled.
 
+- <date> — exploration round <n>: <decisions settled>
 - <date> — <what changed and why>

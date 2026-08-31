@@ -56,8 +56,27 @@ The spec contains:
 
 ## Phase 2 — SPEC REVIEW
 
-Show the spec to the human in plain language and get approval **before
-writing implementation**.
+Two stages, in this order: explore until nothing is silently assumed, then
+sign. Both happen **before writing implementation**.
+
+### Exploration — empty the frontier first (recommended at Tier 2+)
+
+Walk the draft spec as a design tree: every decision (the tier, each
+scenario's boundaries, each Must NOT, each setup-plan choice) branches into
+the decisions that hang off it. Work it in rounds — the frontier is every
+decision whose prerequisites are already settled; ask the whole frontier at
+once, each question with a recommended answer; fold the answers into the
+spec and record each round's settled decisions under Revisions. Facts are
+your job, never the human's: look up (or dispatch a subagent for) anything
+the environment can answer, and put only decisions to the human. Exploration
+ends when the frontier is empty — nothing left silently assumed. Bump the
+spec version once at the end, not per round. Every answer in this stage is
+an INPUT that changes the spec, never approval: signing is a separate
+exchange, after it, always.
+
+### Signing — the structured act
+
+Show the final spec to the human in plain language and get approval.
 
 - **An answer to a question is not an approval.** If you asked the human to
   decide something, their answer is an INPUT that CHANGES the spec — any
@@ -126,6 +145,36 @@ What is frozen is **behavioral assertions**, not test files wholesale:
 - Anything that requires editing an assertion is not refactoring — it is a
   behavior change and belongs back in SPEC (with a Revisions entry and, if
   material, re-approval).
+
+### Delegated implementation (Tier 2+ option)
+
+The RED→GREEN→REFACTOR loop may run in an **implementor subagent** so its
+tool output does not consume the orchestrator's context. The contract
+survives this split by design — verification reads git, never the
+conversation — on three conditions:
+
+- **Per-step commit cadence, spec-approved.** Each behavior lands as a RED
+  commit (tests only) followed by a GREEN commit (implementation only),
+  declared in the SPEC's setup plan so approval authorizes the cadence.
+  This is what turns anti-gaming rule 2 (temporal, otherwise traceless)
+  into a git-readable invariant.
+- **Hand off commits, not narration.** The subagent receives the approved
+  SPEC path, the base ref, an isolated worktree, and the gate entry point —
+  never the orchestrator's conversation (the verifier's four-input shape).
+  It returns a commit SHA per behavior; treat everything else it says as
+  unverified narration and let the gate verify — RED reconstruction catches
+  a vacuous test behind a claimed RED.
+- **Split only when it pays.** A subagent re-reads the spec and codebase
+  from scratch, so total tokens go up; what the split buys is the
+  orchestrator's context. Delegate multi-behavior Tier 2+ work; keep Tier 1
+  and single-behavior changes in-session.
+
+On a gate failure, send the failing output back to the same subagent
+verbatim (resume its context rather than re-briefing); after three rejected
+rounds, escalate to the human. Delegation does not replace Tier 3
+independent verification — implementor and orchestrator share a model, so
+the verifier's fresh context stays necessary. Background and rationale:
+`docs/research/subagent-implementor.md` in the dotfiles repo.
 
 ## Phase 4 — VERIFY (hand off to `verification-gate`)
 
