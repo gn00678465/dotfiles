@@ -5,6 +5,7 @@ AGENTS.md
 CLAUDE.md
 CONTEXT.md
 docs/
+tests/
 
 # Oh My Zsh runtime state, so `exact = true` on .oh-my-zsh does not delete it.
 # `dir/**` matches the directory itself as well as everything beneath it.

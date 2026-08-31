@@ -16,6 +16,14 @@ The five canonical roles, with label strings equal to their names. See `docs/age
 
 Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+### Contract invariants
+
+`tests/check-agent-doc-invariants.sh` guards the cross-file promises between
+the evidence-first contract, the workflow reference (`dot_agents/workflow/`),
+and the `verification-gate` skill (status vocabularies, report fields, shared
+tier and anti-gaming definitions). Run it after editing any of those files;
+rc 1 = invariant broken, rc 2 = the check itself broke.
+
 ## Install scripts (`.chezmoiscripts/`)
 
 Linux **and macOS** are both targets. Keep them in sync:
