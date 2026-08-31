@@ -12,6 +12,7 @@ SPEC → SPEC REVIEW (human approves spec, not code)
      → per behavior: RED → GREEN → REFACTOR
      → verification-gate: `gate` (iterate while fixing) → `evidence` (final, once)
      → Tier 3 option: independent verification (`verifier` agent)
+     → after merge: CLOSE (`spec-archive` skill)
 ```
 
 ## Phase 1 — SPEC
@@ -55,6 +56,25 @@ The spec contains:
 
 Two stages, in this order: explore until nothing is silently assumed, then
 sign. Both happen **before writing implementation**.
+
+### Review surface — render the spec for the human
+
+Put the spec in front of the human as a rendered HTML review page whenever a
+review surface is available — a wall of markdown in a terminal taxes human
+attention and hides gaps. The surface is the `reviewable-html-workbench`
+plugin (Claude Code and Codex both: block-anchored comment threads,
+mechanical three-state turn-taking, a resolution gate that blocks edits
+while any thread awaits a reply). Not installed? Suggest installing it and
+fall back to plain terminal — never hand-roll a review page: an improvised
+page burns tokens, has no comment channel back to you, and drifts from the
+spec. When building the document model, declare `metadata.lang` (any
+non-`ja` value, e.g. `zh-Hant`) — the plugin's review UI defaults to
+Japanese on every machine, and this field is what switches its chrome to
+English; the document body stays in whatever language you wrote. The surface changes only where the
+conversation happens, never where authority lives: comments are exploration
+INPUTs (one thread per scenario; every thread resolved = the frontier is
+empty), and approval still lands as the verbatim quote committed into
+`## Approval` — a web page is a capture interface, not a record.
 
 ### Exploration — empty the frontier first (recommended at Tier 2+)
 
@@ -223,6 +243,14 @@ orchestration rules on your side:
   beside the gate's evidence report — never into the report itself (the
   skill owns that file). Per-round reports are the verifier's verbatim
   output; the aggregate is yours. Deliver both to the human together.
+
+## Phase 6 — CLOSE (after merge; Tier 3: after verification finalizes)
+
+A shipped spec is an immutable intent record, not a living constraint — the
+living truth moved into the tests. Invoke the `spec-archive` skill: it flips
+`status` to `shipped`, moves the spec to `specs/archive/<scope>/`, and
+commits — mechanically, fail closed; its `--check` finds forgotten closes.
+Never move or edit the spec files by hand in its place.
 
 ## Anti-Gaming Rules (absolute, bind through every phase)
 
