@@ -20,7 +20,8 @@ SPEC → SPEC REVIEW (human approves spec, not code)
 
 Before touching any implementation file, turn the request into **executable
 acceptance criteria** in a spec file, committed to the repo (suggested path:
-`specs/<scope>/SPEC.md`). Show the human its absolute path.
+`specs/<scope>/SPEC.md`; template at `templates/spec.md` beside this file).
+Show the human its absolute path.
 
 The spec contains:
 
@@ -45,8 +46,13 @@ The spec contains:
   justification** (prefer stdlib and deps already present; an unjustified
   package is a spec defect). Approving the spec authorizes all of it in one
   step.
+- **Approval** — append-only record of the structured act that approved each
+  spec version: the approving words verbatim, the date, and the version they
+  bind. Filled at SPEC REVIEW and committed with the spec, so the gate reads
+  `confirmed` from git instead of from the conversation.
 - **Revisions** — append-only log. If implementation reveals the spec was
   wrong, say so explicitly and revise it visibly here — never silently drift.
+  A revision invalidates prior approval: bump the version and re-request.
 
 ## Phase 2 — SPEC REVIEW
 
@@ -58,7 +64,16 @@ writing implementation**.
   approval held before the question is approval of a document that no longer
   exists. Fold the answers in, say what changed, show the revised spec, ask
   again. If you cannot quote the words that approved THIS spec, you do not
-  have approval.
+  have approval. The recommended-option shape makes this easy to get wrong:
+  when the human picks the options you recommended, the spec looks unchanged
+  and consent looks implied, and neither is true.
+- **Approval is a structured act bound to one spec version, not a parsed
+  phrase.** Request it with an explicit structured prompt whose question
+  names the version being approved; quote the selection verbatim into the
+  spec's `## Approval` section (words, date, version bound) and commit it
+  with the spec. That makes the gate's `intent_status: confirmed`
+  mechanically readable from git — and it survives compaction, which the
+  conversation does not.
 - **If the spec is rejected**, revise the file in place, record the reason
   under Revisions, and re-request approval. Do not start a clean file — what
   the human turned down, and why, is the most useful thing in it.
@@ -82,6 +97,8 @@ the implementation. A test you never saw fail proves nothing.
 - If the module under test doesn't exist yet, create a stub that raises
   (e.g. `NotImplementedError`) so the test fails on behavior, not on import —
   a collection error is a weaker RED than an assertion failure.
+- Related behaviors may share one RED run, as long as each new test is
+  individually observed failing.
 - If a new test passes immediately, it is either vacuous (fix it) or the
   behavior already exists. Don't assert which — **prove it**: break the
   implementation with a one-off throwaway mutant, watch the test fail,
@@ -103,7 +120,9 @@ What is frozen is **behavioral assertions**, not test files wholesale:
 
 - Implementation refactors touch no test files at all.
 - Test-structure refactors (helpers, fixtures, dedup) are a **separate
-  step**: assertions unchanged, suite green before and after.
+  step**: assertions unchanged, suite green before and after, then rerun
+  mutation to confirm the restructured tests still kill — a refactor that
+  blunts the tests is a silent hole in the gate.
 - Anything that requires editing an assertion is not refactoring — it is a
   behavior change and belongs back in SPEC (with a Revisions entry and, if
   material, re-approval).
@@ -136,6 +155,12 @@ orchestration rules on your side:
   source state (SHA or tree hash), and the gate entry point. Never the
   builder's conversation. Provide the draft evidence report only after the
   verifier returns its blind results.
+- **Input hygiene decides verifier noise.** Point it at the repository root
+  (never a subdirectory) of an isolated, clean copy at the stated source
+  state — a polluted tree (stale editable install, cached artifacts) or a
+  partial checkout produces false positives that read like findings. The
+  isolated copy also enforces "fixes nothing" by construction: the
+  verifier's tools can write, the copy makes that harmless.
 - **Optional canary**: run the verifier once against an isolated copy with a
   planted defect it was not told about — never plant in the candidate. A
   missed canary voids that verdict; a caught one is a floor, not a
@@ -154,9 +179,11 @@ orchestration rules on your side:
   keep the earlier rounds as history.
 - **Four states**: `passed` finalizes; `failed` and `blocked` do not;
   `not performed` finalizes only as a declared downgrade.
-- **Where the verdict lands**: write it to `.gate/<scope>/verification.md`,
+- **Where the verdict lands**: write it to `.gate/<scope>/verification.md`
+  (aggregate template at `templates/verification.md` beside this file),
   beside the gate's evidence report — never into the report itself (the
-  skill owns that file). Deliver both to the human together.
+  skill owns that file). Per-round reports are the verifier's verbatim
+  output; the aggregate is yours. Deliver both to the human together.
 
 ## Anti-Gaming Rules (absolute, bind through every phase)
 

@@ -1,5 +1,5 @@
-<!-- managed-by: chezmoi | source: .chezmoitemplates/evidence-first-contract.md | v0.4 -->
-<!-- TODO(v0.x): finalize the spec-approval keyword list (kotek-7-style gate) -->
+<!-- managed-by: chezmoi | source: .chezmoitemplates/evidence-first-contract.md | v0.5 -->
+<!-- evidence-first:contract -->
 <workflow name="evidence-first" role="contract">
 
 # Evidence-First Contract
@@ -23,10 +23,14 @@ SPEC → approve+commit → RED → GREEN (per behavior) → gate → evidence
 
 1. **Intent on record.** A spec the human approved BEFORE implementation,
    committed to the repo: scenarios with concrete inputs and outputs, Must
-   NOT constraints, and a declared tier. An answer to a question is not an
-   approval: if you cannot quote the words that approved THIS spec —
-   whichever workflow's artifact carries it — you do not have approval. No
-   human available → proceed, and record `approval: not obtained`.
+   NOT constraints, and a declared tier. Approval is a structured act bound
+   to one spec version — not a parsed phrase: the approving words are quoted
+   verbatim into the spec's own approval record (words, date, version bound)
+   and committed with it, so the gate reads `confirmed` from git, never from
+   the conversation. An answer to a question is not an approval: if you
+   cannot quote the words that approved THIS spec — whichever workflow's
+   artifact carries it — you do not have approval. No human available →
+   proceed, and record `approval: not obtained`.
 2. **Tests committed before the implementation they cover.**
 3. **Every new test observed failing first (RED).** A test you never saw
    fail proves nothing.
@@ -52,3 +56,4 @@ intent, ordering, and RED status in the evidence report, so every shortcut
 becomes a visible downgrade the human can price — not a hidden one.
 
 </workflow>
+<!-- /evidence-first:contract -->

@@ -1,6 +1,16 @@
 # Evidence Report — <task name> (Tier <1|2|3>)
 
+- `headline`: <!-- one line, derived mechanically — never composed. In order:
+  `BLOCKED at <layer>` when any Gate row failed (everything behind it is NOT
+  REACHED); `NOT PRESENTABLE AS PASSED — <not reproducible | SUBSTITUTED
+  layer presented in its place>` when either applies; otherwise `GATE PASSED`
+  plus one qualifier per degraded status (reproducibility degraded, git_facts
+  partial, intent unconfirmed/absent, any DEPENDENCY UNMET row). The weakest
+  link names the headline; a reader who reads nothing else reads this -->
 - `command`: `evidence`
+- `contract`: <!-- applied | overridden by <path> | n-a (routine change) —
+  whether an evidence-first contract governed this change; an override is
+  never silent -->
 - `scope`: <!-- artifact subfolder name -->
 - `change_set`: <!-- working tree | <base>...HEAD | commit range | PR -->
 - `base`: <!-- comparison ref -->
