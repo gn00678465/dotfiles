@@ -1,0 +1,80 @@
+{{- $brewPrefix := "/home/linuxbrew/.linuxbrew" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{-   $brewPrefix = "/opt/homebrew" -}}
+{{-   if ne .chezmoi.arch "arm64" -}}
+{{-     $brewPrefix = "/usr/local" -}}
+{{-   end -}}
+{{- end -}}
+#!/bin/zsh
+# Neovim (via mise) + the LazyVim starter config.
+# `before`, because `git clone` refuses a non-empty target and chezmoi owns
+# files *inside* ~/.config/nvim (private_dot_config/nvim/...). The starter has
+# to land first; chezmoi then writes our overrides on top of it.
+set -euo pipefail
+
+eval "$({{ $brewPrefix }}/bin/brew shellenv)"
+
+if ! command -v mise &>/dev/null; then
+  echo "chezmoi: mise not found, skipping neovim" >&2
+  exit 0
+fi
+
+# `yes` is a mise setting, not a flag on `use`; the env var form is the one
+# that is guaranteed to work here, and chezmoi runs this unattended.
+export MISE_YES=1
+
+# Writes neovim = "0.12.5" to ~/.config/mise/config.toml and installs it.
+#
+# Pinned rather than @latest, for two risks the other tools here do not carry:
+#   - mise installs neovim's *official prebuilt* Linux binary, built on
+#     ubuntu-22.04 (glibc 2.35). Debian 11 (2.31) cannot run it; 12 and 13 can.
+#     That floor rises whenever neovim's CI moves to a newer runner.
+#   - nvim-treesitter's `main` branch -- the one LazyVim tracks -- has already
+#     tightened its minimum neovim version mid-flight once and broke installs
+#     (LazyVim#7092). LazyVim guards against "too old", not against "too new".
+# So bumping this is a deliberate act: re-read the Requirements sections of
+# nvim-treesitter `main` and LazyVim first.
+# Background: docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md
+mise use --global neovim@0.12.5
+
+# The LazyVim starter is a template, not a tracked dependency: clone it once and
+# drop its .git. Whatever chezmoi does not explicitly own under
+# private_dot_config/nvim/ is then the user's to edit in place -- nothing here
+# is `exact`, so chezmoi will not delete or revert it.
+nvim_config="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+nvim_data="${XDG_DATA_HOME:-$HOME/.local/share}/nvim"
+nvim_state="${XDG_STATE_HOME:-$HOME/.local/state}/nvim"
+nvim_cache="${XDG_CACHE_HOME:-$HOME/.cache}/nvim"
+
+# Our own marker, not LazyVim's. Directory existence is not a usable guard once
+# this script moves things aside: on a re-run (this is run_onchange_, so editing
+# the script re-runs it) an existing ~/.config/nvim is the user's own config,
+# not a foreign one, and must not be backed up and re-cloned over. Delete this
+# file to deliberately force a clean re-bootstrap on the next apply.
+marker="$nvim_config/.chezmoi-lazyvim-starter"
+
+# `mv dir dir.bak` moves dir *inside* dir.bak when dir.bak already exists, which
+# silently buries the older backup. Fall back to a timestamp instead.
+backup_dir() {
+  [[ -e $1 ]] || return 0
+  local dest="$1.bak"
+  if [[ -e $dest ]]; then
+    dest="$1.bak.$(date +%Y%m%d%H%M%S)"
+  fi
+  echo "chezmoi: backing up $1 -> $dest"
+  mv "$1" "$dest"
+}
+
+if [[ ! -e $marker ]]; then
+  # LazyVim wants a clean slate: any pre-existing config and plugin data is
+  # moved aside rather than merged. Nothing is deleted.
+  backup_dir "$nvim_config"
+  backup_dir "$nvim_data"
+  backup_dir "$nvim_state"
+  backup_dir "$nvim_cache"
+
+  echo "chezmoi: cloning the LazyVim starter into $nvim_config"
+  git clone --depth 1 https://github.com/LazyVim/starter "$nvim_config"
+  rm -rf "$nvim_config/.git"
+  touch "$marker"
+fi

@@ -18,6 +18,6 @@ eval "$({{ $brewPrefix }}/bin/brew shellenv)"
 # unknown variable but would abort on an unknown flag.
 export HOMEBREW_NO_ASK=1
 
-for formula in mise fzf git-lfs; do
+for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter; do
   brew list --formula "$formula" &>/dev/null || brew install "$formula"
 done
