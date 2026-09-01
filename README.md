@@ -9,9 +9,15 @@
 在 Windows 10/11 x64 的 PowerShell 中先安裝 chezmoi，再套用本 repository：
 
 ```powershell
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+  throw "WinGet is unavailable. Install or repair App Installer, then rerun this block."
+}
 winget install --id twpayne.chezmoi --exact --source winget
 chezmoi init --apply https://github.com/gn00678465/dotfiles.git
 ```
+
+一般 Windows 11 會提供 App Installer 與 WinGet；若使用刻意不含 Store 應用的最小化映像
+（例如 Windows Sandbox），請先安裝或修復 **App Installer**，再重新執行上述區塊。
 
 測試指定 branch 時，branch 名稱必須同時出現在 init 參數與 repository：
 
