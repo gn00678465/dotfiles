@@ -150,6 +150,7 @@ class ChezmoiTemplateContractTests(unittest.TestCase):
         """CI installs only its temporary renderer before contract checks."""
         workflow = WINDOWS_CONTRACT_WORKFLOW.read_text(encoding="utf-8")
         bootstrap = "winget install --id twpayne.chezmoi --exact --source winget"
+        user_path = '[Environment]::GetEnvironmentVariable("Path", "User")'
         command_check = "Get-Command chezmoi -ErrorAction SilentlyContinue"
         gate = "bash tools/gate.sh"
 
@@ -161,10 +162,13 @@ class ChezmoiTemplateContractTests(unittest.TestCase):
             "--disable-interactivity",
         ):
             self.assertIn(flag, workflow)
+        self.assertIn(user_path, workflow)
+        self.assertIn("$env:GITHUB_PATH", workflow)
         self.assertIn(command_check, workflow)
         self.assertIn("shell: powershell", workflow)
         self.assertIn("Test-WindowsPowerShell51BootstrapCompatibility", workflow)
         self.assertLess(workflow.index(bootstrap), workflow.index(command_check))
+        self.assertLess(workflow.index(user_path), workflow.index(command_check))
         self.assertLess(workflow.index(command_check), workflow.index(gate))
 
         self.assertNotIn("chezmoi apply", workflow)
