@@ -5,6 +5,7 @@
 {{-     $brewPrefix = "/usr/local" -}}
 {{-   end -}}
 {{- end -}}
+{{ if or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin") -}}
 #!/bin/zsh
 # Runs after 10-install-packages, which installs zsh itself plus Homebrew's
 # Linux build requirements.
@@ -22,3 +23,4 @@ NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Ho
 
 eval "$({{ $brewPrefix }}/bin/brew shellenv)"
 brew analytics off
+{{ end -}}

@@ -1,2 +1,3 @@
 # get.chezmoi.io drops its binary here when run from inside the source dir
 bin/
+__pycache__/

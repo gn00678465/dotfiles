@@ -5,6 +5,7 @@
 {{-     $brewPrefix = "/usr/local" -}}
 {{-   end -}}
 {{- end -}}
+{{ if or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin") -}}
 #!/bin/zsh
 # Neovim (via mise) + the LazyVim starter config.
 # `before`, because `git clone` refuses a non-empty target and chezmoi owns
@@ -78,3 +79,4 @@ if [[ ! -e $marker ]]; then
   rm -rf "$nvim_config/.git"
   touch "$marker"
 fi
+{{ end -}}

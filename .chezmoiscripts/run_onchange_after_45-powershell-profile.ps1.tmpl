@@ -1,0 +1,37 @@
+{{ if eq .chezmoi.os "windows" -}}
+$ErrorActionPreference = "Stop"
+
+$profileDirectory = Join-Path -Path $HOME -ChildPath "Documents\PowerShell"
+$profilePath = Join-Path -Path $profileDirectory -ChildPath "Profile.ps1"
+$beginMarker = "# >>> chezmoi oh-my-posh >>>"
+$endMarker = "# <<< chezmoi oh-my-posh <<<"
+$managedBlock = @"
+$beginMarker
+oh-my-posh init pwsh --config 'powerlevel10k_rainbow' --strict | Invoke-Expression
+$endMarker
+"@
+
+New-Item -ItemType Directory -Path $profileDirectory -Force | Out-Null
+$current = if (Test-Path -LiteralPath $profilePath) {
+    [System.IO.File]::ReadAllText($profilePath)
+} else {
+    ""
+}
+
+$beginCount = ([regex]::Matches($current, [regex]::Escape($beginMarker))).Count
+$endCount = ([regex]::Matches($current, [regex]::Escape($endMarker))).Count
+if ($beginCount -ne $endCount -or $beginCount -gt 1) {
+    throw "chezmoi: malformed Oh My Posh managed block in $profilePath"
+}
+
+if ($beginCount -eq 1) {
+    $blockPattern = "(?ms)^" + [regex]::Escape($beginMarker) + ".*?^" + [regex]::Escape($endMarker) + "\\r?\\n?"
+    $next = [regex]::Replace($current, $blockPattern, $managedBlock + [Environment]::NewLine)
+} elseif ([string]::IsNullOrEmpty($current)) {
+    $next = $managedBlock + [Environment]::NewLine
+} else {
+    $next = $current.TrimEnd("`r", "`n") + [Environment]::NewLine + [Environment]::NewLine + $managedBlock + [Environment]::NewLine
+}
+
+[System.IO.File]::WriteAllText($profilePath, $next, [System.Text.UTF8Encoding]::new($false))
+{{ end -}}

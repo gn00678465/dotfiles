@@ -1,3 +1,4 @@
+{{ if or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin") -}}
 # mise shims for non-interactive login shells (see mise docs: shims for
 # non-interactive, `mise activate` for interactive).
 # ~/.local/bin is NOT on the default login PATH, so prepend it before probing.
@@ -15,3 +16,4 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 if (( $+commands[mise] )); then
   eval "$(mise activate zsh --shims)"
 fi
+{{ end -}}

@@ -6,6 +6,15 @@ CLAUDE.md
 CONTEXT.md
 docs/
 specs/
+tests/
+.scratch/
+
+{{ if eq .chezmoi.os "windows" -}}
+# Windows uses PowerShell 7 + Oh My Posh; these are Unix-only source targets.
+.zshrc
+.zprofile
+.p10k.zsh
+{{ end -}}
 
 # Oh My Zsh runtime state, so `exact = true` on .oh-my-zsh does not delete it.
 # `dir/**` matches the directory itself as well as everything beneath it.

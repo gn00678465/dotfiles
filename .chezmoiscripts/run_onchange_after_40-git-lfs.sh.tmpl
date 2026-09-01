@@ -5,6 +5,7 @@
 {{-     $brewPrefix = "/usr/local" -}}
 {{-   end -}}
 {{- end -}}
+{{ if or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin") -}}
 #!/bin/zsh
 # `git lfs install` is a `git config --global` write. It must run AFTER files
 # are applied: create_empty_dot_gitconfig guarantees ~/.gitconfig exists by
@@ -20,3 +21,4 @@ fi
 
 # --skip-repo: only write the global filter config, never touch the cwd repo.
 git lfs install --skip-repo >/dev/null
+{{ end -}}

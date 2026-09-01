@@ -5,6 +5,7 @@
 {{-     $brewPrefix = "/usr/local" -}}
 {{-   end -}}
 {{- end -}}
+{{ if or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin") -}}
 #!/bin/zsh
 # brew packages shared by Linux and macOS. Add new tools here, not to
 # 10-install-packages (apt, Linux only).
@@ -21,3 +22,4 @@ export HOMEBREW_NO_ASK=1
 for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter; do
   brew list --formula "$formula" &>/dev/null || brew install "$formula"
 done
+{{ end -}}

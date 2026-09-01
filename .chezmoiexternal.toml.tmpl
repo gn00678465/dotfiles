@@ -1,3 +1,4 @@
+{{ if or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin") -}}
 # Oh My Zsh itself. `exact` means chezmoi deletes anything in ~/.oh-my-zsh that
 # is not in this tarball -- which is why every plugin/theme below must also be an
 # external, and why cache/ and log/ are in .chezmoiignore.
@@ -41,6 +42,7 @@
     exact = true
     stripComponents = 1
     checksum.sha256 = "d8187d44b697b3a37a8c4896678b4380e717cbf2850179529358348780a2d3d7"
+{{ end -}}
 
 {{- $ccStatuslineVersion := "v2.0.1" -}}
 {{- $ccStatuslineAsset := "" -}}
