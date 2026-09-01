@@ -42,6 +42,14 @@ def require(file: Path, desc: str, pattern: str) -> None:
         die(1, f"{desc} — '{pattern}' not found in {file}")
 
 
+def forbid(file: Path, desc: str, pattern: str) -> None:
+    global CHECKS
+    if pattern not in read(file):
+        CHECKS += 1
+    else:
+        die(1, f"{desc} — '{pattern}' must not appear in {file}")
+
+
 def count_numbered_rules(file: Path, heading: str, expected: int) -> None:
     global CHECKS
     flag = False
@@ -123,6 +131,17 @@ def main() -> None:
     #    plugin's Japanese default.
     require(workflow, "review surface", "Review surface")
     require(workflow, "review UI language declaration", "metadata.lang")
+
+    # 9. Spec path: the workflow states where a spec lives and the archiver
+    #    hardcodes the same root. Group 7 above wires the CLOSE ritual but
+    #    never compares the two spellings of the path — so the workflow could
+    #    call it a "suggested path" while the script treated it as fixed, and
+    #    a spec filed elsewhere archived nowhere while `--check` still
+    #    reported clean. Both halves are asserted here.
+    require(workflow, "fixed spec path", "`specs/<scope>/SPEC.md`")
+    forbid(workflow, "spec path stated as optional", "suggested path")
+    require(archiver, "archiver spec root", 'root / "specs"')
+    require(archiver_skill, "skill documents the same spec root", "`specs/<scope>/`")
 
     print(f"OK: {CHECKS} invariants hold")
 
