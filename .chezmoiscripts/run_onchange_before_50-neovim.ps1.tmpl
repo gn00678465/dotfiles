@@ -1,0 +1,79 @@
+{{ if eq .chezmoi.os "windows" -}}
+$ErrorActionPreference = "Stop"
+
+if ($env:NVIM_APPNAME) {
+    throw "chezmoi: NVIM_APPNAME is unsupported for the managed Windows LazyVim bootstrap"
+}
+if (-not $env:LOCALAPPDATA) {
+    throw "chezmoi: LOCALAPPDATA is required for the managed Windows LazyVim bootstrap"
+}
+
+$expectedLocalAppData = Join-Path -Path $HOME -ChildPath "AppData\Local"
+if ([System.IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd("\\") -ne [System.IO.Path]::GetFullPath($expectedLocalAppData).TrimEnd("\\")) {
+    throw "chezmoi: redirected LOCALAPPDATA is unsupported; refusing to move Nvim data"
+}
+if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
+    throw "chezmoi: mise is required before Windows Neovim bootstrap"
+}
+
+& mise use --global neovim@0.12.5
+if ($LASTEXITCODE -ne 0) {
+    throw "chezmoi: mise could not install pinned Neovim 0.12.5"
+}
+
+function Get-NvimStdpath {
+    param([Parameter(Mandatory)] [string]$Kind)
+
+    $path = (& mise exec neovim@0.12.5 -- nvim --clean --headless "+lua io.stdout:write(vim.fn.stdpath('$Kind'))" +qa | Out-String).Trim()
+    if (-not $path) {
+        throw "chezmoi: Neovim returned an empty $Kind stdpath"
+    }
+    return $path
+}
+
+$configPath = Get-NvimStdpath -Kind "config"
+$dataPath = Get-NvimStdpath -Kind "data"
+$statePath = Get-NvimStdpath -Kind "state"
+$cachePath = Get-NvimStdpath -Kind "cache"
+$expectedConfigPath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "nvim"
+
+if ([System.IO.Path]::GetFullPath($configPath) -ne [System.IO.Path]::GetFullPath($expectedConfigPath)) {
+    throw "chezmoi: Neovim config path is not %LOCALAPPDATA%\\nvim"
+}
+
+function Move-ToBackup {
+    param([Parameter(Mandatory)] [string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    $destination = "$Path.bak"
+    $suffix = 0
+    while (Test-Path -LiteralPath $destination) {
+        $suffix += 1
+        $destination = "$Path.bak.$(Get-Date -Format yyyyMMddHHmmss).$suffix"
+    }
+    Move-Item -LiteralPath $Path -Destination $destination
+}
+
+$markerPath = Join-Path -Path $configPath -ChildPath ".chezmoi-lazyvim-starter"
+if (-not (Test-Path -LiteralPath $markerPath)) {
+    # Nvim 0.12.5 uses nvim-data for both data and state. A HashSet makes that
+    # one move even if a future runtime reports the same path twice.
+    $pathsToBackup = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($path in @($configPath, $dataPath, $statePath, $cachePath)) {
+        [void]$pathsToBackup.Add($path)
+    }
+    foreach ($path in $pathsToBackup) {
+        Move-ToBackup -Path $path
+    }
+
+    & git clone --depth 1 https://github.com/LazyVim/starter $configPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "chezmoi: LazyVim starter clone failed"
+    }
+    Remove-Item -LiteralPath (Join-Path $configPath '.git') -Recurse -Force
+    New-Item -ItemType File -Path $markerPath -Force | Out-Null
+}
+{{ end -}}
