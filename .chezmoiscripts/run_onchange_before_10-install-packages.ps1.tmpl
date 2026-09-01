@@ -1,0 +1,64 @@
+{{ if eq .chezmoi.os "windows" -}}
+$ErrorActionPreference = "Stop"
+
+function Invoke-WingetInstall {
+    param(
+        [Parameter(Mandatory)] [string]$Id,
+        [Parameter(Mandatory)] [ValidateSet("user", "machine")] [string]$Scope,
+        [string[]]$AdditionalArguments = @()
+    )
+
+    $wingetArguments = @(
+        "install",
+        "--id", $Id,
+        "--exact",
+        "--source", "winget",
+        "--silent",
+        "--accept-package-agreements",
+        "--accept-source-agreements",
+        "--disable-interactivity",
+        "--scope", $Scope
+    ) + $AdditionalArguments
+
+    if ($Scope -eq "machine") {
+        $process = Start-Process -FilePath "winget" -ArgumentList $wingetArguments -Verb RunAs -Wait -PassThru
+        if ($null -eq $process -or $process.ExitCode -ne 0) {
+            throw "chezmoi: elevated WinGet install failed or was cancelled for $Id"
+        }
+        return
+    }
+
+    & winget @wingetArguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "chezmoi: WinGet install failed for $Id with exit code $LASTEXITCODE"
+    }
+}
+
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    throw "chezmoi: winget is required on native Windows. Install App Installer, then run chezmoi apply again."
+}
+
+# These packages must stay per-user: PowerShell 7 MSIX cannot safely own
+# all-users profiles, and the profile modifier targets only the current user.
+foreach ($packageId in @(
+    "Microsoft.PowerShell",
+    "JanDeDobbeleer.OhMyPosh",
+    "jdx.mise",
+    "junegunn.fzf",
+    "BurntSushi.ripgrep.MSVC",
+    "sharkdp.fd",
+    "JesseDuffield.lazygit",
+    "tree-sitter.tree-sitter-cli"
+)) {
+    Invoke-WingetInstall -Id $packageId -Scope "user"
+}
+
+foreach ($packageId in @("Git.Git", "GitHub.GitLFS")) {
+    Invoke-WingetInstall -Id $packageId -Scope "machine"
+}
+
+Invoke-WingetInstall -Id "Microsoft.VisualStudio.2022.BuildTools" -Scope "machine" -AdditionalArguments @(
+    "--override",
+    "--wait --passive --norestart --add Microsoft.VisualStudio.Workload.VCTools"
+)
+{{ end -}}
