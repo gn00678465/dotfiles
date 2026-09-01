@@ -1,14 +1,16 @@
 # SPEC — Native Windows support (Tier 3)
 
-- `spec_version`: v4
-- `status`: draft
+- `spec_version`: v5
+- `status`: approved
 - `tier`: 3 — the change performs privileged package installation and moves
   pre-existing Neovim configuration directories. A wrong path or a process
   that continues after an elevation failure can lose a user's working setup.
-- `intent record`: user request on 2026-09-01; v3 restored the required
-  Windows shell experience but did not select its Oh My Posh theme. This
-  replacement draft records the requested `powerlevel10k_rainbow` theme and
-  needs explicit approval of v4 before any implementation or test is written.
+- `intent record`: user request on 2026-09-01; v4 selected the requested
+  `powerlevel10k_rainbow` theme. User-provided Windows Sandbox measurement
+  subsequently established the initial Windows PowerShell 5.1 interpreter and
+  an App Installer-free environment as an executable failure boundary. This
+  revision needs explicit approval of v5 before its additional test or product
+  change is written.
 
 ## Scope
 
@@ -33,6 +35,20 @@ theme name is an Oh My Posh theme pointer; on a cache miss it requires network
 access while the shell starts. `--strict` resolves the command from `PATH`
 after a package-manager upgrade rather than preserving a stale absolute path.
 
+The first chezmoi Windows provisioning script can run in **Windows PowerShell
+5.1** before `Microsoft.PowerShell` installs `pwsh`; all provisioning
+`.ps1.tmpl` scripts must therefore parse and execute their prerequisite path
+under that interpreter. This does not make Windows PowerShell 5.1 the managed
+interactive shell or profile target.
+
+WinGet/App Installer is a prerequisite for the documented bootstrap. A
+standard Windows 11 installation commonly provides it, but an intentionally
+more-minimal image (such as the measured Windows Sandbox) may not. In that
+case, README and the package script must fail before any package invocation,
+name App Installer, and tell the user to install or repair it before rerunning.
+Its absence is a supported, actionable preflight failure—not evidence that all
+Windows 11 is unsupported.
+
 ## Scenarios
 
 1. **Windows renders PowerShell rather than zsh configuration**: given chezmoi
@@ -53,7 +69,9 @@ after a package-manager upgrade rather than preserving a stale absolute path.
    `tests/test_chezmoi_templates.py`.
 
 3. **Windows provisions the equivalent toolchain and shell**: given a native
-   Windows apply, the package script invokes non-interactive, exact-ID WinGet
+   Windows apply whose first script interpreter is Windows PowerShell 5.1 and
+   whose `winget` command is available, the package script parses under that
+   interpreter and invokes non-interactive, exact-ID WinGet
    installs from the `winget` source for `Microsoft.PowerShell`,
    `JanDeDobbeleer.OhMyPosh`, `jdx.mise`, `junegunn.fzf`,
    `BurntSushi.ripgrep.MSVC`, `sharkdp.fd`, `JesseDuffield.lazygit`, and
@@ -61,8 +79,16 @@ after a package-manager upgrade rather than preserving a stale absolute path.
    `Git.Git`, `GitHub.GitLFS`, and `Microsoft.VisualStudio.2022.BuildTools`
    with `Microsoft.VisualStudio.Workload.VCTools`. The PowerShell and Oh My
    Posh packages use the same non-interactive agreement flags and remain
-   user-scope operations.
-   Automated test: `Test-WingetPackageContract` in `tests/windows_support.ps1`.
+   user-scope operations. Given that `winget` is absent, it must stop before
+   any package invocation with an error that names App Installer and says to
+   rerun after installation or repair.
+   Automated tests: `Test-WingetPackageContract`,
+   `Test-WindowsPowerShell51BootstrapCompatibility`, and
+   `Test-WingetPrerequisiteFailureIsVisible` in `tests/windows_support.ps1`.
+   The existing package script already contains a preflight guard, so these
+   new checks are regression armor: their RED evidence must be a temporary
+   removal or 5.1-incompatible mutant of that guard/script, restored before
+   the test-only checkpoint is committed.
 
 4. **The PowerShell profile is idempotent and preserves user content**: given
    a missing or pre-existing `$HOME\Documents\PowerShell\Profile.ps1`, the
@@ -131,11 +157,14 @@ after a package-manager upgrade rather than preserving a stale absolute path.
    machine after a real apply; mocks and CI cannot substitute for this result.
 
 11. **Documented first-run path works**: README supplies a Windows PowerShell
-    first-run sequence that installs chezmoi from the exact WinGet ID and uses
-    `chezmoi init --apply`, including branch selection, a new `pwsh` session,
-    the UAC expectation for the C++ toolchain, and the fact that the requested
-    theme pointer needs network access on a cache miss. It must give Nerd Font
-    configuration as display guidance, not as a silently installed dependency.
+    first-run sequence that first checks `winget` availability before its first
+    WinGet invocation. When absent, it must name App Installer and direct the
+    user to install or repair it, then rerun. When present, it installs chezmoi
+    from the exact WinGet ID and uses `chezmoi init --apply`, including branch
+    selection, a new `pwsh` session, the UAC expectation for the C++ toolchain,
+    and the fact that the requested theme pointer needs network access on a
+    cache miss. It must give Nerd Font configuration as display guidance, not
+    as a silently installed dependency.
     Automated test: `test_readme_windows_bootstrap_instructions` in
     `tests/test_chezmoi_templates.py`.
 
@@ -158,6 +187,13 @@ after a package-manager upgrade rather than preserving a stale absolute path.
   converge to exactly one such block.
 - Must NOT write a Windows PowerShell 5.1 profile, an all-users profile, or call
   `Set-ExecutionPolicy` / otherwise weaken execution policy.
+- Must NOT use PowerShell 7-only syntax in any Windows provisioning `.ps1.tmpl`
+  script before `Microsoft.PowerShell` has been installed.
+- Must NOT invoke WinGet from the README bootstrap before it has checked that
+  the `winget` command is available, or conceal an absent App Installer behind
+  an unqualified command-not-found error.
+- Must NOT classify an App Installer-free Sandbox as proof that normal Windows
+  11 lacks WinGet or as a reason to withdraw Windows 10/11 x64 support.
 - Must NOT use an Oh My Posh initialization command that embeds a versioned or
   absolute executable path; the managed block uses `--strict`.
 - Must NOT silently fall back to Oh My Posh's default theme, a local relative
@@ -180,6 +216,8 @@ after a package-manager upgrade rather than preserving a stale absolute path.
 | Oh My Posh breaks after a package-manager upgrade because the profile stores an old absolute executable path | Scenario 4 asserts the exact `init pwsh --config 'powerlevel10k_rainbow' --strict` contract; Scenario 10 opens a fresh `pwsh` session after real apply. |
 | The named theme is unavailable on first use because no cache exists and the machine has no network | Scenario 10 performs a cache-miss run on an isolated test account with network access; Scenario 11 documents that operational precondition. |
 | A restricted execution policy is silently weakened or a blocked profile is reported as configured | Scenario 4’s `Test-ProfilePolicyFailureIsVisible` rejects policy mutation; Scenario 10 records the real `pwsh` result. |
+| The initial script uses PowerShell 7-only syntax and fails before it can install PowerShell 7 | Scenario 3’s `Test-WindowsPowerShell51BootstrapCompatibility` runs the rendered prerequisite path with Windows PowerShell Desktop 5.1 in Windows CI or Sandbox. |
+| App Installer is absent, so a bare `winget` bootstrap fails opaquely or starts a partial apply | Scenario 3’s `Test-WingetPrerequisiteFailureIsVisible` proves the script stops before installs; Scenario 11’s README test requires the matching preflight and recovery text. |
 | A wrong Nvim target causes chezmoi to apply config under `~/.config/nvim` instead of the Nvim runtime path | Scenario 7 target-path test plus the bootstrap path assertion. |
 | User config/data/cache is lost, nested in an older backup, or data/state is moved twice | Scenario 8 generated filesystem combinations, including occupied `.bak` names. |
 | Marker regression overwrites a user-owned config on a rerun | Scenario 9 asserts marker-present runs make no move/clone calls. |
@@ -191,13 +229,20 @@ after a package-manager upgrade rather than preserving a stale absolute path.
 
 - Tools to install: no persistent development dependency. Tests use the
   repository's existing chezmoi binary and Python 3 standard library locally;
-  Windows behavioural tests use the PowerShell provided by the
-  `windows-latest` GitHub-hosted runner. A temporary PowerShell 7 installation
-  through mise is authorised only if needed to run the same test harness
-  locally; it must be reported in evidence.
+  Windows behavioural tests use Windows PowerShell Desktop 5.1 and PowerShell
+  7 provided by the `windows-latest` GitHub-hosted runner. A temporary
+  PowerShell 7 installation through mise is authorised only if needed to run
+  the same test harness locally; it must be reported in evidence. Actual
+  `winget install` is authorised only in Windows Sandbox or CI, never on the
+  adjacent Windows host.
 - Git isolation: the existing feature worktree; checkpoint commits in this
   cadence: approved SPEC, each RED behaviour, each corresponding GREEN
-  behaviour, then gate tooling. The base ref is `0d72b8e` (`main`).
+  behaviour, then gate tooling. For v5, the README preflight test must first
+  fail against the current README and be committed before its documentation
+  edit. The existing package-script preflight is regression armor: prove each
+  new v5 check against a temporary mutant, restore it, and commit the test-only
+  checkpoint without recasting the pre-existing v4 implementation as a v5
+  GREEN change. The base ref is `0d72b8e` (`main`).
 - Files the gate will add:
   `tests/test_chezmoi_templates.py`, `tests/windows_support.ps1`,
   `tests/mutate_windows_support.py`, `tools/gate.sh`, and
@@ -222,6 +267,7 @@ date, and the `spec_version` they bind. An entry that cannot quote approval is
 not approval.
 
 - 2026-09-01 — `spec_version`: v4; approving words (verbatim): 「核准 SPEC v4」.
+- 2026-09-01 — `spec_version`: v5; approving words (verbatim): 「v5 核准」.
 
 ## Revisions
 
@@ -242,3 +288,19 @@ Append-only.
   `powerlevel10k_rainbow`, and retained `--strict`; added exact-command tests,
   cache-miss network acceptance evidence, and first-run documentation and font
   guidance constraints.
+- 2026-09-01 — v5: incorporated the user's clean Windows Sandbox measurement:
+  Windows PowerShell Desktop 5.1 is the first provisioning interpreter;
+  `winget`, `pwsh`, chezmoi, Git, and Nvim are absent when App Installer is
+  deliberately excluded, while network is available. Added a PowerShell 5.1
+  compatibility test, a no-side-effect App Installer/WinGet prerequisite
+  failure test, and a matching README preflight. The current agent sandbox
+  cannot independently execute the adjacent Windows host because WSL interop
+  fails at a vsock bind, so Windows PowerShell 5.1 execution remains mandatory
+  CI or Sandbox evidence. The already-present package-script guard will be
+  tested as mutation-proven regression armor; README does not yet satisfy the
+  new preflight and must show a normal RED. This material revision invalidates
+  v4 approval for these additions. Historical compliance note: `40dd36f`
+  committed v4's verbatim approval record before implementation, but its
+  `status` remained `draft`; that is a workflow defect. v5's eventual approval
+  must set `status: approved` in the same commit, and the final evidence must
+  disclose the v4 status defect rather than treating it as confirmed intent.

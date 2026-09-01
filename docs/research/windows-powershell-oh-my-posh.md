@@ -165,3 +165,44 @@ oh-my-posh init pwsh --config 'powerlevel10k_rainbow' --strict | Invoke-Expressi
 這保留指定 theme，又延續既有 `--strict` 升級安全性。Tier 3 實機 acceptance 必須以隔離
 帳戶在 cache miss 與網路可用的情況新開 `pwsh` 驗證 theme 可解析；快取命中只能驗證後續
 啟動，不能替代首次下載證據。
+
+## 8. Windows Sandbox 初始狀態量測（使用者提供）
+
+> 量測日期：2026-09-01；以下為使用者在可拋棄、乾淨的 Windows Sandbox 量得的結果，
+> 並非本 agent 在該 Sandbox 的獨立重跑。
+
+| 量測項目 | 結果 |
+| --- | --- |
+| OS / architecture | Windows build 26100、AMD64 |
+| 初始 PowerShell | Windows PowerShell Desktop 5.1.26100.9168 |
+| `LOCALAPPDATA` | `C:\\Users\\WDAGUtilityAccount\\AppData\\Local` |
+| `USERPROFILE` | `C:\\Users\\WDAGUtilityAccount` |
+| `winget`, `pwsh`, `chezmoi`, `git`, `nvim` | 均不存在 |
+| App Installer | 不存在 |
+| network | HTTP 200 |
+
+**已觀察到：** 即使網路可用，首次 bootstrap 在這個 image 只有 Windows PowerShell
+5.1，且 README 原本直接執行 `winget install` 時沒有前置檢查。這證實「先在 5.1 解釋
+`.ps1`、再安裝 pwsh」不是假設；也提供了缺 WinGet 的實際失敗案例。
+
+**限制：** Windows Sandbox 刻意排除 Store 應用，因而沒有 App Installer。它比一般乾淨
+Windows 11 更精簡，不能外推為「所有 Windows 11 都缺 WinGet」。此量測應用來驗證可操作的
+preflight failure，而不是收窄 Windows 10/11 x64 的支援宣告。
+
+**推論：** README 在第一次 `winget` 使用前，及 Windows package script 在第一個 package
+install 前，都必須檢查 `Get-Command winget -ErrorAction SilentlyContinue`。失敗訊息須明說
+App Installer、要求安裝或修復後重跑，並確保尚未開始任何 package install。所有這個時點可
+執行的 provisioning `.ps1.tmpl` 都必須維持 Windows PowerShell 5.1 相容語法。
+
+## 9. 可重跑與不可重跑的 Windows 證據邊界
+
+使用者另確認：相鄰的 Windows 11 AMD64 主機有 pwsh 7.6.5、WinGet 1.29.290 與
+chezmoi 2.72.0，且 Windows chezmoi 已能透過 WSL UNC source 對本 worktree 執行
+`--dry-run --destination <temp> apply`，並成功 render `10-install-packages.ps1`。這是
+source rendering evidence，不是 package-install evidence。
+
+目前 agent 執行環境對 `pwsh.exe` 的唯讀 WSL interop 探測在 vsock bind 失敗，故無法獨立
+重跑主機端命令。依使用者限制，不得在該主機執行真實 `winget install`；此項驗收只能在
+Windows Sandbox 或 CI 進行。最終 evidence report 必須分開記錄：本機 source rendering、
+Windows PowerShell 5.1 的 CI/Sandbox 前置條件測試、以及真實安裝 health check；其中任何
+一項未執行都不能表述為已通過。
