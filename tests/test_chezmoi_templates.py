@@ -123,6 +123,20 @@ class ChezmoiTemplateContractTests(unittest.TestCase):
         self.assertIn("AppData/Local/nvim/lua/plugins/completion.lua", paths)
         self.assertNotIn(".config/nvim/lua/plugins/completion.lua", paths)
 
+    def test_readme_windows_bootstrap_instructions(self) -> None:
+        """README gives an executable native Windows first-run path."""
+        readme = (REPOSITORY / "README.md").read_text(encoding="utf-8")
+        for required in (
+            "winget install --id twpayne.chezmoi --exact",
+            "chezmoi init --apply",
+            "--branch",
+            "pwsh",
+            "UAC",
+            "powerlevel10k_rainbow",
+            "Nerd Font",
+        ):
+            self.assertIn(required, readme)
+
 
 if __name__ == "__main__":
     unittest.main()
