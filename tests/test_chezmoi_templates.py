@@ -14,6 +14,7 @@ UNIX_INSTALL_TEMPLATES = tuple(sorted((REPOSITORY / ".chezmoiscripts").glob("*.s
 WINDOWS_PROFILE_TEMPLATE = (
     REPOSITORY / ".chezmoiscripts" / "run_onchange_after_45-powershell-profile.ps1.tmpl"
 )
+WINDOWS_CONTRACT_WORKFLOW = REPOSITORY / ".github" / "workflows" / "windows-support.yml"
 
 
 def chezmoi_arguments(os_name: str, arch: str = "amd64") -> list[str]:
@@ -144,6 +145,35 @@ class ChezmoiTemplateContractTests(unittest.TestCase):
             readme.index("winget install --id twpayne.chezmoi --exact"),
             "README must check WinGet before its first bootstrap invocation.",
         )
+
+    def test_windows_ci_bootstraps_chezmoi_before_contracts(self) -> None:
+        """CI installs only its temporary renderer before contract checks."""
+        workflow = WINDOWS_CONTRACT_WORKFLOW.read_text(encoding="utf-8")
+        bootstrap = "winget install --id twpayne.chezmoi --exact --source winget"
+        command_check = "Get-Command chezmoi -ErrorAction SilentlyContinue"
+        gate = "bash tools/gate.sh"
+
+        self.assertIn(bootstrap, workflow)
+        for flag in (
+            "--silent",
+            "--accept-package-agreements",
+            "--accept-source-agreements",
+            "--disable-interactivity",
+        ):
+            self.assertIn(flag, workflow)
+        self.assertIn(command_check, workflow)
+        self.assertIn("shell: powershell", workflow)
+        self.assertIn("Test-WindowsPowerShell51BootstrapCompatibility", workflow)
+        self.assertLess(workflow.index(bootstrap), workflow.index(command_check))
+        self.assertLess(workflow.index(command_check), workflow.index(gate))
+
+        self.assertNotIn("chezmoi apply", workflow)
+        for product_package in (
+            "Microsoft.PowerShell",
+            "JanDeDobbeleer.OhMyPosh",
+            "Microsoft.VisualStudio.2022.BuildTools",
+        ):
+            self.assertNotIn(product_package, workflow)
 
 
 if __name__ == "__main__":
