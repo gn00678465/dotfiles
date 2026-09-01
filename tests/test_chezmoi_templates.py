@@ -85,6 +85,7 @@ class ChezmoiTemplateContractTests(unittest.TestCase):
         paths = applied_paths("windows")
         self.assertNotIn(".zshrc", paths)
         self.assertNotIn(".p10k.zsh", paths)
+        self.assertNotIn("tests/test_chezmoi_templates.py", paths)
 
 
 if __name__ == "__main__":
