@@ -8,6 +8,8 @@ docs/
 specs/
 tests/
 .scratch/
+tools/
+.github/
 
 {{ if eq .chezmoi.os "windows" -}}
 # Windows uses PowerShell 7 + Oh My Posh; these are Unix-only source targets.
