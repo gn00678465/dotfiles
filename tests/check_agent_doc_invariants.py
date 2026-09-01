@@ -50,6 +50,26 @@ def forbid(file: Path, desc: str, pattern: str) -> None:
         die(1, f"{desc} — '{pattern}' must not appear in {file}")
 
 
+def agree(desc: str, *sites: tuple[Path, str]) -> None:
+    """Cross-file equality: pull one value out of each file and require they
+    match. `require` only proves a literal this checker already knows is
+    present in one file; when the same value is spelled in prose here and in
+    Python there, only comparing what each side actually says catches a
+    one-sided edit."""
+    global CHECKS
+    seen: list[tuple[Path, str]] = []
+    for file, pattern in sites:
+        m = re.search(pattern, read(file))
+        if m is None:
+            die(1, f"{desc} — /{pattern}/ matched nothing in {file}")
+        seen.append((file, m.group(1)))
+    values = {v for _, v in seen}
+    if len(values) != 1:
+        detail = "; ".join(f"{f.name} says '{v}'" for f, v in seen)
+        die(1, f"{desc} — sides disagree: {detail}")
+    CHECKS += 1
+
+
 def count_numbered_rules(file: Path, heading: str, expected: int) -> None:
     global CHECKS
     flag = False
@@ -138,10 +158,42 @@ def main() -> None:
     #    call it a "suggested path" while the script treated it as fixed, and
     #    a spec filed elsewhere archived nowhere while `--check` still
     #    reported clean. Both halves are asserted here.
-    require(workflow, "fixed spec path", "`specs/<scope>/SPEC.md`")
+    agree("spec root",
+          (workflow, r"`([\w/-]+)/<scope>/SPEC\.md`"),
+          (archiver, r'root / "([\w-]+)" / scope'),
+          (archiver_skill, r"`([\w/-]+)/<scope>/` to"))
     forbid(workflow, "spec path stated as optional", "suggested path")
-    require(archiver, "archiver spec root", 'root / "specs"')
-    require(archiver_skill, "skill documents the same spec root", "`specs/<scope>/`")
+
+    # 10. Status vocabulary needs an owner per transition, not just a list.
+    #     `shipped` always had one (the archiver's script); `approved` had
+    #     none — the template listed it, the script refused anything else at
+    #     CLOSE, and nothing told the human's counterpart to write it. A spec
+    #     then carried a verbatim approval while still reading `draft`, and
+    #     Phase 6 refused consent that had actually been given.
+    require(workflow, "approval flips status", "flip `status`")
+    require(workflow, "revision resets status", "revised-pending-approval")
+    require(spec_t, "status transition owners", "revised-pending-approval")
+    require(archiver, "archiver gates on approved", '!= "approved"')
+
+    # 11. Artifact root and `scope` are derived by two parties. The root is
+    #     one value spelled in two files; `scope` was inferred independently
+    #     by the gate while the workflow spent it as if it were the spec's
+    #     slug, so on any prefixed branch the evidence report filed under a
+    #     name `specs/<scope>/` never used and Phase 5's "beside the evidence
+    #     report" pointed somewhere else.
+    agree("artifact root",
+          (workflow, r"`([\w./-]+/)<scope>/verification\.md`"),
+          (skill, r"`artifact_root`: default `([\w./-]+/)`"))
+    require(workflow, "spec scope handed to the gate", "gate's `scope`")
+    require(skill, "gate reuses the spec scope", "use that `<scope>` verbatim")
+
+    # 12. The contract promises the report records ordering beside intent and
+    #     RED. Intent had `intent_status` and RED had a section; ordering had
+    #     only a mention inside `git_facts` as a fact that might be missing,
+    #     so when it was available there was nowhere to state it.
+    require(contract, "ordering promised to the human", "intent, ordering")
+    require(skill, "gate gathers ordering", "| Ordering |")
+    require(evidence_t, "ordering field exists", "`ordering`:")
 
     print(f"OK: {CHECKS} invariants hold")
 

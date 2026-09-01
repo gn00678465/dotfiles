@@ -18,6 +18,10 @@
 - `intent_status`: <!-- confirmed | unconfirmed | absent -->
 - `intent_source`: <!-- human reply (verbatim) | spec file path | issue/PR ref |
   commit messages only -->
+- `ordering`: <!-- tests-first | implementation-first | mixed | unknown —
+  whether each new test file was committed before the implementation it
+  covers. One of the three facts the report leans on hardest, beside Baseline
+  and RED; `unknown` is a declared downgrade, never a pass -->
 - `git_facts`: <!-- complete | partial | unavailable — when partial, list each
   fact the repository could not supply (baseline / ordering / reachable base)
   and say what it cost. Fetch first: a fetchable fact is not a missing one -->

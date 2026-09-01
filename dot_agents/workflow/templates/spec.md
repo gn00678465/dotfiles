@@ -2,9 +2,11 @@
 
 - `spec_version`: <!-- v1, v2, ... — bump on every content change; a bump
   invalidates prior approval -->
-- `status`: <!-- draft | approved | revised-pending-approval | shipped
-  (terminal — set by the spec-archive skill's script at CLOSE, never by
-  hand) -->
+- `status`: <!-- draft | approved | revised-pending-approval | shipped.
+  Every transition has an owner: `approved` is written by hand in the
+  approval commit, a later revision sets `revised-pending-approval` until
+  re-approved, and `shipped` is terminal — set by the spec-archive skill's
+  script at CLOSE, never by hand -->
 - `tier`: <!-- 1 trivial / 2 normal / 3 high stakes (money, auth, data loss,
   concurrency, public API) — same definitions as the gate's Calibration; the
   tier declared here is the tier the gate runs at -->

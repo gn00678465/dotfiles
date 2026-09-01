@@ -54,7 +54,8 @@ The spec contains:
   bind. Filled at SPEC REVIEW and committed with the spec.
 - **Revisions** — append-only log. If implementation reveals the spec was
   wrong, say so explicitly and revise it visibly here — never silently drift.
-  A revision invalidates prior approval: bump the version and re-request.
+  A revision invalidates prior approval: bump the version, set `status` back
+  to `revised-pending-approval`, and re-request.
 
 ## Phase 2 — SPEC REVIEW
 
@@ -108,8 +109,11 @@ Show the final spec to the human in plain language and get approval.
 - **Approval is a structured act bound to one spec version, not a parsed
   phrase.** Request it with an explicit structured prompt whose question
   names the version being approved; quote the selection verbatim into the
-  spec's `## Approval` section (words, date, version bound) and commit the
-  spec (the setup plan is where that was authorized). A committed,
+  spec's `## Approval` section (words, date, version bound), flip `status`
+  to `approved`, and commit both in one act (the setup plan is where that
+  was authorized). The flip is not bookkeeping: `spec-archive` refuses any
+  other status at CLOSE, so a spec approved but left at `draft` records
+  consent it cannot act on. A committed,
   human-approved spec makes later drift a literal `git diff`, makes the
   gate's `intent_status: confirmed` mechanically readable from git, and
   survives compaction, which the conversation does not.
@@ -198,9 +202,14 @@ point, the layer stack, and the report.
 
 - Use `gate` iteratively while fixing failures; use `evidence` exactly once,
   after the last code edit, to produce the final report.
-- Hand it: the base ref, the change set, the tier from the SPEC, and the
-  committed SPEC path as the intent record — never leave it to reconstruct
-  intent from the conversation.
+- Hand it: the base ref, the change set, the tier from the SPEC, the
+  committed SPEC path as the intent record, and **the SPEC's `<scope>` as the
+  gate's `scope`** — never leave it to reconstruct intent from the
+  conversation. The gate otherwise infers `scope` from the branch name, which
+  on a worktree or a prefixed branch differs from the SPEC's slug; the
+  evidence report then files under a name that does not match
+  `specs/<scope>/`, and Phase 5's "beside the evidence report" resolves to a
+  different directory.
 - **A failing gate blocks done.** You are not finished while any layer
   fails; if genuinely blocked, report the failure verbatim as the outcome.
 

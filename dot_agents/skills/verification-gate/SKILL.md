@@ -75,8 +75,10 @@ Resolve or ask for these before doing work:
 - `entry_point`: the single command that reruns every layer. Default: discover
   it in the repo, otherwise `scaffold` one.
 - `artifact_root`: default `.gate/`.
-- `scope`: subfolder name under `artifact_root`. Infer from branch name, PR
-  title, or a short sanitized summary of the change.
+- `scope`: subfolder name under `artifact_root`. When the change has a
+  committed spec at `specs/<scope>/SPEC.md`, use that `<scope>` verbatim —
+  the report and the spec must file under one name. Only without a spec:
+  infer from branch name, PR title, or a short sanitized summary.
 - `report_language`: default `auto`, meaning follow the user's prompt language.
 
 ## Acquisition
