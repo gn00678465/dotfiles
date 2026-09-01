@@ -18,6 +18,13 @@ jobs:
       - name: Verify renderer and Windows PowerShell 5.1 bootstrap contract
         shell: powershell
         run: |
+          $wingetUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+          if ([string]::IsNullOrWhiteSpace($wingetUserPath)) {
+            throw "WinGet did not add the temporary chezmoi harness to the user PATH."
+          }
+          $env:PATH = "$wingetUserPath;$env:PATH"
+          $wingetUserPath -split ';' | Where-Object { $_ } |
+            ForEach-Object { $_ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append }
           if (-not (Get-Command chezmoi -ErrorAction SilentlyContinue)) {
             throw "chezmoi was not available after the temporary CI bootstrap."
           }
