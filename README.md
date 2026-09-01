@@ -4,6 +4,29 @@
 
 ---
 
+## Windows 原生安裝
+
+在 Windows 10/11 x64 的 PowerShell 中先安裝 chezmoi，再套用本 repository：
+
+```powershell
+winget install --id twpayne.chezmoi --exact --source winget
+chezmoi init --apply https://github.com/gn00678465/dotfiles.git
+```
+
+測試指定 branch 時，branch 名稱必須同時出現在 init 參數與 repository：
+
+```powershell
+chezmoi init --apply --branch <branch> https://github.com/gn00678465/dotfiles.git
+```
+
+套用時 WinGet 會安裝 PowerShell 7、Oh My Posh、mise、Git／Git LFS 與 C++ Build
+Tools。Git 與 Build Tools 會出現 **UAC** 提示；取消或安裝失敗會中止套用。完成後請開啟新的
+`pwsh` session。Oh My Posh 使用 `powerlevel10k_rainbow` theme pointer；首次 cache miss
+需要網路下載 theme。若 icon 顯示異常，在 Windows Terminal 選擇 Nerd Font；這不是 bootstrap
+自動安裝的相依性。
+
+---
+
 ### 1. 確認 curl
 
 安裝腳本本身要用 curl 下載，而沒有任何腳本會裝它，所以 curl 必須先存在：
