@@ -1,0 +1,14 @@
+{{ if eq .chezmoi.os "windows" -}}
+$ErrorActionPreference = "Stop"
+
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    throw "chezmoi: git is required before configuring Git LFS"
+}
+
+# --skip-repo only writes the global filter configuration after chezmoi has
+# created ~/.gitconfig; it never mutates the repository from which apply ran.
+& git lfs install --skip-repo
+if ($LASTEXITCODE -ne 0) {
+    throw "chezmoi: git lfs install --skip-repo failed with exit code $LASTEXITCODE"
+}
+{{ end -}}
