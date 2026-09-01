@@ -39,6 +39,7 @@ def render(source: Path, os_name: str, arch: str = "amd64") -> str:
 
 def applied_paths(os_name: str, arch: str = "amd64") -> set[str]:
     with tempfile.TemporaryDirectory() as destination:
+        persistent_state = Path(destination) / "chezmoistate.boltdb"
         subprocess.run(
             [
                 "chezmoi",
@@ -47,12 +48,13 @@ def applied_paths(os_name: str, arch: str = "amd64") -> set[str]:
                 str(REPOSITORY),
                 "--destination",
                 destination,
+                "--persistent-state",
+                str(persistent_state),
                 "--force",
                 "--no-tty",
                 "--exclude",
                 "scripts",
-                "--refresh-externals",
-                "never",
+                "--refresh-externals=never",
                 *chezmoi_arguments(os_name, arch),
             ],
             cwd=REPOSITORY,
