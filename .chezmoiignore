@@ -14,6 +14,9 @@ tests/
 .zshrc
 .zprofile
 .p10k.zsh
+.config/nvim/
+{{ else -}}
+AppData/
 {{ end -}}
 
 # Oh My Zsh runtime state, so `exact = true` on .oh-my-zsh does not delete it.
