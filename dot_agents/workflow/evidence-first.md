@@ -18,9 +18,13 @@ SPEC → SPEC REVIEW (human approves spec, not code)
 ## Phase 1 — SPEC
 
 Before touching any implementation file, turn the request into **executable
-acceptance criteria** in a spec file, committed to the repo (suggested path:
-`specs/<scope>/SPEC.md`; template at `templates/spec.md` beside this file).
-Show the human its absolute path.
+acceptance criteria** in a spec file, committed to the repo at
+`specs/<scope>/SPEC.md` — this path is fixed, not a suggestion: the
+`spec-archive` skill hardcodes it, so a spec filed anywhere else cannot be
+closed and, worse, its `--check` safety net reports clean forever instead of
+flagging the miss. `<scope>` is the feature slug, and the only free part of
+the path. Template at `templates/spec.md` beside this file. Show the human
+its absolute path.
 
 The spec contains:
 
