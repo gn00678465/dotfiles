@@ -127,6 +127,8 @@ class ChezmoiTemplateContractTests(unittest.TestCase):
         """README gives an executable native Windows first-run path."""
         readme = (REPOSITORY / "README.md").read_text(encoding="utf-8")
         for required in (
+            "Get-Command winget -ErrorAction SilentlyContinue",
+            "App Installer",
             "winget install --id twpayne.chezmoi --exact",
             "chezmoi init --apply",
             "--branch",
@@ -136,6 +138,12 @@ class ChezmoiTemplateContractTests(unittest.TestCase):
             "Nerd Font",
         ):
             self.assertIn(required, readme)
+
+        self.assertLess(
+            readme.index("Get-Command winget -ErrorAction SilentlyContinue"),
+            readme.index("winget install --id twpayne.chezmoi --exact"),
+            "README must check WinGet before its first bootstrap invocation.",
+        )
 
 
 if __name__ == "__main__":

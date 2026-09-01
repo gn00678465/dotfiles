@@ -80,6 +80,43 @@ function Test-WingetPackageContract {
     Assert-Contains -Actual $content -Expected "-PassThru" -Message "Machine-scope install exit codes must be checked."
 }
 
+function Test-WingetPrerequisiteFailureIsVisible {
+    $scriptPath = Join-Path $Repository ".chezmoiscripts/run_onchange_before_10-install-packages.ps1.tmpl"
+    $rendered = Render-WindowsTemplate -Path $scriptPath
+    $script:wingetPreflightInvoked = $false
+    $failure = $null
+
+    function Get-Command {
+        return $null
+    }
+
+    function winget {
+        $script:wingetPreflightInvoked = $true
+        throw "test: package invocation reached"
+    }
+
+    try {
+        & ([scriptblock]::Create($rendered))
+    } catch {
+        $failure = $_
+    }
+
+    if ($null -eq $failure) {
+        throw "Missing winget must stop the package script."
+    }
+    Assert-Contains -Actual $failure.Exception.Message -Expected "App Installer" -Message "Missing winget must name the recovery prerequisite."
+    Assert-Contains -Actual $failure.Exception.Message -Expected "run chezmoi apply again" -Message "Missing winget must tell the user how to retry."
+    Assert-Equal -Actual $script:wingetPreflightInvoked -Expected $false -Message "Missing winget must not invoke package installation."
+}
+
+function Test-WindowsPowerShell51BootstrapCompatibility {
+    if ($PSVersionTable.PSEdition -ne "Desktop" -or $PSVersionTable.PSVersion.Major -ne 5) {
+        throw "This test must run in Windows PowerShell Desktop 5.1."
+    }
+
+    Test-WingetPrerequisiteFailureIsVisible
+}
+
 function Test-ElevationFailureStopsApply {
     $scriptPath = Join-Path $Repository ".chezmoiscripts/run_onchange_before_10-install-packages.ps1.tmpl"
     $content = [System.IO.File]::ReadAllText($scriptPath)
