@@ -128,6 +128,16 @@ function Test-ProfilePolicyFailureIsVisible {
     Assert-Contains -Actual $rendered -Expected '$ErrorActionPreference = "Stop"' -Message "Profile write failures must be visible."
 }
 
+function Test-GitLfsRunsAfterTargetsApplied {
+    $scriptPath = Join-Path $Repository ".chezmoiscripts/run_onchange_after_40-git-lfs.ps1.tmpl"
+    if (-not (Test-Path -LiteralPath $scriptPath)) {
+        throw "Windows Git LFS script is missing: $scriptPath"
+    }
+
+    $content = Render-WindowsTemplate -Path $scriptPath
+    Assert-Contains -Actual $content -Expected "git lfs install --skip-repo" -Message "Git LFS must avoid mutating the current repository."
+}
+
 foreach ($name in $Test) {
     & $name
     Write-Host "PASS $name"
