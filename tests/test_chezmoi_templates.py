@@ -117,6 +117,12 @@ class ChezmoiTemplateContractTests(unittest.TestCase):
         ):
             self.assertEqual("", render(template, "darwin"), template.name)
 
+    def test_windows_nvim_target_path(self) -> None:
+        """Windows applies this repository's Nvim override at LocalAppData."""
+        paths = applied_paths("windows")
+        self.assertIn("AppData/Local/nvim/lua/plugins/completion.lua", paths)
+        self.assertNotIn(".config/nvim/lua/plugins/completion.lua", paths)
+
 
 if __name__ == "__main__":
     unittest.main()
