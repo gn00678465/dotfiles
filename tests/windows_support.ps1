@@ -61,6 +61,14 @@ function Test-WingetPackageContract {
     Assert-Contains -Actual $content -Expected "-PassThru" -Message "Machine-scope install exit codes must be checked."
 }
 
+function Test-ElevationFailureStopsApply {
+    $scriptPath = Join-Path $Repository ".chezmoiscripts/run_onchange_before_10-install-packages.ps1.tmpl"
+    $content = [System.IO.File]::ReadAllText($scriptPath)
+
+    Assert-Contains -Actual $content -Expected '$null -eq $process -or $process.ExitCode -ne 0' -Message "Cancelled or failed elevation must be observable."
+    Assert-Contains -Actual $content -Expected 'throw "chezmoi: elevated WinGet install failed or was cancelled for $Id"' -Message "Elevation failure must stop chezmoi."
+}
+
 foreach ($name in $Test) {
     & $name
     Write-Host "PASS $name"
