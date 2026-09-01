@@ -53,7 +53,7 @@ def applied_paths(os_name: str, arch: str = "amd64") -> set[str]:
                 "--force",
                 "--no-tty",
                 "--exclude",
-                "scripts",
+                "scripts,externals",
                 "--refresh-externals=never",
                 *chezmoi_arguments(os_name, arch),
             ],
@@ -86,6 +86,36 @@ class ChezmoiTemplateContractTests(unittest.TestCase):
         self.assertNotIn(".zshrc", paths)
         self.assertNotIn(".p10k.zsh", paths)
         self.assertNotIn("tests/test_chezmoi_templates.py", paths)
+
+    def test_unix_renders_only_unix_scripts_and_zsh_config(self) -> None:
+        """Linux/macOS retain their shell contract and render no PowerShell scripts."""
+        for os_name in ("linux", "darwin"):
+            self.assertEqual("", render(WINDOWS_PROFILE_TEMPLATE, os_name))
+            self.assertNotEqual("", render(REPOSITORY / "dot_zshrc.tmpl", os_name))
+            self.assertNotEqual("", render(REPOSITORY / "dot_zprofile.tmpl", os_name))
+            self.assertIn(".oh-my-zsh", render(REPOSITORY / ".chezmoiexternal.toml.tmpl", os_name))
+            self.assertNotIn(".zshrc", render(REPOSITORY / ".chezmoiignore", os_name))
+            self.assertNotIn(".zprofile", render(REPOSITORY / ".chezmoiignore", os_name))
+            self.assertNotIn(".p10k.zsh", render(REPOSITORY / ".chezmoiignore", os_name))
+
+        self.assertTrue((REPOSITORY / "dot_p10k.zsh").is_file())
+
+        for template in UNIX_INSTALL_TEMPLATES:
+            self.assertNotEqual("", render(template, "linux"), template.name)
+
+        for template in (
+            REPOSITORY / ".chezmoiscripts" / "run_once_before_20-install-homebrew.sh.tmpl",
+            REPOSITORY / ".chezmoiscripts" / "run_onchange_before_30-install-brew-packages.sh.tmpl",
+            REPOSITORY / ".chezmoiscripts" / "run_onchange_after_40-git-lfs.sh.tmpl",
+            REPOSITORY / ".chezmoiscripts" / "run_onchange_before_50-neovim.sh.tmpl",
+        ):
+            self.assertNotEqual("", render(template, "darwin"), template.name)
+
+        for template in (
+            REPOSITORY / ".chezmoiscripts" / "run_after_default-shell.sh.tmpl",
+            REPOSITORY / ".chezmoiscripts" / "run_onchange_before_10-install-packages.sh.tmpl",
+        ):
+            self.assertEqual("", render(template, "darwin"), template.name)
 
 
 if __name__ == "__main__":
