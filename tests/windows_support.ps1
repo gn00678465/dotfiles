@@ -138,6 +138,35 @@ function Test-GitLfsRunsAfterTargetsApplied {
     Assert-Contains -Actual $content -Expected "git lfs install --skip-repo" -Message "Git LFS must avoid mutating the current repository."
 }
 
+function Test-FirstBootstrapPreservesUniquePaths {
+    $scriptPath = Join-Path $Repository ".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl"
+    if (-not (Test-Path -LiteralPath $scriptPath)) {
+        throw "Windows Nvim bootstrap script is missing: $scriptPath"
+    }
+
+    $content = Render-WindowsTemplate -Path $scriptPath
+    foreach ($required in @(
+        "NVIM_APPNAME",
+        "LOCALAPPDATA",
+        ".chezmoi-lazyvim-starter",
+        "nvim-data",
+        "nvim --clean --headless",
+        "git clone --depth 1 https://github.com/LazyVim/starter",
+        "Remove-Item -LiteralPath (Join-Path $configPath '.git') -Recurse -Force",
+        "Move-Item -LiteralPath $Path -Destination $destination"
+    )) {
+        Assert-Contains -Actual $content -Expected $required -Message "Nvim first-bootstrap safety contract is incomplete."
+    }
+}
+
+function Test-MarkerPreventsRebootstrap {
+    $scriptPath = Join-Path $Repository ".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl"
+    $content = Render-WindowsTemplate -Path $scriptPath
+
+    Assert-Contains -Actual $content -Expected "if (-not (Test-Path -LiteralPath $markerPath))" -Message "Marker must be the rerun boundary."
+    Assert-Contains -Actual $content -Expected "Move-Item -LiteralPath $Path -Destination $destination" -Message "Moves must occur only inside the marker guard."
+}
+
 foreach ($name in $Test) {
     & $name
     Write-Host "PASS $name"
