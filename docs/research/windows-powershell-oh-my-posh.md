@@ -206,3 +206,19 @@ source rendering evidence，不是 package-install evidence。
 Windows Sandbox 或 CI 進行。最終 evidence report 必須分開記錄：本機 source rendering、
 Windows PowerShell 5.1 的 CI/Sandbox 前置條件測試、以及真實安裝 health check；其中任何
 一項未執行都不能表述為已通過。
+
+## 10. GitHub Windows CI 的 chezmoi 前置工具
+
+- **[已驗證]** GitHub 的 `windows-latest` 是浮動 image label；官方 runner-images
+  manifest 會隨 image 變更，並要求用 job log 確認特定 run 的 image/software version。
+  [GitHub Actions runner-images](https://github.com/actions/runner-images)
+- **[已驗證]** 目前 Windows Server 2025 manifest 列出 PowerShell 7，但其 software list
+  沒有 `chezmoi`。因此 repository 內已依賴 `chezmoi execute-template` 的 Python／PowerShell
+  contracts 不能把 GitHub runner 當作已具備該 binary。
+  [Windows Server 2025 software manifest](https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-Readme.md)
+
+**推論：** Windows CI 必須在可拋棄 runner 上、執行 contract gate 前，以 exact WinGet ID
+`twpayne.chezmoi` 安裝 test harness，並用 `Get-Command chezmoi` 驗證。此動作只授權給 CI：
+不得呼叫 `chezmoi apply`、不得安裝 repo 的 product toolchain、不得接受 UAC。workflow 也應
+明確啟用 Windows PowerShell Desktop 5.1 的 preflight test，讓「可在初始 interpreter parse」
+不是只由 PowerShell 7 模擬。
