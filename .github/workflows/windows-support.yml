@@ -10,6 +10,18 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install temporary chezmoi test harness
+        shell: powershell
+        run: >-
+          winget install --id twpayne.chezmoi --exact --source winget --silent
+          --accept-package-agreements --accept-source-agreements --disable-interactivity
+      - name: Verify renderer and Windows PowerShell 5.1 bootstrap contract
+        shell: powershell
+        run: |
+          if (-not (Get-Command chezmoi -ErrorAction SilentlyContinue)) {
+            throw "chezmoi was not available after the temporary CI bootstrap."
+          }
+          powershell -NoLogo -NoProfile -File tests/windows_support.ps1 -Test Test-WindowsPowerShell51BootstrapCompatibility
       - name: Run Windows support contracts
         shell: bash
         run: bash tools/gate.sh
