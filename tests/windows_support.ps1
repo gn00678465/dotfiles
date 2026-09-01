@@ -152,8 +152,8 @@ function Test-FirstBootstrapPreservesUniquePaths {
         "nvim-data",
         "nvim --clean --headless",
         "git clone --depth 1 https://github.com/LazyVim/starter",
-        "Remove-Item -LiteralPath (Join-Path $configPath '.git') -Recurse -Force",
-        "Move-Item -LiteralPath $Path -Destination $destination"
+        'Remove-Item -LiteralPath (Join-Path $configPath ''.git'') -Recurse -Force',
+        'Move-Item -LiteralPath $Path -Destination $destination'
     )) {
         Assert-Contains -Actual $content -Expected $required -Message "Nvim first-bootstrap safety contract is incomplete."
     }
@@ -163,8 +163,8 @@ function Test-MarkerPreventsRebootstrap {
     $scriptPath = Join-Path $Repository ".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl"
     $content = Render-WindowsTemplate -Path $scriptPath
 
-    Assert-Contains -Actual $content -Expected "if (-not (Test-Path -LiteralPath $markerPath))" -Message "Marker must be the rerun boundary."
-    Assert-Contains -Actual $content -Expected "Move-Item -LiteralPath $Path -Destination $destination" -Message "Moves must occur only inside the marker guard."
+    Assert-Contains -Actual $content -Expected 'if (-not (Test-Path -LiteralPath $markerPath))' -Message "Marker must be the rerun boundary."
+    Assert-Contains -Actual $content -Expected 'Move-Item -LiteralPath $Path -Destination $destination' -Message "Moves must occur only inside the marker guard."
 }
 
 foreach ($name in $Test) {
