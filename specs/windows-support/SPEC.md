@@ -1,6 +1,6 @@
 # SPEC — Native Windows support (Tier 3)
 
-- `spec_version`: v5
+- `spec_version`: v6
 - `status`: approved
 - `tier`: 3 — the change performs privileged package installation and moves
   pre-existing Neovim configuration directories. A wrong path or a process
@@ -8,9 +8,11 @@
 - `intent record`: user request on 2026-09-01; v4 selected the requested
   `powerlevel10k_rainbow` theme. User-provided Windows Sandbox measurement
   subsequently established the initial Windows PowerShell 5.1 interpreter and
-  an App Installer-free environment as an executable failure boundary. This
-  revision needs explicit approval of v5 before its additional test or product
-  change is written.
+  an App Installer-free environment as an executable failure boundary. The
+  GitHub Windows runner's published software manifest then showed no chezmoi
+  binary, so v6 adds a temporary CI-only WinGet bootstrap for the existing
+  rendering tests. This revision needs explicit approval of v6 before its
+  additional test or workflow change is written.
 
 ## Scope
 
@@ -48,6 +50,14 @@ case, README and the package script must fail before any package invocation,
 name App Installer, and tell the user to install or repair it before rerunning.
 Its absence is a supported, actionable preflight failure—not evidence that all
 Windows 11 is unsupported.
+
+The GitHub-hosted Windows contract job is also a disposable CI environment, but
+its published image manifest does not provide chezmoi. Before the job runs this
+repository's test harness, it must install the exact `twpayne.chezmoi` WinGet
+package with the same non-interactive agreement flags as the package contract,
+verify that `chezmoi` is now resolvable, and then run the contract gate. This
+is CI test setup only: it must not run `chezmoi apply`, install the product
+toolchain, request UAC, or be represented as a user-machine bootstrap result.
 
 ## Scenarios
 
@@ -89,6 +99,15 @@ Windows 11 is unsupported.
    new checks are regression armor: their RED evidence must be a temporary
    removal or 5.1-incompatible mutant of that guard/script, restored before
    the test-only checkpoint is committed.
+
+   **Windows CI can execute the rendering contracts**: given the disposable
+   GitHub-hosted Windows runner, the workflow installs `twpayne.chezmoi` from
+   the `winget` source by exact ID before it invokes `tools/gate.sh`; it checks
+   that `chezmoi` resolves and sets the gate to invoke the Desktop PowerShell
+   5.1 compatibility test. This setup does not execute `chezmoi apply` or
+   install any product package.
+   Automated test: `test_windows_ci_bootstraps_chezmoi_before_contracts` in
+   `tests/test_chezmoi_templates.py`.
 
 4. **The PowerShell profile is idempotent and preserves user content**: given
    a missing or pre-existing `$HOME\Documents\PowerShell\Profile.ps1`, the
@@ -194,6 +213,9 @@ Windows 11 is unsupported.
   an unqualified command-not-found error.
 - Must NOT classify an App Installer-free Sandbox as proof that normal Windows
   11 lacks WinGet or as a reason to withdraw Windows 10/11 x64 support.
+- Must NOT rely on chezmoi being pre-installed in GitHub's Windows runner, run
+  `chezmoi apply`, install product packages, or request UAC as part of the CI
+  contract job.
 - Must NOT use an Oh My Posh initialization command that embeds a versioned or
   absolute executable path; the managed block uses `--strict`.
 - Must NOT silently fall back to Oh My Posh's default theme, a local relative
@@ -218,6 +240,7 @@ Windows 11 is unsupported.
 | A restricted execution policy is silently weakened or a blocked profile is reported as configured | Scenario 4’s `Test-ProfilePolicyFailureIsVisible` rejects policy mutation; Scenario 10 records the real `pwsh` result. |
 | The initial script uses PowerShell 7-only syntax and fails before it can install PowerShell 7 | Scenario 3’s `Test-WindowsPowerShell51BootstrapCompatibility` runs the rendered prerequisite path with Windows PowerShell Desktop 5.1 in Windows CI or Sandbox. |
 | App Installer is absent, so a bare `winget` bootstrap fails opaquely or starts a partial apply | Scenario 3’s `Test-WingetPrerequisiteFailureIsVisible` proves the script stops before installs; Scenario 11’s README test requires the matching preflight and recovery text. |
+| CI cannot render templates because the hosted Windows image lacks chezmoi, or accidentally performs a real product apply | Scenario 3’s `test_windows_ci_bootstraps_chezmoi_before_contracts` asserts the exact temporary test-harness install, `Get-Command chezmoi`, Desktop-5.1 gate variable, and absence of `chezmoi apply` / product package IDs. |
 | A wrong Nvim target causes chezmoi to apply config under `~/.config/nvim` instead of the Nvim runtime path | Scenario 7 target-path test plus the bootstrap path assertion. |
 | User config/data/cache is lost, nested in an older backup, or data/state is moved twice | Scenario 8 generated filesystem combinations, including occupied `.bak` names. |
 | Marker regression overwrites a user-owned config on a rerun | Scenario 9 asserts marker-present runs make no move/clone calls. |
@@ -234,7 +257,10 @@ Windows 11 is unsupported.
   PowerShell 7 installation through mise is authorised only if needed to run
   the same test harness locally; it must be reported in evidence. Actual
   `winget install` is authorised only in Windows Sandbox or CI, never on the
-  adjacent Windows host.
+  adjacent Windows host. The Windows CI job additionally installs the exact
+  `twpayne.chezmoi` package through WinGet only to execute the repository's
+  existing render tests; it verifies command resolution before the gate and
+  installs no product package.
 - Git isolation: the existing feature worktree; checkpoint commits in this
   cadence: approved SPEC, each RED behaviour, each corresponding GREEN
   behaviour, then gate tooling. For v5, the README preflight test must first
@@ -242,7 +268,10 @@ Windows 11 is unsupported.
   edit. The existing package-script preflight is regression armor: prove each
   new v5 check against a temporary mutant, restore it, and commit the test-only
   checkpoint without recasting the pre-existing v4 implementation as a v5
-  GREEN change. The base ref is `0d72b8e` (`main`).
+  GREEN change. For v6, the workflow-static test must first RED against the
+  current job; after its test checkpoint, add the CI-only exact WinGet
+  bootstrap and Desktop-5.1 test invocation. The base ref is `0d72b8e`
+  (`main`).
 - Files the gate will add:
   `tests/test_chezmoi_templates.py`, `tests/windows_support.ps1`,
   `tests/mutate_windows_support.py`, `tools/gate.sh`, and
@@ -268,6 +297,7 @@ not approval.
 
 - 2026-09-01 — `spec_version`: v4; approving words (verbatim): 「核准 SPEC v4」.
 - 2026-09-01 — `spec_version`: v5; approving words (verbatim): 「v5 核准」.
+- 2026-09-01 — `spec_version`: v6; approving words (verbatim): "Agree v6".
 
 ## Revisions
 
@@ -304,3 +334,11 @@ Append-only.
   `status` remained `draft`; that is a workflow defect. v5's eventual approval
   must set `status: approved` in the same commit, and the final evidence must
   disclose the v4 status defect rather than treating it as confirmed intent.
+- 2026-09-01 — v6: GitHub's current Windows runner manifest lists PowerShell
+  but not chezmoi. Added the smallest CI-only remedy: exact-ID `twpayne.chezmoi`
+  installation through WinGet, command-resolution check, and explicit
+  Desktop-PowerShell-5.1 test invocation before the existing contract gate.
+  The runner is disposable CI, which is already the only authorised place for
+  real WinGet installation; nevertheless this expands the approved setup plan,
+  so v5 approval does not authorise it. The job must never run `chezmoi apply`,
+  install product packages, or request UAC.
