@@ -18,6 +18,25 @@ function Assert-Contains {
     }
 }
 
+function Assert-Equal {
+    param(
+        [Parameter(Mandatory)] $Actual,
+        [Parameter(Mandatory)] $Expected,
+        [Parameter(Mandatory)] [string]$Message
+    )
+
+    if ($Actual -ne $Expected) {
+        throw "$Message Expected: $Expected Actual: $Actual"
+    }
+}
+
+function Render-WindowsTemplate {
+    param([Parameter(Mandatory)] [string]$Path)
+
+    $overrideData = '{"chezmoi":{"os":"windows","arch":"amd64"}}'
+    return (& chezmoi execute-template --override-data $overrideData --file $Path | Out-String).TrimEnd("`r", "`n")
+}
+
 function Test-WingetPackageContract {
     $scriptPath = Join-Path $Repository ".chezmoiscripts/run_onchange_before_10-install-packages.ps1.tmpl"
     if (-not (Test-Path -LiteralPath $scriptPath)) {
@@ -67,6 +86,46 @@ function Test-ElevationFailureStopsApply {
 
     Assert-Contains -Actual $content -Expected '$null -eq $process -or $process.ExitCode -ne 0' -Message "Cancelled or failed elevation must be observable."
     Assert-Contains -Actual $content -Expected 'throw "chezmoi: elevated WinGet install failed or was cancelled for $Id"' -Message "Elevation failure must stop chezmoi."
+}
+
+function Test-PwshProfileManagedBlockPreservesUserContent {
+    $templatePath = Join-Path $Repository ".chezmoiscripts/run_onchange_after_45-powershell-profile.ps1.tmpl"
+    $testHome = Join-Path ([System.IO.Path]::GetTempPath()) ("windows-support-" + [guid]::NewGuid())
+    $profilePath = Join-Path $testHome "Documents/PowerShell/Profile.ps1"
+    $beginMarker = "# >>> chezmoi oh-my-posh >>>"
+    $endMarker = "# <<< chezmoi oh-my-posh <<<"
+
+    try {
+        New-Item -ItemType Directory -Path (Split-Path -Parent $profilePath) -Force | Out-Null
+        [System.IO.File]::WriteAllText($profilePath, "Write-Host 'user content'`n")
+        $rendered = Render-WindowsTemplate -Path $templatePath
+        $script = $rendered.Replace('$HOME', '$testHome')
+
+        & ([scriptblock]::Create($script))
+        $first = [System.IO.File]::ReadAllText($profilePath)
+        & ([scriptblock]::Create($script))
+        $second = [System.IO.File]::ReadAllText($profilePath)
+
+        Assert-Contains -Actual $first -Expected "Write-Host 'user content'" -Message "Profile modifier must retain user content."
+        Assert-Contains -Actual $first -Expected "oh-my-posh init pwsh --config 'powerlevel10k_rainbow' --strict | Invoke-Expression" -Message "Profile must use the selected strict theme init."
+        Assert-Equal -Actual ([regex]::Matches($first, [regex]::Escape($beginMarker)).Count) -Expected 1 -Message "Profile must contain one begin marker."
+        Assert-Equal -Actual ([regex]::Matches($first, [regex]::Escape($endMarker)).Count) -Expected 1 -Message "Profile must contain one end marker."
+        Assert-Equal -Actual $second -Expected $first -Message "Profile modifier must converge on a second run."
+    } finally {
+        if (Test-Path -LiteralPath $testHome) {
+            Remove-Item -LiteralPath $testHome -Recurse -Force
+        }
+    }
+}
+
+function Test-ProfilePolicyFailureIsVisible {
+    $templatePath = Join-Path $Repository ".chezmoiscripts/run_onchange_after_45-powershell-profile.ps1.tmpl"
+    $rendered = Render-WindowsTemplate -Path $templatePath
+
+    if ($rendered.Contains("Set-ExecutionPolicy")) {
+        throw "Profile bootstrap must not weaken execution policy."
+    }
+    Assert-Contains -Actual $rendered -Expected '$ErrorActionPreference = "Stop"' -Message "Profile write failures must be visible."
 }
 
 foreach ($name in $Test) {
