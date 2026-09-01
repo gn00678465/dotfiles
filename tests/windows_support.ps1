@@ -33,8 +33,15 @@ function Assert-Equal {
 function Render-WindowsTemplate {
     param([Parameter(Mandatory)] [string]$Path)
 
-    $overrideData = '{"chezmoi":{"os":"windows","arch":"amd64"}}'
-    return (& chezmoi execute-template --override-data $overrideData --file $Path | Out-String).TrimEnd("`r", "`n")
+    $overrideDataPath = Join-Path ([System.IO.Path]::GetTempPath()) ("windows-support-" + [guid]::NewGuid() + ".json")
+    try {
+        [System.IO.File]::WriteAllText($overrideDataPath, '{"chezmoi":{"os":"windows","arch":"amd64"}}')
+        return (& chezmoi execute-template --override-data-file $overrideDataPath --file $Path | Out-String).TrimEnd("`r", "`n")
+    } finally {
+        if (Test-Path -LiteralPath $overrideDataPath) {
+            Remove-Item -LiteralPath $overrideDataPath -Force
+        }
+    }
 }
 
 function Test-WingetPackageContract {
