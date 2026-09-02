@@ -9,10 +9,22 @@
 {{-   $cur = fromJson .chezmoi.stdin -}}
 {{- end -}}
 
-{{- /* cc-statusline 由 .chezmoiexternal.toml.tmpl 裝到 ~/.claude/cc-statusline/ */ -}}
+{{- /* cc-statusline 由 .chezmoiexternal.toml.tmpl 裝到 ~/.claude/cc-statusline/。
+       Windows 上那個 external 取的是 .zip，裡面是 cc-statusline.exe，所以檔名不同。
+
+       Windows 版刻意不帶 STATUSLINE_USAGE_STYLE=dots 前綴：那是 POSIX shell 的
+       「環境變數前綴 + 命令」語法，cmd 與 PowerShell 都不吃。上游 README 對
+       Windows 只寫到「用 ~/.claude/cc-statusline/cc-statusline.exe」，沒有給
+       任何傳環境變數的方式，猜一個包法若猜錯會讓 statusline 整個不顯示 ——
+       比損失一個外觀選項嚴重。Windows 因此使用預設樣式。 */ -}}
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $ccCommand := "STATUSLINE_USAGE_STYLE=dots ~/.claude/cc-statusline/cc-statusline" -}}
+{{- if $p.isWindows -}}
+{{-   $ccCommand = "~/.claude/cc-statusline/cc-statusline.exe" -}}
+{{- end -}}
 {{- $cur = $cur | setValueAtPath "statusLine" (dict
       "type"    "command"
-      "command" "STATUSLINE_USAGE_STYLE=dots ~/.claude/cc-statusline/cc-statusline"
+      "command" $ccCommand
       "padding" 2) -}}
 {{- $cur = $cur | setValueAtPath "autoMemoryEnabled" false -}}
 {{- $cur = $cur | setValueAtPath "authDreamEnabled" false -}}
