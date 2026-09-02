@@ -1,0 +1,4 @@
+# 沒有 osOverride/archOverride 的 config，用來證明測試接縫在正式環境下會退回
+# .chezmoi.os / .chezmoi.arch（SPEC M8）。
+[data]
+    isWSL = false

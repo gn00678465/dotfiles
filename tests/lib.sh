@@ -1,0 +1,122 @@
+# 測試共用工具。純 POSIX sh，唯一外部相依是 chezmoi 本身。
+# 由 tests/run.sh source，各 case 檔再 source 一次是無害的（有 guard）。
+
+[ -n "${_TESTS_LIB_LOADED:-}" ] && return 0
+_TESTS_LIB_LOADED=1
+
+REPO="${REPO:?REPO must be set by run.sh}"
+TMP="${TMP:?TMP must be set by run.sh}"
+FIXTURES="$REPO/tests/fixtures"
+GOLDEN="$REPO/tests/golden"
+
+TESTS_RUN=0
+TESTS_FAILED=0
+TESTS_SKIPPED=0
+CURRENT_CASE="?"
+
+# ---- 回報 ---------------------------------------------------------------
+
+_pass() { TESTS_RUN=$((TESTS_RUN + 1)); printf 'ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1"; }
+_fail() {
+    TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+    printf 'not ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1"
+    shift
+    for line in "$@"; do printf '#   %s\n' "$line"; done
+}
+skip() {
+    TESTS_RUN=$((TESTS_RUN + 1)); TESTS_SKIPPED=$((TESTS_SKIPPED + 1))
+    printf 'ok %d - [%s] %s # SKIP %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1" "$2"
+}
+
+# 多行值印成可讀的 diff 註解
+_dump() {
+    printf '#   --- %s ---\n' "$1"
+    printf '%s\n' "$2" | sed 's/^/#   | /'
+}
+
+# ---- 斷言 ---------------------------------------------------------------
+
+assert_eq() { # name expected actual
+    if [ "$2" = "$3" ]; then _pass "$1"; else
+        TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf 'not ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1"
+        _dump expected "$2"; _dump actual "$3"
+    fi
+}
+
+assert_contains() { # name haystack needle
+    case "$2" in
+        *"$3"*) _pass "$1" ;;
+        *) TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+           printf 'not ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1"
+           printf '#   expected to contain: %s\n' "$3"; _dump haystack "$2" ;;
+    esac
+}
+
+assert_not_contains() { # name haystack needle
+    case "$2" in
+        *"$3"*) TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+           printf 'not ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1"
+           printf '#   expected NOT to contain: %s\n' "$3"; _dump haystack "$2" ;;
+        *) _pass "$1" ;;
+    esac
+}
+
+# 「渲染成空」是本 repo 唯一的跨平台隔離手段（見 SPEC F2/F3），所以它有專屬斷言：
+# 只有空白的內容才算空，一個非空白字元就會讓 chezmoi 真的去執行這支腳本。
+assert_blank() { # name actual
+    stripped=$(printf '%s' "$2" | tr -d ' \t\n\r')
+    if [ -z "$stripped" ]; then _pass "$1"; else
+        TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf 'not ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1"
+        printf '#   expected blank (chezmoi 才會跳過這支腳本)\n'; _dump actual "$2"
+    fi
+}
+
+assert_not_blank() { # name actual
+    stripped=$(printf '%s' "$2" | tr -d ' \t\n\r')
+    if [ -n "$stripped" ]; then _pass "$1"; else
+        TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf 'not ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1"
+        printf '#   expected non-blank\n'
+    fi
+}
+
+assert_ok() { # name command...
+    name=$1; shift
+    if out=$("$@" 2>&1); then _pass "$name"; else
+        TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf 'not ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$name"
+        printf '#   command: %s\n' "$*"; _dump output "$out"
+    fi
+}
+
+# ---- chezmoi 呼叫 -------------------------------------------------------
+
+# 用指定 OS fixture 跑 chezmoi。每個 OS 有自己的 destination 與 persistent state，
+# 免得 run_onchange_ 的狀態在 OS 之間互相汙染。
+cm() { # os subcommand...
+    _os=$1; shift
+    mkdir -p "$TMP/dest-$_os"
+    chezmoi \
+        --source "$REPO" \
+        --config "$FIXTURES/os-$_os.toml" \
+        --destination "$TMP/dest-$_os" \
+        --persistent-state "$TMP/state-$_os.boltdb" \
+        --no-tty \
+        "$@"
+}
+
+# 用指定 OS 渲染一段模板字串
+render() { # os template
+    printf '%s' "$2" | cm "$1" execute-template
+}
+
+# 用指定 OS 渲染 source 裡的一個檔案（給腳本用；chezmoi 的 execute-template
+# 讀 stdin，所以直接把檔案內容餵進去，與 chezmoi apply 時的算繪等價）
+render_file() { # os path-relative-to-repo
+    cm "$1" execute-template < "$REPO/$2"
+}
+
+ALL_OSES='linux darwin-arm64 darwin-amd64 windows'
+POSIX_OSES='linux darwin-arm64 darwin-amd64'
