@@ -1,11 +1,14 @@
 # Evidence Report — native Windows 支援 (Tier 3)
 
 - `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）**
-  · 獨立驗證跑了**四輪**，四輪都判 failed；共 36 條 findings 全部已處置，見 §獨立驗證。
-  第四輪明確記錄：**產品程式碼本身沒有找到缺陷**，殘留的都是驗證缺口
+  · 獨立驗證跑了**五輪**，五輪都判 failed；共 44 條 findings 全部已處置，見 §獨立驗證。
+  第五輪找到第一輪之後唯一一個**真正的產品缺陷**（已修），並判定「未收斂，但距離收斂只剩一步」
 - `command`: `evidence`
-- `contract`: applied（`~/.claude/CLAUDE.md` 的 evidence-first 契約；本 repo 的
-  `AGENTS.md` 沒有覆寫它）
+- `contract`: applied，**含一項路徑偏離**。契約要求已核准的 SPEC 提交在
+  `specs/<scope>/SPEC.md`；本 repo 自己的 `docs/agents/issue-tracker.md` 指定
+  `.scratch/<feature-slug>/spec.md`，而契約明文說專案自己的約定優先。SPEC 因此在
+  `.scratch/windows-support/spec.md`。**代價**：CLOSE 步驟的 `spec-archive` 工具
+  只在契約指定的路徑找 SPEC，找不到這一份。
 - `scope`: `windows-support`
 - `change_set`: `0d72b8e...HEAD`
 - `base`: `0d72b8e`
@@ -18,7 +21,7 @@
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `f26b9fdcf7cf45465e4764fa8fb14a6435cfe61a`
+- `source_state`: `591cce95ce0be6771935081e3c0cbfa064c2566e`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只會再多一個 commit —— 本報告本身 ——
@@ -198,14 +201,14 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=f26b9fd…`, `worktree=clean` |
-| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **430 passed, 0 failed, 0 skipped** |
-| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，430/430 |
-| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 430 passed, 0 failed |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=591cce9…`, `worktree=clean` |
+| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **458 passed, 0 failed, 0 skipped** |
+| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，458/458 |
+| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 458 passed, 0 failed |
 | Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
-| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **25/25 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 5995 行（**不含本報告為 5260 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 2246 / set3 3014 / 共 5260 行 |
+| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **29/29 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 6181 行（**不含本報告為 5399 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 2290 / set3 3109 / 共 5399 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
 | Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
 
@@ -233,6 +236,27 @@ Tier 3 依契約派了一個獨立的 `verifier`，只給四項輸入（任務�
 | 9 | LOW | 備份時間戳只到秒，同一秒內第三次 bootstrap 會把上一份備份埋進新的裡（不遺失資料，但正是程式碼註解說要避免的那件事） | **已修**。兩個平台的備份函式都加唯一化迴圈；L7 加跑第四次；mutant `backup-timestamp-collision` |
 | 10 | LOW | M9 沒有自動檢查；`twpayne.chezmoi` 不在 SPEC F12 的 11 個 ID 表裡 | **已修**。supply-chain 新增第四項，逐一解析 12 個 ID（含 `twpayne.chezmoi`），抽取規則對不上程式碼就失敗 |
 | 11 | LOW | SPEC §2.4 說備份四個目錄、實作備份三個（實作是對的，SPEC 自己前後不一致）但沒揭露；核准綁定的 sha256 無法從 git 驗證 | **已揭露**，見 Honest notes 4 與 9。程式碼不改：SPEC F6 自己記載 Windows 的 state 與 data 是同一個路徑 |
+
+### 第五輪
+
+判定仍是 **failed**，8 條 findings。它找到第一輪之後**唯一一個真正的產品缺陷**，
+並第一次給出可執行的收斂條件：「未收斂，但距離收斂只剩一步」。
+
+| # | 嚴重度 | Finding | 處置 |
+|---|---|---|---|
+| R5-2 | MEDIUM-HIGH | **產品缺陷**：`50-neovim.ps1` 在 mise 找不到時寫 `Write-Error` 再 `exit 0`，但 `$ErrorActionPreference = 'Stop'` 之下 `Write-Error` 是**終止性**的 —— `exit 0` 到不了，chezmoi 收到的是 1。這是 `run_onchange_before_`，非零退出會在**任何檔案被寫出來之前**中止整個 apply，使用者連 PowerShell profile 都拿不到。比它想做的「跳過 neovim」嚴重得多，而 repo 裡有三處把「exit 0」當成實測事實寫著 | **已修**。改用 `Write-Warning`（受 `$WarningPreference` 管，非終止性），與 POSIX 版對稱。已在完全隔離的環境實測確認修正前後的退出碼；`L7` 新增退出碼斷言，mutant `neovim-skip-aborts-apply` |
+| R5-1 | MEDIUM-HIGH | **接縫的生產端入口沒有任何守衛**。整個 Windows 與 macOS 的證據都建立在「正式 config 沒有 `osOverride`」上，而那個前提只寫在 partial 的註解裡；沒有一層檢查 `chezmoi init` 真正產生使用者 config 的那個檔案。在它的 `[data]` 加一行 → 全套 413 個測試全綠，而真實 Windows 上 apply 會中止（M1、Must NOT #4），managed 也變成 POSIX 那一組（M7） | **已修**。`L1` 補上「原始碼與渲染結果都不得含 `osOverride`/`archOverride`」；mutant `seam-leaks-into-production-config` |
+| R5-3 | MEDIUM | **L11 的 A、B 兩層在兩邊都取不到內容時恆真**：helper 用 `\|\| true`，失敗留下空檔，`cmp` 判兩個空檔相等。證據是它自己的 RED 表 —— tier B 的七條在完全沒有 Windows 產物的 base ref 上「全部通過」 | **已修**。取不到或取到空內容一律硬失敗 |
+| R5-4 | MEDIUM | `init.ps1` 的行為沒有任何東西釘住（它不經 chezmoi 算繪，落在 L11-C 的邊界外）。刪掉 Git 的自舉、換掉 GitHub 帳號、拿掉 symlink 警告，三個都存活整套測試 | **已修**。`L11-D` 把它的義務寫成斷言；mutant `init-drops-git-bootstrap` |
+| R5-5 | MEDIUM | 報告的 Table 1 為第四輪指出的**每一個**單元列的仍是那些結構上盲的層，從來沒提過補進來的 L11 | **已修**。Table 1 已改列 L11 並標明哪些層對該單元是盲的 |
+| R5-6 | LOW | 兩個計數過期（case 數、gate 腳本數） | **已修** |
+| R5-7 | LOW | SPEC 宣告 M1–M12，claim 表只有 M9 與 M12 有列 | **已修**。M1–M11 全部補上對應的可失敗程序 |
+| R5-8 | LOW | sandbox 探針的內容漂移不會被發現，而它是 M12 與 symlink 問題唯一的量測工具 | **已修**。`L11-D`；mutant `probe-drops-m12-check` |
+
+**它的收斂判斷**：L11 確實把「chezmoi 會渲染的 Windows 產物」這一類關上了 ——
+它自己發明的每一個內容變異都死了，包含三個我沒有寫的。剩下的殘留第一次是
+**可列舉的清單**而不是「機制缺一塊」的症狀，它並且直接寫出了關閉條件（四項，
+全部已完成）。它預估再一輪之後報酬轉負。
 
 ### 第四輪
 
@@ -356,7 +380,7 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
   回報分數。**runner 完全循序、沒有併發**，所以「並行 job 共用 build 目錄」的污染機制
   在這裡不存在；每個 mutant 在同一個拋棄式 worktree 裡「套用 → 跑 → 還原」，
   套用與還原都有 assert。
-- **Mutation kill 歸因** —— 不是抽樣，而是**逐一檢查全部 25 個**：每個 mutant 的失敗
+- **Mutation kill 歸因** —— 不是抽樣，而是**逐一檢查全部 29 個**：每個 mutant 的失敗
   斷言名稱都指名它破壞的那個行為，沒有一個是無關測試剛好紅了。
 
 ---
@@ -371,7 +395,7 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
     使用者環境，**沒有取得授權**，所以什麼都沒跑。L4 的語法解析**不是** lint 的替代品：
     它只保證「解析得過」，抓不到 quoting、未引用變數這類問題。
   - *Changed-line coverage* —— 三種語言都沒有覆蓋率工具。set 3（可執行但無覆蓋率對應）
-    ＝ 3014 行，是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
+    ＝ 3109 行，是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
     mutation 與 property 三層。
 - **SUBSTITUTED：**
   - *Real execution* —— 沒有跑「完整安裝一次」。跑的是 `L7`（重導向環境裡真的執行腳本）
