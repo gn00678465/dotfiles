@@ -440,8 +440,9 @@ end-to-end 執行（`tests/sandbox/`）。
 
 ## 11.5 codex 設定改寫的「一行一個 key」前提（**實測**）
 
-`~/.codex/config.toml` 的 modify-template 是逐行改寫，前提是**受管的 key 各佔一行**。
-四種形狀會讓這個前提失效，合法的 TOML 進去、不合法的 TOML 出來：
+`~/.codex/config.toml` 的 modify-template 是逐行改寫，前提是**受管的 key 各佔一行、
+寫成 bare key、且所在的表頭是單純的 `[tui]`**。以下形狀會讓這個前提失效，
+合法的 TOML 進去、不合法的 TOML 出來：
 
 | 輸入形狀 | 結果 |
 |---|---|
@@ -449,6 +450,10 @@ end-to-end 執行（`tests/sandbox/`）。
 | `[[tui]]`（array of tables） | 輸出宣告了兩次 `tui` |
 | `["tui"]`（加引號的表頭） | 同上 |
 | `tui = { ... }`（inline table） | 同上 |
+| `"status_line" = "X"`（加引號的 key） | 輸出同時有引號版與 bare 版，`Cannot overwrite a value` |
+
+> **這張表是「目前已知的」，不是窮舉。** 前四種被當成完整清單寫進文件之後，
+> 獨立驗證又找到了第五種（加引號的 key）。真正的界線是那三個前提，不是這五列。
 
 **這四種與移植前的 `sh`+`awk` 實作逐位元組相同**，也就是說它是沿用下來的既有行為，
 不是這次移植引入的；修掉它會改變 POSIX 端的輸出。

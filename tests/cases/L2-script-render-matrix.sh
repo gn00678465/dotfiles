@@ -113,3 +113,30 @@ _pwsh_profile=$(render_file windows .chezmoiscripts/run_after_60-pwsh-profile.ps
 assert_contains "60-pwsh-profile 把 \$target 指向 \$PROFILE.CurrentUserAllHosts" \
     "$_pwsh_profile" '$target = $PROFILE.CurrentUserAllHosts'
 unset _pwsh_profile
+
+# 每一支需要外部工具的 Windows 腳本都必須先套 windows-path partial。少了它，
+# chezmoi 跑腳本時的 PATH 看不到 winget 剛裝好的東西，50-neovim 會走
+# 「mise not found, skipping neovim」那條路 —— 而那條路**以 exit 0 結束**，
+# 整個 neovim/LazyVim 安裝就靜靜地沒發生。實測過那個分歧。
+for _s in run_onchange_before_30-install-winget-packages.ps1.tmpl \
+          run_onchange_after_40-git-lfs.ps1.tmpl \
+          run_onchange_before_50-neovim.ps1.tmpl; do
+    _c=$(render_file windows ".chezmoiscripts/$_s")
+    assert_contains "$_s 有套用 windows-path partial" "$_c" 'Microsoft\WinGet\Links'
+    assert_contains "$_s 的 PATH 補強有含 mise shims" "$_c" 'mise\shims'
+done
+
+# PowerShell profile 的內容原本完全沒有被釘住：把主題檔名改掉、或整段拿掉
+# PSReadLine 設定，都能存活整套測試。主題檔名尤其危險——external 裝的檔名與
+# profile 讀的檔名不一致時，profile 裡的 Test-Path 守衛會**靜靜地跳過**
+# oh-my-posh 初始化，使用者只會看到一個沒有主題的提示字元，沒有任何錯誤。
+_profile=$(render_file windows private_dot_config/powershell/profile.ps1.tmpl)
+_theme=$(render_file windows .chezmoiexternal.toml.tmpl | sed -n 's|^\["\.config/oh-my-posh/\(.*\)"\]$|\1|p')
+assert_not_blank "external 有裝一個 oh-my-posh 主題檔" "$_theme"
+assert_contains "profile 讀的主題檔名與 external 裝的那一個一致" "$_profile" "$_theme"
+assert_contains "profile 有初始化 oh-my-posh" "$_profile" 'oh-my-posh init pwsh'
+assert_contains "profile 有開啟 PSReadLine 的歷史預測（對應 zsh-autosuggestions）" \
+    "$_profile" 'PredictionSource History'
+assert_contains "profile 有載入 PSFzf 的 TabExpansion（對應 fzf-tab）" "$_profile" '-TabExpansion'
+assert_contains "profile 有啟用 mise" "$_profile" 'mise activate pwsh'
+unset _s _c _profile _theme

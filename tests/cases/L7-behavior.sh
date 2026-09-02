@@ -7,6 +7,20 @@
 # 一切都在重導向的環境裡跑：假的 HOME / LOCALAPPDATA / TEMP / ProgramFiles，
 # 加上 mise 與 git 的 stub。SPEC Must NOT #1 禁止碰真實主機。
 
+# 「同一秒內再備份一次」不能靠兩次執行剛好落在同一秒 —— 跨 WSL→pwsh.exe 的呼叫
+# 大約要一秒，等於擲硬幣。獨立驗證實測：Windows 那個 mutant 在 7 次獨立重複裡存活了
+# 2 次，於是整個 gate 是不決定性的。
+#
+# 改成強制撞名：先把接下來幾秒的時間戳目錄全部建好，腳本算出來的那個名字必然已被
+# 佔用，唯一化迴圈就一定會被走到。
+_seed_stamp_collisions() { # base-path
+    _i=0
+    while [ "$_i" -le 6 ]; do
+        mkdir -p "$1.bak.$(date -d "+$_i second" +%Y%m%d%H%M%S 2>/dev/null || date +%Y%m%d%H%M%S)"
+        _i=$((_i + 1))
+    done
+}
+
 # ---------- 共用：組出一棵「使用者已經有東西」的既有 nvim 樹 ----------
 _seed_nvim() { # config data state cache
     for _dir in "$@"; do
@@ -112,12 +126,16 @@ assert_eq "POSIX: 第二份備份用時間戳另存" "2" \
     "$(ls -d "$_a"/home/.config/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
 
 # 隔離是否真的生效，用可觀察的事實釘住：stub 的 mise 會留下記號，真的 mise 不會。
-# 第四次：時間戳只到秒，同一秒內再備份一次必須另外命名，而不是塞進上一份備份裡。
+# 第四次：強制撞名，逼出唯一化迴圈。
 rm -f "$_a/home/.config/nvim/.chezmoi-lazyvim-starter"
+printf 'GEN4\n' > "$_a/home/.config/nvim/gen-marker.txt"
+_seed_stamp_collisions "$_a/home/.config/nvim"
 if _out=$(_run_a); then _pass "POSIX 50-neovim 第四次執行成功"
 else _fail "POSIX 50-neovim 第四次執行成功" "$_out"; fi
-assert_eq "POSIX: 三份備份彼此獨立" "3" \
-    "$(ls -d "$_a"/home/.config/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
+assert_eq "POSIX: 撞名時改用序號另存，而不是塞進既有備份裡" "1" \
+    "$(ls -d "$_a"/home/.config/nvim.bak.*.[0-9]* 2>/dev/null | wc -l | tr -d ' ')"
+assert_eq "POSIX: 這一次被搬走的內容確實進了序號備份" "GEN4" \
+    "$(cat "$_a"/home/.config/nvim.bak.*.[0-9]*/gen-marker.txt 2>&1)"
 assert_eq "POSIX: 沒有任何備份被塞進另一份備份裡" "" \
     "$(find "$_a/home/.config" -mindepth 2 -maxdepth 2 -name nvim -type d 2>/dev/null)"
 
@@ -141,7 +159,10 @@ else
     _id="l7b-$$"
     _bw="$_WU/$_id"; _bn="$_WT\\$_id"
     rm -rf "$_bw"; mkdir -p "$_bw/local" "$_bw/temp" "$_bw/pf" "$_bw/stub"
-    printf '@echo off\r\nexit /b 0\r\n' > "$_bw/stub/mise.cmd"
+    # 跟 POSIX 那半一樣留下記號。隔離目前是靠 %LOCALAPPDATA%/%ProgramFiles% 被
+    # 重導向而成立；沒有這個正面控制的話，哪天重導向失效，Windows 這半會安靜地
+    # 開始驅動主機上的真工具 —— 而那正是 Must NOT #1 守的那條線。
+    printf '@echo off\r\necho %%* >> "%s\\mise-calls.log"\r\nexit /b 0\r\n' "$_bn" > "$_bw/stub/mise.cmd"
     printf '@echo off\r\nif "%%1"=="clone" (\r\n  mkdir "%%~5" 2>nul\r\n  mkdir "%%~5\\.git" 2>nul\r\n  echo starter> "%%~5\\init.lua"\r\n)\r\nexit /b 0\r\n' > "$_bw/stub/git.cmd"
     render_file windows .chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl > "$_bw/50-neovim.ps1"
 
@@ -203,13 +224,20 @@ PSEOF
     # POSIX 那半本來就有這一段；Windows 這半原本沒有，於是鏡像的 mutant 可以存活 ——
     # 程式碼修好了、能證偽它的程序卻只落在一個平台上。
     rm -f "$_bw/local/nvim/.chezmoi-lazyvim-starter"
+    printf 'GEN4\n' > "$_bw/local/nvim/gen-marker.txt"
+    _seed_stamp_collisions "$_bw/local/nvim"
     if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_bn\\run.ps1" 2>&1); then
         _pass "Windows 50-neovim 第四次執行成功"
     else _fail "Windows 50-neovim 第四次執行成功" "$(printf '%s' "$_out" | tr -d '\r')"; fi
-    assert_eq "Windows: 三份備份彼此獨立" "3" \
-        "$(ls -d "$_bw"/local/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
+    assert_eq "Windows: 撞名時改用序號另存，而不是塞進既有備份裡" "1" \
+        "$(ls -d "$_bw"/local/nvim.bak.*.[0-9]* 2>/dev/null | wc -l | tr -d ' ')"
+    assert_eq "Windows: 這一次被搬走的內容確實進了序號備份" "GEN4" \
+        "$(cat "$_bw"/local/nvim.bak.*.[0-9]*/gen-marker.txt 2>&1 | tr -d '\r')"
     assert_eq "Windows: 沒有任何備份被塞進另一份備份裡" "" \
         "$(find "$_bw/local" -mindepth 2 -maxdepth 2 -name nvim -type d 2>/dev/null)"
+
+    assert_eq "Windows: 跑到的是 stub 的 mise 而不是主機上的 mise（隔離生效）" "4" \
+        "$(wc -l < "$_bw/mise-calls.log" 2>/dev/null | tr -d ' ')"
 
     # ================= C. pwsh profile loader 的冪等性 =================
     # 真正的 $PROFILE 指向使用者的 Documents，不能拿來測。所以 loader 的邏輯被抽成
@@ -239,4 +267,4 @@ PSEOF
     rm -rf "$_bw"
 fi
 
-unset _a _out _dir _PWSH _WT _WU _id _bw _bn _loader _prof _i
+unset _a _out _dir _i _PWSH _WT _WU _id _bw _bn _loader _prof _i

@@ -210,6 +210,52 @@ MUTANTS: list[Mutant] = [
         ),
     ),
     Mutant(
+        name="cc-statusline-arch-swap",
+        path=".chezmoiexternal.toml.tmpl",
+        old='{{-   $ccStatuslineAsset = (eq $p.arch "arm64") | ternary "darwin-arm64" "darwin-x64" -}}',
+        new='{{-   $ccStatuslineAsset = (eq $p.arch "arm64") | ternary "darwin-x64" "darwin-arm64" -}}',
+        layer="L5",
+        rationale=(
+            "Intel Mac 拿到 arm64 的執行檔（Bad CPU type）。supply-chain 看不到這種錯："
+            "sum 是按 asset 名稱查的，URL 與 pin 仍然一致、雜湊也仍然相符"
+        ),
+    ),
+    Mutant(
+        name="windows-path-not-included",
+        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        old='{{ includeTemplate "windows-path.ps1" . }}',
+        new="",
+        layer="L2",
+        rationale=(
+            "chezmoi 跑腳本時的 PATH 看不到 winget 剛裝好的 mise，於是走"
+            "「mise not found, skipping neovim」那條路 —— 而那條路以 exit 0 結束，"
+            "整個 neovim/LazyVim 安裝靜靜地沒發生"
+        ),
+    ),
+    Mutant(
+        name="pwsh-profile-theme-name",
+        path="private_dot_config/powershell/profile.ps1.tmpl",
+        old="'.config/oh-my-posh/powerlevel10k_rainbow.omp.json'",
+        new="'.config/oh-my-posh/p10k_rainbow.omp.json'",
+        layer="L2",
+        rationale=(
+            "external 裝的檔名與 profile 讀的檔名不一致，profile 的 Test-Path 守衛"
+            "會靜靜跳過 oh-my-posh 初始化：使用者只看到沒有主題的提示字元，沒有錯誤"
+        ),
+    ),
+    Mutant(
+        name="posix-script-content-drift",
+        path=".chezmoiscripts/run_onchange_before_30-install-brew-packages.sh.tmpl",
+        old="for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter; do",
+        new="for formula in mise fzf git-lfs ripgrep fd lazygit; do",
+        layer="L10",
+        rationale=(
+            "把 AGENTS.md 明文禁止修剪的 tree-sitter 拿掉 —— 改變了 Linux/macOS 的"
+            "既有行為（Must NOT #2）。L10 原本帶 --exclude=scripts，腳本內容從來"
+            "沒有跟 base 比對過，這個 mutant 一度可以存活整套測試"
+        ),
+    ),
+    Mutant(
         name="codex-empty-tui-crash",
         path="dot_codex/modify_private_config.toml",
         old="{{-       if ge $last 0 -}}{{- $head = slice $buf 0 (add $last 1) -}}{{- end -}}",

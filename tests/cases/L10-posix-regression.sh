@@ -105,3 +105,40 @@ if [ -d "$TMP/base-src" ]; then
     assert_not_contains "isWSL = false 時不輸出那段 alias" "$_new_nowsl" "clip.exe"
 fi
 unset _base_wsl _new_wsl _new_nowsl
+
+# 上面的 apply 帶 --exclude=scripts，所以腳本的**內容**完全沒有跟 base 比對過。
+# 獨立驗證用這個洞做到：把 tree-sitter 從 brew 清單裡拿掉（AGENTS.md 明文禁止的
+# 那一項）→ 全套 387 個測試照樣全綠。Must NOT #2 說的是「不得改變 Linux/macOS
+# 現有行為」，而腳本內容正是行為本身。
+if [ -d "$TMP/base-src" ]; then
+    for _f in "$TMP/base-src"/.chezmoiscripts/*; do
+        [ -e "$_f" ] || continue
+        _s=$(basename "$_f")
+        # base 沒有的腳本（這次新增的 Windows 那幾支）沒有可比對的對象。
+        [ -f "$REPO/.chezmoiscripts/$_s" ] || { _fail "base 的腳本 $_s 仍然存在" "被刪掉了"; continue; }
+        chezmoi --source "$TMP/base-src" --destination "$TMP/dest-base" \
+            --persistent-state "$TMP/st-base.boltdb" --config "$FIXTURES/native.toml" --no-tty \
+            execute-template < "$_f" > "$TMP/base-script-$_s" 2>&1
+        render_file native ".chezmoiscripts/$_s" > "$TMP/new-script-$_s" 2>&1
+
+        # 唯一一項具名例外。獨立驗證第一輪指出：備份用的時間戳只到秒，同一秒內
+        # 連續兩次 bootstrap 會撞名，而撞名的後果正是那個函式宣稱要避免的
+        # ——把舊備份埋進新備份裡。修法（加一個序號迴圈）**改變了 POSIX 端的
+        # 渲染輸出**，因此是一次對 SPEC Must NOT #2 的刻意偏離。
+        #
+        # 這裡不是放它過去，而是把偏離釘死在一個明確的形狀上：除了那個迴圈之外
+        # 的任何差異仍然要失敗。evidence report 有完整說明，這一項需要使用者決定
+        # 是要保留（資料安全）還是還原（嚴守 Must NOT #2）。
+        if [ "$_s" = "run_onchange_before_50-neovim.sh.tmpl" ]; then
+            _delta=$(diff "$TMP/base-script-$_s" "$TMP/new-script-$_s" | grep '^[<>]' \
+                     | grep -v 'dest="\$1.bak' | grep -v 'local stamp=' | grep -v 'local n=1' \
+                     | grep -v 'while \[\[ -e \$dest \]\]' | grep -v 'n=\$((n + 1))' \
+                     | grep -v 'done' | grep -v '^[<>] *#' || true)
+            assert_eq "$_s 與 base ref 的差異只有備份唯一化迴圈這一項（具名偏離）" "" "$_delta"
+        else
+            assert_bytes_eq "本機 OS 上，$_s 的渲染結果與 base ref 逐位元組相同" \
+                "$TMP/base-script-$_s" "$TMP/new-script-$_s"
+        fi
+    done
+fi
+unset _f _s _delta

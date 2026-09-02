@@ -18,10 +18,13 @@ Properties checked on every generated input:
                       and both inside [tui]
   P4 TOML validity    if the input parsed, the output parses -- **scoped**: only
                       for inputs that meet the rewriter's documented assumption
-                      that every managed key sits on one line. Four shapes break
-                      that assumption and turn valid TOML into invalid TOML; they
-                      live in KNOWN_LIMITATION below, are checked for P0 only, and
-                      are recorded in the evidence report. They are byte-identical
+                      that every managed key sits on one line, written as a bare
+                      key, in a table declared as a plain [tui] header. The shapes
+                      in KNOWN_LIMITATION below break that and turn valid TOML into
+                      invalid TOML. **That list is the shapes we know about, not a
+                      proof that there are no others** -- a fifth was found by
+                      independent verification after the first four were written up
+                      as if exhaustive. They are checked for P0 only. They are byte-identical
                       to the sh+awk original, i.e. inherited, not introduced.
   P5 managed values   the two managed keys hold exactly the values we manage
 
@@ -133,11 +136,15 @@ ADVERSARIAL = [
 ]
 
 
-# 這四種形狀會讓「受管的 key 各佔一行」這個前提失效，於是合法的 TOML 進去、
+# 這些形狀會讓「受管的 key 各佔一行、是 bare key、表頭是單純的 [tui]」這個前提失效，
+# 於是合法的 TOML 進去、
 # 不合法的 TOML 出來。它們與 base ref 的 awk 原版**逐位元組相同**，也就是說這是
 # 沿用下來的既有缺陷而不是這次移植引入的，修掉它會改變 POSIX 端的行為
 # （SPEC Must NOT #2 禁止）。這裡仍然把它們放進測試，但只驗 P0：
 # 一旦哪天輸出與 awk 不一致了，那就是真的回歸，必須被抓到。
+#
+# **這份清單是「目前已知的」，不是「窮舉的」**：第五種是獨立驗證在前四種已經被
+# 當成完整清單寫進文件之後才找到的。
 KNOWN_LIMITATION = [
     # 受管的 status_line 本身就是一個 8 元素陣列；任何把它換行排版的工具或人
     # 都會踩到這一個。這是四種裡最容易發生的。
@@ -145,6 +152,7 @@ KNOWN_LIMITATION = [
     "[[tui]]\nx = 1\n",          # array of tables
     '["tui"]\nkeep = 1\n',       # 加引號的表頭
     'tui = { status_line = "X" }\n',  # inline table
+    '[tui]\n"status_line" = "X"\nkeep = 1\n',  # 加引號的 key（獨立驗證第三輪找到的第五種）
 ]
 
 
@@ -325,7 +333,7 @@ def main() -> int:
         return 1
     diff = "P0-P5" if base_src else "P1-P5（沒給 --base，未做差分）"
     print(f"gate-properties: {len(seeds)} 個 seed x ({args.cases} 生成 + "
-          f"{len(ADVERSARIAL)} 固定敵意輸入 + {len(KNOWN_LIMITATION)} 已知限制形狀) "
+          f"{len(ADVERSARIAL)} 固定敵意輸入 + {len(KNOWN_LIMITATION)} 已知限制形狀，非窮舉) "
           f"= {checked} 個案例，{diff} 全部成立")
     print(f"  已知限制的 {len(KNOWN_LIMITATION)} 種形狀只驗 P0（與 awk 原版逐位元組相同）；"
           "它們會讓合法 TOML 變成不合法，是沿用自原實作的缺陷，見 evidence report")

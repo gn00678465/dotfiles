@@ -67,3 +67,24 @@ _unpinned=$(printf '%s\n' "$_ps_install" | grep 'Install-PSResource' \
     | grep -v '^[[:space:]]*#' | grep -v -- '-Version' || true)
 assert_eq "沒有任何 Install-PSResource 少了 -Version" "" "$_unpinned"
 unset _ps_install _unpinned
+
+# 哪個平台拿哪一個 asset —— 這個「對應關係」原本沒有被任何東西釘住。
+# supply-chain 那一層天生看不到它：sum 是**按 asset 名稱**查的，所以把
+# darwin 的 arm64/x64 對調之後，URL 與 pin 仍然一致、也仍然雜湊相符，
+# 全套與 supply-chain 都會過。實際後果是 Intel Mac 拿到 arm64 的執行檔
+# （"Bad CPU type in executable"）。
+_expected_asset() {
+    case $1 in
+        linux)         echo 'cc-statusline-linux-x64-musl.tar.gz' ;;
+        linux-arm64)   echo 'cc-statusline-linux-arm64-musl.tar.gz' ;;
+        darwin-amd64)  echo 'cc-statusline-darwin-x64.tar.gz' ;;
+        darwin-arm64)  echo 'cc-statusline-darwin-arm64.tar.gz' ;;
+        windows)       echo 'cc-statusline-win32-x64.zip' ;;
+        windows-arm64) echo 'cc-statusline-win32-arm64.zip' ;;
+    esac
+}
+for _os in $ALL_OSES; do
+    _ext=$(render_file "$_os" .chezmoiexternal.toml.tmpl)
+    assert_contains "$_os 取的是 $(_expected_asset "$_os")" "$_ext" "$(_expected_asset "$_os")"
+done
+unset _os _ext

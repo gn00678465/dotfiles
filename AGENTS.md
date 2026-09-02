@@ -54,6 +54,11 @@ Keep the POSIX and Windows halves in sync:
 - `10-install-packages` (apt, Linux only) holds OS prerequisites only: `zsh git curl` plus what the Homebrew installer needs. Do not add tools here.
 - `30-install-brew-packages` (brew, both OS) is the single list for tools (`mise fzf git-lfs`, ...). New tools go here so macOS gets them too.
 - `40-git-lfs` is `run_onchange_after_` on purpose: `git lfs install` must run after `create_empty_dot_gitconfig` so it writes `~/.gitconfig`, not chezmoi-owned `~/.config/git/config`.
+- `50-neovim` clones the LazyVim starter from `main` with **no pinned ref and no
+  checksum**. That is the second exemption to the "pin every external download" rule
+  (the first is the `.oh-my-zsh` tarball); it predates the Windows work on POSIX, and
+  the Windows script introduces the same unpinned clone. Pinning it would change what
+  POSIX machines fetch, so it is recorded rather than changed.
 - `50-neovim` installs neovim through mise (not brew, and pinned to an explicit version -- see the comment there before bumping) and clones the LazyVim starter into `~/.config/nvim` once, then deletes its `.git`. Any pre-existing `~/.config/nvim`, `~/.local/share/nvim`, `~/.local/state/nvim` or `~/.cache/nvim` is moved to `.bak` first, never deleted; the `.chezmoi-lazyvim-starter` marker it leaves behind is what stops a re-run from doing that to the user's own config. It is `run_onchange_before_` on purpose: `git clone` refuses a non-empty target, so the starter must land before chezmoi applies the files it owns under `private_dot_config/nvim/` on top of it. Anything the source tree does not name stays the user's to edit in place -- nothing here is `exact`.
 - `30-install-winget-packages` (winget, Windows only) is the Windows counterpart of
   `30-install-brew-packages`. New tools go in **both**. `Microsoft.PowerShell` and
@@ -89,10 +94,14 @@ itself and works everywhere from one implementation. Do not turn either of them
 back into a shell script.
 
 **Known limitation, inherited from the `awk` original**: the codex rewriter assumes
-every managed key sits on **one line**. Four shapes break that assumption and turn
-valid TOML into invalid TOML -- a multi-line `status_line` array (the managed value
+every managed key sits on **one line**, is written as a **bare key**, and lives under
+a plain `[tui]` header. Shapes that break that assumption turn valid TOML into invalid
+TOML -- a multi-line `status_line` array (the managed value
 *is* an 8-element array, so a reformat is the likely trigger), `[[tui]]`, `["tui"]`,
-and an inline `tui = { ... }`. All four are byte-identical to the pre-port `awk`
+an inline `tui = { ... }`, and a quoted `"status_line" =`. The list in
+`KNOWN_LIMITATION` is **the shapes we know about, not a proof there are no others** --
+the fifth turned up after the first four had been written up as exhaustive.
+All of them are byte-identical to the pre-port `awk`
 implementation, so this is preserved behaviour, not a regression; fixing it would
 change POSIX output. They are pinned in `tools/gate-properties.py`'s
 `KNOWN_LIMITATION` list, checked for byte-identity with the original only, so a
