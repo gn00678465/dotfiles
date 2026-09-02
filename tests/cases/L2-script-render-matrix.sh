@@ -102,3 +102,14 @@ _starter_win=$(printf '%s\n' "$_win_nvim" | sed -n 's|.*\(https://github.com/[^ 
 assert_eq "兩個平台的 50-neovim clone 同一個 starter repo" "$_starter_posix" "$_starter_win"
 
 unset _posix_nvim _win_nvim _pin_posix _pin_win _marker_posix _marker_win _starter_posix _starter_win
+
+# 60-pwsh-profile 必須挑 CurrentUserAllHosts（profile.ps1）而不是
+# CurrentUserCurrentHost（Microsoft.PowerShell_profile.ps1）：Windows Terminal、
+# VS Code 的整合終端機、裸 pwsh.exe 是三個不同的 host，只有 AllHosts 三者都載入。
+# 目標路徑的「選擇」不在被抽出去的 partial 裡，所以 L7 的冪等測試涵蓋不到它。
+_pwsh_profile=$(render_file windows .chezmoiscripts/run_after_60-pwsh-profile.ps1.tmpl)
+# 比對的是實際的賦值那一行，不是「檔案裡有沒有出現這個字」——腳本的註解本來就
+# 會提到 CurrentUserCurrentHost（說明為什麼不用它）。
+assert_contains "60-pwsh-profile 把 \$target 指向 \$PROFILE.CurrentUserAllHosts" \
+    "$_pwsh_profile" '$target = $PROFILE.CurrentUserAllHosts'
+unset _pwsh_profile

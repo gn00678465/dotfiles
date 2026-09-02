@@ -146,6 +146,46 @@ MUTANTS: list[Mutant] = [
         layer="L6",
         rationale="Windows 的 statusLine 指到不存在的無副檔名檔案",
     ),
+    Mutant(
+        name="pwsh-profile-target",
+        path=".chezmoiscripts/run_after_60-pwsh-profile.ps1.tmpl",
+        old="$target = $PROFILE.CurrentUserAllHosts",
+        new="$target = $PROFILE.CurrentUserCurrentHost",
+        layer="L2",
+        rationale="loader 寫進只有裸 pwsh.exe 會載入的 profile；Windows Terminal 與 VS Code 都吃不到",
+    ),
+    Mutant(
+        name="loader-line-content",
+        path=".chezmoitemplates/pwsh-profile-loader.ps1",
+        old="$loader = '. \"$HOME/.config/powershell/profile.ps1\"'",
+        new="$loader = '. \"$HOME/.config/powershell/profile.ps1.disabled\"'",
+        layer="L7",
+        rationale="loader 指向不存在的檔案：每次開 shell 報錯，設定永遠載不到",
+    ),
+    Mutant(
+        name="backup-timestamp-collision",
+        path=".chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl",
+        old=(
+            '    local stamp="$(date +%Y%m%d%H%M%S)"\n'
+            '    dest="$1.bak.$stamp"\n'
+            "    local n=1\n"
+            "    while [[ -e $dest ]]; do\n"
+            '      dest="$1.bak.$stamp.$n"\n'
+            "      n=$((n + 1))\n"
+            "    done"
+        ),
+        new='    dest="$1.bak.$(date +%Y%m%d%H%M%S)"',
+        layer="L7",
+        rationale="同一秒內連續備份會撞名，把上一份備份埋進新的備份裡",
+    ),
+    Mutant(
+        name="codex-empty-tui-crash",
+        path="dot_codex/modify_private_config.toml",
+        old="{{-       if ge $last 0 -}}{{- $head = slice $buf 0 (add $last 1) -}}{{- end -}}",
+        new="{{-       $head = slice $buf 0 (add $last 1) -}}",
+        layer="L6",
+        rationale="空的 [tui] 讓 slice 得到 nil，concat 解參考它 → 整個 apply 以非零結束",
+    ),
 ]
 
 

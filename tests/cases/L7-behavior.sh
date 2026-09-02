@@ -28,7 +28,7 @@ _a="$TMP/l7a"
 rm -rf "$_a"; mkdir -p "$_a/home" "$_a/stub"
 # stub：brew shellenv 吐空字串，mise 什麼都不做，git clone 生出一棵假的 starter。
 printf '#!/bin/sh\nexit 0\n' > "$_a/stub/brew"
-printf '#!/bin/sh\nexit 0\n' > "$_a/stub/mise"
+printf '#!/bin/sh\necho "$@" >> "%s/mise-calls.log"\nexit 0\n' "$_a" > "$_a/stub/mise"
 cat > "$_a/stub/git" <<'STUB'
 #!/bin/sh
 # git clone --depth 1 <url> <dest>
@@ -42,13 +42,40 @@ STUB
 chmod +x "$_a/stub/"*
 render_file linux .chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl > "$_a/50-neovim.sh"
 
+# 光把 stub 放進 PATH 不夠：腳本第一行是
+#   eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+# 那會把「真實的」brew bin 目錄 prepend 到 PATH **最前面**，蓋掉 stub，於是測試
+# 會去跑真的 mise、真的從網路抓 neovim、還會讀到使用者自己的 mise 設定。
+# 這是獨立驗證抓到的：那個 brew stub 原本是死碼（腳本用絕對路徑呼叫 brew）。
+#
+# 解法是把真實的 brew prefix 從這個 process 的檔案系統視圖裡拿掉：開一個
+# mount namespace，把一個空目錄 bind 到 /home/linuxbrew 上。brew 因此不存在、
+# shellenv 吐空字串、PATH 不變，stub 才真的生效。
+mkdir -p "$_a/emptybrew"
+cat > "$_a/run.sh" <<RUNEOF
+#!/bin/sh
+mount --bind "$_a/emptybrew" /home/linuxbrew
+export HOME="$_a/home"
+export XDG_CONFIG_HOME="$_a/home/.config"
+export XDG_DATA_HOME="$_a/home/.local/share"
+export XDG_STATE_HOME="$_a/home/.local/state"
+export XDG_CACHE_HOME="$_a/home/.cache"
+export PATH="$_a/stub:\$PATH"
+exec zsh "$_a/50-neovim.sh"
+RUNEOF
+chmod +x "$_a/run.sh"
+
+_HAVE_NS=0
+if unshare --map-root-user --mount true >/dev/null 2>&1; then _HAVE_NS=1; fi
+
 _run_a() {
-    HOME="$_a/home" \
-    XDG_CONFIG_HOME="$_a/home/.config" XDG_DATA_HOME="$_a/home/.local/share" \
-    XDG_STATE_HOME="$_a/home/.local/state" XDG_CACHE_HOME="$_a/home/.cache" \
-    PATH="$_a/stub:$PATH" \
-    zsh "$_a/50-neovim.sh" 2>&1
+    unshare --map-root-user --mount "$_a/run.sh" 2>&1
 }
+
+if [ "$_HAVE_NS" = 0 ]; then
+    skip "POSIX 50-neovim 的備份行為" \
+        "需要 user namespace（unshare --map-root-user --mount）才能把真實的 brew prefix 蓋掉；沒有它這一段會去動真實的 mise 與網路"
+else
 
 _seed_nvim "$_a/home/.config/nvim" "$_a/home/.local/share/nvim" \
            "$_a/home/.local/state/nvim" "$_a/home/.cache/nvim"
@@ -83,6 +110,21 @@ assert_eq "POSIX: 舊的 .bak 沒有被埋掉" "USER-CONTENT" \
     "$(cat "$_a/home/.config/nvim.bak/user-marker.txt" 2>&1)"
 assert_eq "POSIX: 第二份備份用時間戳另存" "2" \
     "$(ls -d "$_a"/home/.config/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
+
+# 隔離是否真的生效，用可觀察的事實釘住：stub 的 mise 會留下記號，真的 mise 不會。
+# 第四次：時間戳只到秒，同一秒內再備份一次必須另外命名，而不是塞進上一份備份裡。
+rm -f "$_a/home/.config/nvim/.chezmoi-lazyvim-starter"
+if _out=$(_run_a); then _pass "POSIX 50-neovim 第四次執行成功"
+else _fail "POSIX 50-neovim 第四次執行成功" "$_out"; fi
+assert_eq "POSIX: 三份備份彼此獨立" "3" \
+    "$(ls -d "$_a"/home/.config/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
+assert_eq "POSIX: 沒有任何備份被塞進另一份備份裡" "" \
+    "$(find "$_a/home/.config" -mindepth 2 -maxdepth 2 -name nvim -type d 2>/dev/null)"
+
+assert_eq "POSIX: 跑到的是 stub 的 mise 而不是真實的 mise（隔離生效）" "4" \
+    "$(wc -l < "$_a/mise-calls.log" 2>/dev/null | tr -d ' ')"
+
+fi   # _HAVE_NS
 
 # ================= B. Windows 的 50-neovim =================
 _PWSH=$(command -v pwsh.exe 2>/dev/null || true)
@@ -174,8 +216,11 @@ PSEOF
     for _i in 1 2 3; do
         "$_PWSH" -NoLogo -NoProfile -File "$_bn\\runloader.ps1" >/dev/null 2>&1 || true
     done
-    assert_eq "profile loader 跑三次只留一行 loader（M10）" "1" \
-        "$(grep -c 'config/powershell/profile.ps1' "$_prof" 2>/dev/null | tr -d ' ')"
+    # 比對整行而不是子字串：子字串計數對
+    #   . "$HOME/.config/powershell/profile.ps1.disabled"
+    # 這種變異照樣算 1，而那一行會讓每次開 shell 都報錯、且永遠載不到設定。
+    assert_eq "profile loader 跑三次恰好留下一行、且內容逐字正確（M10）" "1" \
+        "$(tr -d '\r' < "$_prof" | grep -cxF '. "$HOME/.config/powershell/profile.ps1"' | tr -d ' ')"
     assert_eq "profile loader 保留原本就有的內容" "1" \
         "$(grep -c 'PRE-EXISTING' "$_prof" 2>/dev/null | tr -d ' ')"
 
