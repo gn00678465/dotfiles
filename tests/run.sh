@@ -41,8 +41,23 @@ for case_file in $_case_list; do
         [ "$match" = 1 ] || continue
     fi
     CURRENT_CASE=$layer
+    _before=$TESTS_RUN
     . "$case_file"
+    printf '%s %s\n' "$layer" "$((TESTS_RUN - _before))" >> "$TMP/layer-counts"
 done
+
+# 執行完整性：一個被選到卻一條斷言都沒貢獻的層，跟不存在是一樣的。
+# 「檔案在不在」抓不到「檔案還在但被停用」（例如開頭插一行 return 0）——
+# 獨立驗證用那個形狀讓一個 mutant 存活過。這裡改成問「它真的產出斷言了嗎」。
+if [ -f "$TMP/layer-counts" ]; then
+    while read -r _l _n; do
+        if [ "$_n" -eq 0 ]; then
+            TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+            printf 'not ok %d - [runner] 測試層 %s 一條斷言都沒有貢獻（等同不存在）\n' \
+                "$TESTS_RUN" "$_l"
+        fi
+    done < "$TMP/layer-counts"
+fi
 
 printf '1..%d\n' "$TESTS_RUN"
 printf '# run %d, failed %d, skipped %d\n' "$TESTS_RUN" "$TESTS_FAILED" "$TESTS_SKIPPED"
