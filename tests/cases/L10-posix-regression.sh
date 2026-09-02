@@ -76,3 +76,16 @@ else
 fi
 
 unset _BASE_REF _base_src _base_out _new_out _diff _base_mg _new_mg _added _removed _dw_out _changed_files _substantive
+
+# external 也要釘回歸：L10 上面的 apply 帶 --exclude=externals，不會碰到它們。
+# 比對忽略空行與註解：兩者在 TOML 裡都沒有語意，而 {{ if }} 包裹會多出空行、
+# 註解這次也刻意改寫過（六個平台、多一種副檔名）。這裡要釘的是實際生效的定義。
+_BASE_REF2=$(sed -n 's/^Base ref: `\([0-9a-f]*\)`.*/\1/p' "$REPO/.scratch/windows-support/spec.md" | head -1)
+if [ -n "$_BASE_REF2" ] && [ -d "$TMP/base-src" ]; then
+    _base_ext=$(chezmoi --source "$TMP/base-src" --destination "$TMP/dest-base" \
+        --persistent-state "$TMP/st-base.boltdb" --config "$FIXTURES/native.toml" --no-tty \
+        execute-template < "$TMP/base-src/.chezmoiexternal.toml.tmpl" | sed -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d')
+    _new_ext=$(render_file native .chezmoiexternal.toml.tmpl | sed -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d')
+    assert_eq "本機 OS 上，external 的實際定義與 base ref 相同（忽略空行與註解）" "$_base_ext" "$_new_ext"
+fi
+unset _BASE_REF2 _base_ext _new_ext
