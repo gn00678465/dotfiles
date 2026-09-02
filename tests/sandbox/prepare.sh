@@ -25,7 +25,9 @@ mkdir -p "$SANDBOX/src/dotfiles" "$SANDBOX/out"
 
 # 用 git archive 而不是 cp：只帶已提交的內容，不含 .git 與任何本機殘留，
 # sandbox 裡跑的就確定是這個 commit。
-git -C "$REPO" archive HEAD | tar -x -C "$SANDBOX/src/dotfiles"
+# -m：不還原 mtime。目標在 DrvFs（/mnt/c）上，utime 會被拒絕，
+# 沒有 -m 的話 tar 會為了每個檔案報錯並以非零狀態結束。
+git -C "$REPO" archive HEAD | tar -x -m -C "$SANDBOX/src/dotfiles"
 cp "$REPO/tests/sandbox/_probe.ps1" "$SANDBOX/src/_probe.ps1"
 
 # 之前那一輪的結果清掉，免得看到舊的還以為是新的。
