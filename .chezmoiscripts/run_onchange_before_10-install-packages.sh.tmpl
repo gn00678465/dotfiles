@@ -1,4 +1,5 @@
-{{ if eq .chezmoi.os "linux" -}}
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if eq $p.os "linux" -}}
 #!/bin/sh
 # OS-level prerequisites only: zsh/git/curl plus what the Homebrew installer
 # needs on Linux. Everything else (fzf, mise, git-lfs, ...) is a brew formula

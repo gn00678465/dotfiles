@@ -1,0 +1,35 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if $p.isWindows -}}
+#Requires -Version 7
+# chezmoi 全權管理 ~/.config/powershell/profile.ps1，這支腳本只負責把 pwsh 真正會
+# 載入的那個 profile 接到它上面。
+#
+# 為什麼不讓 chezmoi 直接管 $PROFILE 那個檔案：$PROFILE 落在 Documents 已知資料夾
+# 底下，而 Documents 可以被 OneDrive 轉向（轉向後是
+# ~\OneDrive\Documents\PowerShell\...）。chezmoi 的 target 路徑由來源檔名決定、
+# 不能用模板算，所以來源樹沒辦法同時對上這兩種機器。這裡改成執行期問 pwsh 自己，
+# 一條路徑同時涵蓋兩種情形。
+$ErrorActionPreference = 'Stop'
+
+# CurrentUserAllHosts（profile.ps1）而不是 CurrentUserCurrentHost
+# （Microsoft.PowerShell_profile.ps1）：Windows Terminal、VS Code 的整合終端機、
+# 裸 pwsh.exe 是不同的 host，只有 AllHosts 三者都會載入。
+$target = $PROFILE.CurrentUserAllHosts
+$loader = '. "$HOME/.config/powershell/profile.ps1"'
+
+$parent = Split-Path -Parent $target
+if (-not (Test-Path -LiteralPath $parent)) {
+    New-Item -ItemType Directory -Path $parent -Force | Out-Null
+}
+
+# 冪等：每次 apply 都會跑到這裡，已經有那一行就什麼都不做，否則 profile 會愈長愈長。
+$existing = if (Test-Path -LiteralPath $target) { @(Get-Content -LiteralPath $target) } else { @() }
+if ($existing | Where-Object { $_.Trim() -eq $loader }) { exit 0 }
+
+Write-Output "chezmoi: adding the dotfiles loader to $target"
+$prefix = if ($existing.Count -gt 0) { @('') } else { @() }
+Add-Content -LiteralPath $target -Value ($prefix + @(
+    '# Added by chezmoi (dotfiles). The real config lives in the file below.',
+    $loader
+))
+{{ end -}}

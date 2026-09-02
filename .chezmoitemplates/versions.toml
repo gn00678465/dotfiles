@@ -1,0 +1,13 @@
+{{- /*
+  跨平台共用的釘版本／常數。POSIX 與 Windows 的安裝腳本是兩份檔案，這些值一旦
+  各寫各的，就會出現「有人 bump 了一邊、另一邊悄悄留在舊版」的分歧。
+  呼叫端：{{- $v := includeTemplate "versions.toml" . | fromToml -}}
+
+  neovim 這個 pin 不要隨手 bump —— 理由（glibc 底線、nvim-treesitter main 分支
+  的最低版本會中途調高）寫在 .chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl
+  的註解與 docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md。
+*/ -}}
+neovim = "0.12.5"
+lazyvimStarter = "https://github.com/LazyVim/starter"
+# 我們自己的標記檔，不是 LazyVim 的。作用見 50-neovim 腳本裡的註解。
+lazyvimMarker = ".chezmoi-lazyvim-starter"

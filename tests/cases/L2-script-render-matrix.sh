@@ -78,3 +78,25 @@ for _f in "$REPO"/.chezmoiscripts/*.ps1.tmpl; do
 done
 
 unset _s _f _want _out _os
+
+# 跨檔案一致性：POSIX 與 Windows 的 50-neovim 是兩份檔案，但它們必須釘同一個
+# neovim 版本、同一個 marker 檔名、同一個 starter repo。這三個值一旦各寫各的，
+# 就會出現「有人 bump 了一邊，另一邊悄悄留在舊版」的分歧。
+_posix_nvim=$(render_file linux .chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl)
+_win_nvim=$(render_file windows .chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl)
+
+_pin_posix=$(printf '%s\n' "$_posix_nvim" | sed -n 's/.*neovim@\([0-9][0-9.]*\).*/\1/p' | head -1)
+_pin_win=$(printf '%s\n' "$_win_nvim" | sed -n 's/.*neovim@\([0-9][0-9.]*\).*/\1/p' | head -1)
+assert_not_blank "POSIX 50-neovim 有釘住的 neovim 版本" "$_pin_posix"
+assert_eq "兩個平台的 50-neovim 釘同一個 neovim 版本" "$_pin_posix" "$_pin_win"
+
+_marker_posix=$(printf '%s\n' "$_posix_nvim" | sed -n 's/.*\(\.chezmoi-[a-z-]*\).*/\1/p' | head -1)
+_marker_win=$(printf '%s\n' "$_win_nvim" | sed -n 's/.*\(\.chezmoi-[a-z-]*\).*/\1/p' | head -1)
+assert_not_blank "POSIX 50-neovim 有 marker 檔名" "$_marker_posix"
+assert_eq "兩個平台的 50-neovim 用同一個 marker 檔名" "$_marker_posix" "$_marker_win"
+
+_starter_posix=$(printf '%s\n' "$_posix_nvim" | sed -n 's|.*\(https://github.com/[^ "]*\).*|\1|p' | head -1)
+_starter_win=$(printf '%s\n' "$_win_nvim" | sed -n 's|.*\(https://github.com/[^ "]*\).*|\1|p' | head -1)
+assert_eq "兩個平台的 50-neovim clone 同一個 starter repo" "$_starter_posix" "$_starter_win"
+
+unset _posix_nvim _win_nvim _pin_posix _pin_win _marker_posix _marker_win _starter_posix _starter_win
