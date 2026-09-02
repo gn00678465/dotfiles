@@ -85,3 +85,32 @@ if [ -f "$REPO/init.sh" ]; then
 fi
 
 unset _PWSH _ZSH _os _f _s _c _stripped _err
+
+# init.ps1 的前提是「機器上只有 Windows PowerShell 5.1」——它要先把 pwsh 7 裝起來。
+# 所以它必須能被 5.1 的解析器接受，光是 pwsh 7 能解析並不夠。
+_WPS=$(command -v powershell.exe 2>/dev/null || true)
+if [ -z "$_WPS" ] || [ -z "$_WINTMP_WIN" ]; then
+    skip "init.ps1 通過 Windows PowerShell 5.1 解析" "找不到 powershell.exe"
+else
+    cp "$REPO/init.ps1" "$_WINTMP_WSL/chezmoi-l4-51-$$.ps1"
+    if _err=$("$_WPS" -NoProfile -NonInteractive -Command "
+\$errors = \$null
+[void][System.Management.Automation.Language.Parser]::ParseFile('$_WINTMP_WIN\\chezmoi-l4-51-$$.ps1', [ref]\$null, [ref]\$errors)
+if (\$errors.Count) { \$errors | ForEach-Object { \$_.ToString() }; exit 1 }
+exit 0" 2>&1); then
+        _pass "init.ps1 通過 Windows PowerShell 5.1 解析"
+    else
+        _fail "init.ps1 通過 Windows PowerShell 5.1 解析" "$_err"
+    fi
+    rm -f "$_WINTMP_WSL/chezmoi-l4-51-$$.ps1"
+fi
+unset _WPS _WINTMP_WIN _WINTMP_WSL
+
+# init.ps1 必須是純 ASCII。Windows PowerShell 5.1 用 ANSI 代碼頁去解無 BOM 的
+# .ps1，非 ASCII 位元組會被解壞，而被解壞的註解是語法錯誤不只是難看
+# （這條斷言是被真實的 5.1 解析失敗逼出來的，不是預防性的）。
+if LC_ALL=C grep -qP '[^\x00-\x7F]' "$REPO/init.ps1" 2>/dev/null; then
+    _fail "init.ps1 是純 ASCII" "$(LC_ALL=C grep -nP '[^\x00-\x7F]' "$REPO/init.ps1" | head -3)"
+else
+    _pass "init.ps1 是純 ASCII"
+fi

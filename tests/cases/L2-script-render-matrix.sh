@@ -15,6 +15,7 @@ _expect() {
         run_once_before_20-install-homebrew.sh.tmpl)          echo 'linux darwin-arm64 darwin-amd64' ;;
         run_onchange_before_30-install-brew-packages.sh.tmpl) echo 'linux darwin-arm64 darwin-amd64' ;;
         run_onchange_before_30-install-winget-packages.ps1.tmpl) echo 'windows' ;;
+        run_onchange_before_35-install-ps-modules.ps1.tmpl)    echo 'windows' ;;
         run_onchange_after_40-git-lfs.sh.tmpl)                echo 'linux darwin-arm64 darwin-amd64' ;;
         run_onchange_after_40-git-lfs.ps1.tmpl)               echo 'windows' ;;
         run_onchange_before_50-neovim.sh.tmpl)                echo 'linux darwin-arm64 darwin-amd64' ;;
@@ -30,6 +31,7 @@ for _s in run_onchange_before_10-install-packages.sh.tmpl \
           run_once_before_20-install-homebrew.sh.tmpl \
           run_onchange_before_30-install-brew-packages.sh.tmpl \
           run_onchange_before_30-install-winget-packages.ps1.tmpl \
+          run_onchange_before_35-install-ps-modules.ps1.tmpl \
           run_onchange_after_40-git-lfs.sh.tmpl \
           run_onchange_after_40-git-lfs.ps1.tmpl \
           run_onchange_before_50-neovim.sh.tmpl \
