@@ -17,7 +17,12 @@ Mutants are applied inside a throwaway git worktree, never the product tree. A
 verification run must not modify the code it is verifying, and "restore
 afterwards" is not good enough -- an interrupt would leave the tree mutated.
 
-Usage: tools/gate-mutants.py [--jobs N]
+每個 mutant 預設跑兩輪。單跑一輪沒辦法區分「這個 mutant 一定會被殺」與
+「這一次剛好被殺」——suite-health 那一層重跑的是**未突變**的套件，看不到這件事。
+獨立驗證就是在這裡抓到一個 kill 取決於兩次執行是否落在同一個 wall-clock 秒
+（7 次裡存活 2 次），而報告當時寫的是「17/17，逐一檢查」。
+
+Usage: tools/gate-mutants.py [--repeat N]
 Exit:  0 every mutant killed, 1 any survivor or any runner failure.
 """
 
@@ -375,27 +380,39 @@ def main() -> int:
             # 證明它真的被套上去了，而不是只在記憶體裡改過。
             assert target.read_text(encoding="utf-8") == mutated
 
-            proc = run(["sh", "tests/run.sh", m.layer], worktree)
+            rounds = []
+            for _ in range(max(1, args.repeat)):
+                proc = run(["sh", "tests/run.sh", m.layer], worktree)
+                rounds.append(
+                    (proc.returncode,
+                     [l for l in proc.stdout.splitlines() if l.startswith("not ok")])
+                )
             target.write_text(original, encoding="utf-8")
             assert target.read_text(encoding="utf-8") == original
 
-            killed = proc.returncode != 0
-            failing = [
-                line for line in proc.stdout.splitlines() if line.startswith("not ok")
-            ]
+            # 每一輪都要紅。有一輪沒紅就是「這個 kill 不是決定性的」，
+            # 那跟存活一樣不能算數。
+            killed = all(rc != 0 for rc, _ in rounds)
+            failing = rounds[0][1]
+            unstable = len({rc != 0 for rc, _ in rounds}) > 1
             results.append(
                 {
                     "name": m.name,
                     "path": m.path,
                     "layer": m.layer,
                     "rationale": m.rationale,
-                    "status": "KILLED" if killed else "SURVIVED",
-                    "exit_code": proc.returncode,
+                    "status": "KILLED" if killed else ("UNSTABLE" if unstable else "SURVIVED"),
+                    "rounds": [{"exit_code": rc, "failing": len(f)} for rc, f in rounds],
                     "failing_assertions": failing,
                 }
             )
             if killed:
-                print(f"KILLED   {m.name} ({m.layer}, {len(failing)} 條斷言失敗)")
+                print(f"KILLED   {m.name} ({m.layer}, {len(failing)} 條斷言失敗, "
+                      f"{len(rounds)}/{len(rounds)} 輪皆致死)")
+            elif unstable:
+                print(f"UNSTABLE {m.name} ({m.layer}) -- kill 不是決定性的: "
+                      f"{[rc for rc, _ in rounds]}")
+                failed = True
             else:
                 print(f"SURVIVED {m.name} ({m.layer}) -- {m.rationale}")
                 failed = True
@@ -404,7 +421,8 @@ def main() -> int:
         shutil.rmtree(tmp, ignore_errors=True)
 
     killed_n = sum(1 for r in results if r.get("status") == "KILLED")
-    print(f"\ngate-mutants: {killed_n}/{len(MUTANTS)} killed")
+    print(f"\ngate-mutants: {killed_n}/{len(MUTANTS)} killed"
+          f"（每個 mutant 跑 {max(1, args.repeat)} 輪，全部輪次都要紅才算 killed）")
 
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)
