@@ -47,9 +47,10 @@ else
     printf '%s\n' "$_new_mg"  > "$TMP/mg-new.txt"
     _added=$(comm -13 "$TMP/mg-base.txt" "$TMP/mg-new.txt")
     _removed=$(comm -23 "$TMP/mg-base.txt" "$TMP/mg-new.txt")
-    assert_eq "本機 OS 上，managed 只多出四支 Windows 腳本" \
+    assert_eq "本機 OS 上，managed 只多出五支 Windows 腳本" \
 "$(printf '%s\n' \
   '.chezmoiscripts/30-install-winget-packages.ps1' \
+  '.chezmoiscripts/35-install-ps-modules.ps1' \
   '.chezmoiscripts/40-git-lfs.ps1' \
   '.chezmoiscripts/50-neovim.ps1' \
   '.chezmoiscripts/60-pwsh-profile.ps1' | LC_ALL=C sort)" \

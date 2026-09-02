@@ -15,21 +15,6 @@ $ErrorActionPreference = 'Stop'
 # （Microsoft.PowerShell_profile.ps1）：Windows Terminal、VS Code 的整合終端機、
 # 裸 pwsh.exe 是不同的 host，只有 AllHosts 三者都會載入。
 $target = $PROFILE.CurrentUserAllHosts
-$loader = '. "$HOME/.config/powershell/profile.ps1"'
 
-$parent = Split-Path -Parent $target
-if (-not (Test-Path -LiteralPath $parent)) {
-    New-Item -ItemType Directory -Path $parent -Force | Out-Null
-}
-
-# 冪等：每次 apply 都會跑到這裡，已經有那一行就什麼都不做，否則 profile 會愈長愈長。
-$existing = if (Test-Path -LiteralPath $target) { @(Get-Content -LiteralPath $target) } else { @() }
-if ($existing | Where-Object { $_.Trim() -eq $loader }) { exit 0 }
-
-Write-Output "chezmoi: adding the dotfiles loader to $target"
-$prefix = if ($existing.Count -gt 0) { @('') } else { @() }
-Add-Content -LiteralPath $target -Value ($prefix + @(
-    '# Added by chezmoi (dotfiles). The real config lives in the file below.',
-    $loader
-))
+{{ includeTemplate "pwsh-profile-loader.ps1" . }}
 {{ end -}}
