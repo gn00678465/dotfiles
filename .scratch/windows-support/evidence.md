@@ -1,8 +1,9 @@
 # Evidence Report — native Windows 支援 (Tier 3)
 
 - `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）**
-  · 獨立驗證跑了**五輪**，五輪都判 failed；共 44 條 findings 全部已處置，見 §獨立驗證。
-  第五輪找到第一輪之後唯一一個**真正的產品缺陷**（已修），並判定「未收斂，但距離收斂只剩一步」
+  · 獨立驗證跑了**六輪**，六輪都判 failed；共 47 條 findings 全部已處置，見 §獨立驗證。
+  **最後兩輪在產品程式碼裡找不到任何缺陷**；第六輪明確建議不要再跑第七輪，
+  把剩下的風險預算花在還沒跑過的 Windows Sandbox 上
 - `command`: `evidence`
 - `contract`: **overridden by `docs/agents/issue-tracker.md`**（路徑一項）。
   契約要求已核准的 SPEC 提交在 `specs/<scope>/SPEC.md`；本 repo 自己的
@@ -26,7 +27,7 @@
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `591cce95ce0be6771935081e3c0cbfa064c2566e`
+- `source_state`: `1dffb0fa6eef669af37554537ce1a5be326cd1a1`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只會再多一個 commit —— 本報告本身 ——
@@ -72,7 +73,7 @@
 
 ## Changed unit → Test
 
-137 個檔案，其中 135 個在 `.scratch/` 之外（另兩個是 SPEC 與本報告）。
+139 個檔案，其中 137 個在 `.scratch/` 之外（另兩個是 SPEC 與本報告）。
 分組列出，每一組涵蓋該組全部檔案。
 
 > 這個數字由 `changed_unit_command` 直接產生。**上一版寫 101，是舊的**：
@@ -206,14 +207,14 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=591cce9…`, `worktree=clean` |
-| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **458 passed, 0 failed, 0 skipped** |
-| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，458/458 |
-| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 458 passed, 0 failed |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=1dffb0f…`, `worktree=clean` |
+| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **461 passed, 0 failed, 0 skipped** |
+| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，461/461 |
+| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 461 passed, 0 failed |
 | Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
-| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **29/29 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 6181 行（**不含本報告為 5399 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 2290 / set3 3109 / 共 5399 行 |
+| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **33/33 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 6669 行（**不含本報告為 5858 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 2453 / set3 3405 / 共 5858 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
 | Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
 
@@ -241,6 +242,26 @@ Tier 3 依契約派了一個獨立的 `verifier`，只給四項輸入（任務�
 | 9 | LOW | 備份時間戳只到秒，同一秒內第三次 bootstrap 會把上一份備份埋進新的裡（不遺失資料，但正是程式碼註解說要避免的那件事） | **已修**。兩個平台的備份函式都加唯一化迴圈；L7 加跑第四次；mutant `backup-timestamp-collision` |
 | 10 | LOW | M9 沒有自動檢查；`twpayne.chezmoi` 不在 SPEC F12 的 11 個 ID 表裡 | **已修**。supply-chain 新增第四項，逐一解析 12 個 ID（含 `twpayne.chezmoi`），抽取規則對不上程式碼就失敗 |
 | 11 | LOW | SPEC §2.4 說備份四個目錄、實作備份三個（實作是對的，SPEC 自己前後不一致）但沒揭露；核准綁定的 sha256 無法從 git 驗證 | **已揭露**，見 Honest notes 4 與 9。程式碼不改：SPEC F6 自己記載 Windows 的 state 與 data 是同一個路徑 |
+
+### 第六輪
+
+判定仍是 **failed**，3 條 findings —— **全部在驗證裝置與報告裡，產品一條都沒有**。
+這是連續第二輪產品零缺陷。它同時給出了明確的建議：**不要跑第七輪**。
+
+| # | 嚴重度 | Finding | 處置 |
+|---|---|---|---|
+| R6-1 | MEDIUM | `L11-D` 用的是 22 條 `assert_contains` —— 子字串在不在，跟那一行會不會執行是兩回事。四個變異存活整套 458 個測試：把 Git 的自舉整行**註解掉**（連 supply-chain 都過，它的正則會匹配到註解裡的 ID）、把三行搬到 chezmoi 呼叫**之後**、在正確那行**之後再賦值**別的 GitHub 帳號、把 M12 檢查的**內容**換掉 | **已修**。改成對 `init.ps1` 與 `_probe.ps1` 做逐位元組 golden —— 那才是「golden pin」原本的意思。新增三個對應的 mutant |
+| R6-2 | MEDIUM | gate 的 manifest 稽核管的是 **gate 的層**不是測試層，而 `tests/run.sh` 在層檔案不存在時是 exit 0。其他層被刪會讓對應 mutant 變成 SURVIVED，但 **L4 與 L8 沒有任何 mutant 指向**，把這兩個檔案刪掉整個 gate 照樣全綠。L8 是 SPEC 對 M8 唯一指名的程序 | **已修**。runner 改成記錄每一層貢獻的斷言數，被選到卻是零就失敗。**我第一次的修法犯了 R6-1 的同一個錯**（只檢查檔案在不在，抓不到「檔案還在但被停用」），mutant 因此存活，已改正 |
+| R6-3 | LOW-MEDIUM | RED 表的 `L11` 一列寫「8 條失敗、跑完」，兩處都錯 | **已修**。重新量測為 14 條失敗、之後中斷；並如實記下 `L11-D` 在這個重建裡結構上取得不到 RED |
+
+第六輪的**收斂建議**（逐字要旨）：它確實又找到三條，但每一條都是第五輪已經指名的兩種
+形狀的又一個實例，而且沒有一條是產品缺陷 —— 七項獨立的產品層攻擊全部乾淨。
+再一輪只會找到同樣兩種形狀的第七個實例，成本相同、對使用者的影響為零。
+**剩下的風險應該花在 Windows Sandbox 上**：六輪驗證共同建立的是「這會在 Windows 上
+產生哪些檔案、內容是什麼、腳本對既有檔案做什麼」；至於 12 個 winget ID 裝不裝得起來、
+裝完的工具鏈能不能開出一個可用的 shell、M12 是否可行，以及**一個沒開開發人員模式的
+乾淨 Windows 11 帳號碰到那兩個 symlink 會發生什麼**（它認為這是真實首跑最可能的失敗原因），
+六輪驗證一條都答不了，一次沙箱開機四條全答。
 
 ### 第五輪
 
@@ -385,7 +406,7 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
   回報分數。**runner 完全循序、沒有併發**，所以「並行 job 共用 build 目錄」的污染機制
   在這裡不存在；每個 mutant 在同一個拋棄式 worktree 裡「套用 → 跑 → 還原」，
   套用與還原都有 assert。
-- **Mutation kill 歸因** —— 不是抽樣，而是**逐一檢查全部 29 個**：每個 mutant 的失敗
+- **Mutation kill 歸因** —— 不是抽樣，而是**逐一檢查全部 33 個**：每個 mutant 的失敗
   斷言名稱都指名它破壞的那個行為，沒有一個是無關測試剛好紅了。
 
 ---
@@ -400,7 +421,7 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
     使用者環境，**沒有取得授權**，所以什麼都沒跑。L4 的語法解析**不是** lint 的替代品：
     它只保證「解析得過」，抓不到 quoting、未引用變數這類問題。
   - *Changed-line coverage* —— 三種語言都沒有覆蓋率工具。set 3（可執行但無覆蓋率對應）
-    ＝ 3109 行，是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
+    ＝ 3405 行，是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
     mutation 與 property 三層。
 - **SUBSTITUTED：**
   - *Real execution* —— 沒有跑「完整安裝一次」。跑的是 `L7`（重導向環境裡真的執行腳本）
