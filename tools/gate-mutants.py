@@ -388,7 +388,9 @@ MUTANTS: list[Mutant] = [
         path="tests/cases/L8-windows-seam.sh",
         old="# L8 — 用 Windows 主機上真實的 chezmoi 驗證測試接縫本身。",
         new="return 0\n# L8 — 用 Windows 主機上真實的 chezmoi 驗證測試接縫本身。",
-        layer="L11",
+        # 跑 L8 本身：runner 的「這一層貢獻了幾條斷言」檢查只涵蓋被選到的層，
+        # 而那正是它該有的範圍（跑子集是正當用法）。
+        layer="L8",
         rationale=(
             "L8 是 SPEC 對 M8 唯一指名的程序，而沒有任何 mutant 指向它 —— "
             "整層失效不會讓 gate 變紅。這份報告每一條 Windows 與 macOS 的主張"
