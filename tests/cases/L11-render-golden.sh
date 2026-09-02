@@ -22,9 +22,23 @@
 # ---------- A. 跨平台等價：同一份共用內容的兩個落點 ----------
 # 這兩對各自是「一行 includeTemplate 同一個 partial」，所以內容本來就該一模一樣。
 # 少了這條，Windows 那一份可以被整個換掉而不被任何測試發現。
+# `|| true` 會讓 cm 失敗時留下一個空檔，而 cmp 認為兩個空檔相等 —— 斷言就恆真了。
+# 所以這裡取完內容一定要檢查它非空；取不到就是失敗，不是「兩邊都沒有所以相等」。
+_render_to() { # os target outfile label
+    if ! cm "$1" cat "$TMP/dest-$1/$2" > "$3" 2>/dev/null; then
+        _fail "$4：取得 $1 的 $2" "chezmoi cat 失敗"
+        return 1
+    fi
+    if [ ! -s "$3" ]; then
+        _fail "$4：$1 的 $2 非空" "取到的是空內容 —— 空比空會恆真"
+        return 1
+    fi
+    return 0
+}
+
 _pair_check() { # label posix-target windows-target
-    cm linux  cat "$TMP/dest-linux/$2"    > "$TMP/pair-posix" 2>/dev/null || true
-    cm windows cat "$TMP/dest-windows/$3" > "$TMP/pair-win"   2>/dev/null || true
+    _render_to linux "$2" "$TMP/pair-posix" "$1" || return 0
+    _render_to windows "$3" "$TMP/pair-win" "$1" || return 0
     assert_bytes_eq "$1：POSIX 與 Windows 的落點內容逐位元組相同" \
         "$TMP/pair-posix" "$TMP/pair-win"
 }
@@ -39,8 +53,8 @@ _pair_check "uv 設定" \
 # 安裝腳本與 profile 都不該依賴 arch。唯一依賴 arch 的是 external（asset 名稱），
 # 那個由 L5 逐平台釘住。
 _arch_pair() { # os-a os-b path label
-    cm "$1" cat "$TMP/dest-$1/$3" > "$TMP/arch-a" 2>/dev/null || true
-    cm "$2" cat "$TMP/dest-$2/$3" > "$TMP/arch-b" 2>/dev/null || true
+    _render_to "$1" "$3" "$TMP/arch-a" "$4" || return 0
+    _render_to "$2" "$3" "$TMP/arch-b" "$4" || return 0
     assert_bytes_eq "$4：$1 與 $2 的渲染相同（腳本不該依賴 arch）" "$TMP/arch-a" "$TMP/arch-b"
 }
 for _s in 30-install-winget-packages.ps1 35-install-ps-modules.ps1 \
@@ -65,7 +79,7 @@ for _t in .chezmoiscripts/30-install-winget-packages.ps1 \
         _fail "golden 存在：$_name" "$_GOLDEN_RENDER/$_name 不存在（新增 Windows 產物時要一起加 golden）"
         continue
     fi
-    cm windows cat "$TMP/dest-windows/$_t" > "$TMP/render-$_name" 2>/dev/null || true
+    _render_to windows "$_t" "$TMP/render-$_name" "golden $_name" || continue
     assert_bytes_eq "golden：$_name 的 Windows 渲染沒有悄悄改變" \
         "$_GOLDEN_RENDER/$_name" "$TMP/render-$_name"
 done
@@ -76,3 +90,33 @@ assert_eq "golden/render/windows 的檔案集合" \
     "$(ls "$_GOLDEN_RENDER" 2>/dev/null | LC_ALL=C sort)"
 
 unset _s _t _name _GOLDEN_RENDER
+
+# ---------- D. 不經 chezmoi 算繪的兩支 Windows 檔案 ----------
+# L11-C 只涵蓋「chezmoi 會渲染的東西」。init.ps1 是自舉腳本（使用者直接 irm | iex
+# 執行，不經 chezmoi），sandbox 探針同理，兩者都落在這個機制的邊界之外，而它們正好
+# 是最不受控的環境裡執行的程式碼。這裡不做 golden 快照（它們不是模板，git 本來就
+# 追得到），改成把「它們必須做到的事」寫成斷言。
+_init=$(cat "$REPO/init.ps1")
+
+# 自舉的三個套件缺一不可：沒有 git 就 clone 不了、沒有 pwsh 7 chezmoi 跑不了 .ps1、
+# 沒有 chezmoi 就什麼都不會發生。supply-chain 那一層只驗「列出來的 ID 解析得到」，
+# 少了一個它不會失敗。
+for _pair in "Microsoft.PowerShell|pwsh" "Git.Git|git" "twpayne.chezmoi|chezmoi"; do
+    _id=${_pair%%|*}; _cmd=${_pair##*|}
+    assert_contains "init.ps1 會自舉 $_id" "$_init" "Install-IfMissing -Id '$_id'"
+    assert_contains "init.ps1 用 $_cmd 判斷 $_id 是否已存在" "$_init" "-Command '$_cmd'"
+done
+assert_contains "init.ps1 clone 的是正確的 GitHub 帳號" "$_init" "chezmoiArgs += 'gn00678465'"
+assert_contains "init.ps1 會在 symlink 權限不足時警告" "$_init" 'if (-not $symlinkOk)'
+assert_contains "init.ps1 的 symlink 警告有指出開發人員模式" "$_init" "Developer"
+
+# sandbox 探針是 M12 與 symlink 權限唯一的量測工具；它悄悄少掉一項檢查，
+# 我們會拿到一份看起來通過、實際上沒問過那個問題的結果。
+_probe=$(cat "$REPO/tests/sandbox/_probe.ps1")
+assert_contains "sandbox 探針會問 M12（treesitter parser 編不編得出來）" "$_probe" "SPEC M12"
+assert_contains "sandbox 探針會檢查 symlink" "$_probe" "claude skills symlinks"
+assert_contains "sandbox 探針會檢查 zsh 專屬檔案沒有落地" "$_probe" "zsh-only files did NOT land"
+for _t in mise fzf rg fd lazygit git-lfs tree-sitter oh-my-posh zig nvim; do
+    assert_contains "sandbox 探針會檢查 $_t 在 PATH 上" "$_probe" "'$_t'"
+done
+unset _init _probe _pair _id _cmd _t

@@ -10,7 +10,12 @@ $ErrorActionPreference = 'Stop'
 {{ includeTemplate "windows-path.ps1" . }}
 
 if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
-    Write-Error 'chezmoi: mise not found, skipping neovim'
+    # Write-Warning 而不是 Write-Error：在 $ErrorActionPreference = 'Stop' 之下
+    # Write-Error 是**終止性**的，後面那行 exit 0 根本到不了，chezmoi 收到的是 1。
+    # 這支是 run_onchange_before_，非零退出會在任何檔案被寫出來之前中止整個 apply
+    # ——使用者連 PowerShell profile 都拿不到。POSIX 版是 `echo >&2; exit 0`，
+    # 這裡要對稱。由 tests/cases/L7 的退出碼斷言釘住。
+    Write-Warning 'chezmoi: mise not found, skipping neovim'
     exit 0
 }
 

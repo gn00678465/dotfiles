@@ -239,6 +239,28 @@ PSEOF
     assert_eq "Windows: 跑到的是 stub 的 mise 而不是主機上的 mise（隔離生效）" "4" \
         "$(wc -l < "$_bw/mise-calls.log" 2>/dev/null | tr -d ' ')"
 
+    # ---- mise 不存在時的行為：必須「跳過」，不是「中止整個 apply」 ----
+    # POSIX 版是 `echo ... >&2; exit 0`。Windows 版原本寫 Write-Error，而在
+    # $ErrorActionPreference = 'Stop' 之下 Write-Error 是**終止性**的 ——
+    # 後面那行 exit 0 根本到不了，chezmoi 收到的是 1。這支是 run_onchange_before_，
+    # 非零退出會在**任何檔案被寫出來之前**中止整個 apply：使用者連 PowerShell
+    # profile 與 settings.json 都拿不到。比它想做的「跳過 neovim」嚴重得多。
+    _nomise="$_bw/nomise"
+    mkdir -p "$_nomise/local" "$_nomise/temp" "$_nomise/pf" "$_nomise/stub"
+    cat > "$_bw/run-nomise.ps1" <<NOMISEEOF
+\$env:LOCALAPPDATA = '$_bn\\nomise\\local'
+\$env:TEMP = '$_bn\\nomise\\temp'
+\$env:TMP  = '$_bn\\nomise\\temp'
+\$env:ProgramFiles = '$_bn\\nomise\\pf'
+\$env:PATH = '$_bn\\nomise\\stub'
+\$p = Start-Process -FilePath 'pwsh' -NoNewWindow -Wait -PassThru -ArgumentList @('-NoLogo','-File','$_bn\\50-neovim.ps1')
+'EXITCODE=' + \$p.ExitCode
+NOMISEEOF
+    _nm=$("$_PWSH" -NoLogo -NoProfile -File "$_bn\\run-nomise.ps1" 2>&1 | tr -d '\r' | sed -n 's/^EXITCODE=//p')
+    assert_eq "Windows: mise 不存在時退出碼是 0（跳過，不是中止整個 apply）" "0" "$_nm"
+    assert_eq "Windows: mise 不存在時什麼都不建立" "" \
+        "$(ls -A "$_nomise/local" 2>/dev/null)"
+
     # ================= C. pwsh profile loader 的冪等性 =================
     # 真正的 $PROFILE 指向使用者的 Documents，不能拿來測。所以 loader 的邏輯被抽成
     # .chezmoitemplates/pwsh-profile-loader.ps1，由呼叫端先設好 $target；

@@ -301,6 +301,52 @@ MUTANTS: list[Mutant] = [
         rationale="PATH 補強少了 Git，腳本在 git 只裝在 Program Files 的機器上會找不到它",
     ),
     Mutant(
+        name="neovim-skip-aborts-apply",
+        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        old="    Write-Warning 'chezmoi: mise not found, skipping neovim'",
+        new="    Write-Error 'chezmoi: mise not found, skipping neovim'",
+        layer="L7",
+        rationale=(
+            "$ErrorActionPreference = 'Stop' 之下 Write-Error 是終止性的，後面的 exit 0 "
+            "到不了。這支是 run_onchange_before_，非零退出會在任何檔案被寫出來之前中止"
+            "整個 apply —— 使用者連 PowerShell profile 都拿不到"
+        ),
+    ),
+    Mutant(
+        name="seam-leaks-into-production-config",
+        path=".chezmoi.toml.tmpl",
+        old="[data]\n    isWSL = {{ $isWSL }}",
+        new='[data]\n    osOverride = "linux"\n    isWSL = {{ $isWSL }}',
+        layer="L1",
+        rationale=(
+            "測試接縫漏進生產用的 config：Windows 上會拿 .sh 去 exec 而中止 apply（M1、"
+            "Must NOT #4），managed 也會變成 POSIX 的那一組（M7）。整個 Windows 與 macOS "
+            "的證據都建立在這個檔案沒有那兩個 key 上"
+        ),
+    ),
+    Mutant(
+        name="init-drops-git-bootstrap",
+        path="init.ps1",
+        old="Install-IfMissing -Id 'Git.Git'              -Command 'git'\n",
+        new="",
+        layer="L11",
+        rationale=(
+            "乾淨的 Windows 11 沒有 git，chezmoi 因此 clone 不了，自舉直接死掉。"
+            "supply-chain 只驗『列出來的 ID 解析得到』，少一個它不會失敗"
+        ),
+    ),
+    Mutant(
+        name="probe-drops-m12-check",
+        path="tests/sandbox/_probe.ps1",
+        old="Check 'nvim-treesitter builds a parser (SPEC M12)' {",
+        new="Check 'nvim-treesitter parser (skipped)' {",
+        layer="L11",
+        rationale=(
+            "sandbox 探針是 M12 唯一的量測工具；它悄悄少掉那項檢查，我們會拿到一份"
+            "看起來通過、實際上沒問過那個問題的結果"
+        ),
+    ),
+    Mutant(
         name="codex-empty-tui-crash",
         path="dot_codex/modify_private_config.toml",
         old="{{-       if ge $last 0 -}}{{- $head = slice $buf 0 (add $last 1) -}}{{- end -}}",
