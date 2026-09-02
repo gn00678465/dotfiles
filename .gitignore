@@ -1,2 +1,5 @@
 # get.chezmoi.io drops its binary here when run from inside the source dir
 bin/
+
+# 驗證閘門的產出。報告本身另存於 .scratch/windows-support/evidence.md（有進版控）。
+.gate/
