@@ -1,7 +1,7 @@
 # Evidence Report — native Windows 支援 (Tier 3)
 
 - `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）**
-  · 獨立驗證跑了**兩輪**，兩輪都判 failed；共 19 條 findings 全部已處置，見 §獨立驗證
+  · 獨立驗證跑了**三輪**，三輪都判 failed；共 28 條 findings 全部已處置，見 §獨立驗證
 - `command`: `evidence`
 - `contract`: applied（`~/.claude/CLAUDE.md` 的 evidence-first 契約；本 repo 的
   `AGENTS.md` 沒有覆寫它）
@@ -17,7 +17,7 @@
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `d9720c815e3473397009da00fc27ce9d61387103`
+- `source_state`: `202aa8a9a3aa766cfdd69db9719cd19ee9cde2b6`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只會再多一個 commit —— 本報告本身 ——
@@ -136,7 +136,7 @@
 | **Must NOT #2**：不得改變 Linux/macOS 現有行為 | `L10`（`diff -r` 逐位元組；managed 只多出五支 Windows 腳本；external 定義不變） | pass |
 | **Must NOT #3**：不得刪除任何既有使用者檔案 | `L7`（POSIX 四次、Windows 三次執行；備份內容保留、彼此獨立、無巢狀）；mutant `posix-nvim-delete` 與 `backup-timestamp-collision` 證明會咬 | pass |
 | **Must NOT #4**：`.sh` 不得在 Windows 執行、`.ps1` 不得在 POSIX 執行 | `L2` 的兩條結構性不變式；`L8` 真實 Windows 渲染比對 | pass |
-| **Must NOT #5**：不得引入未釘版本或無 checksum 的外部下載 | `L5`（**六個平台組合**全部渲染過；checksum 必須是 64 個十六進位字元，空值不算 —— 實測 chezmoi 對空 checksum 是「不驗證就安裝」 + **Install-PSResource 必須帶 -Version**）；supply-chain 實際下載比對。**一項具名豁免**：`.oh-my-zsh` 本體追 `master.tar.gz`、無 checksum，是 base ref 就有的設計（原始碼註解說明 ohmyzsh 不發 tag），`L5` 明文豁免它 | pass（含一項具名豁免） |
+| **Must NOT #5**：不得引入未釘版本或無 checksum 的外部下載 | `L5`（**六個平台組合**全部渲染過；checksum 必須是 64 個十六進位字元，空值不算 —— 實測 chezmoi 對空 checksum 是「不驗證就安裝」 + **Install-PSResource 必須帶 -Version**）；supply-chain 實際下載比對。**兩項具名豁免**：(1) `.oh-my-zsh` 本體追 `master.tar.gz`、無 checksum，是 base ref 就有的設計，`L5` 明文豁免；(2) `50-neovim` 的 `git clone` LazyVim starter 沒有釘 ref 也沒有 checksum —— POSIX 端早於 base ref，Windows 端是這次新增的（第三輪 V7） | pass（含兩項具名豁免） |
 | **Must NOT #6**：不得為了讓測試變綠去改測試 | 四次測試修改，各附理由與獨立驗證，見 Honest notes 2 | pass |
 | **Must NOT #7**：報告不得寫沒真的跑過的檢查 | 每個數字都指向 `.gate/windows-support/` 的產出檔 | pass |
 | M9（winget ID 打錯） | **supply-chain 第四項**：抽出實際會安裝的 12 個 ID 逐一解析；抽取規則對不上程式碼就直接失敗 | pass |
@@ -183,14 +183,14 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=d9720c8…`, `worktree=clean` |
-| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **387 passed, 0 failed, 0 skipped** |
-| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，387/387 |
-| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 387 passed, 0 failed |
-| Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 4 已知限制形狀）= 322 個案例，P0–P5 全部成立**（已知限制那 4 種只驗 P0，見 F3） |
-| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活的 mutant | **17/17 killed，0 survivors** |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 5302 行（不含本報告為 4634 行）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | set1 **0** / set2 **2858** / set3 **2444**（共 5302 行）；**不含本報告**：set2 2190 / set3 2444 / 共 4634 行 |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=202aa8a…`, `worktree=clean` |
+| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **414 passed, 0 failed, 0 skipped** |
+| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，414/414 |
+| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 414 passed, 0 failed |
+| Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
+| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活的 mutant | **21/21 killed，0 survivors**（每一個都在 5 次獨立重複裡穩定致死，見 V1） |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 5522 行（不含本報告為 4815 行）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 2253 / set3 2562 / 共 4815 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
 | Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
 
@@ -218,6 +218,34 @@ Tier 3 依契約派了一個獨立的 `verifier`，只給四項輸入（任務�
 | 9 | LOW | 備份時間戳只到秒，同一秒內第三次 bootstrap 會把上一份備份埋進新的裡（不遺失資料，但正是程式碼註解說要避免的那件事） | **已修**。兩個平台的備份函式都加唯一化迴圈；L7 加跑第四次；mutant `backup-timestamp-collision` |
 | 10 | LOW | M9 沒有自動檢查；`twpayne.chezmoi` 不在 SPEC F12 的 11 個 ID 表裡 | **已修**。supply-chain 新增第四項，逐一解析 12 個 ID（含 `twpayne.chezmoi`），抽取規則對不上程式碼就失敗 |
 | 11 | LOW | SPEC §2.4 說備份四個目錄、實作備份三個（實作是對的，SPEC 自己前後不一致）但沒揭露；核准綁定的 sha256 無法從 git 驗證 | **已揭露**，見 Honest notes 4 與 9。程式碼不改：SPEC F6 自己記載 Windows 的 state 與 data 是同一個路徑 |
+
+### 第三輪
+
+判定仍是 **failed**，8 條 findings（兩條 HIGH）。它對前兩輪 19 條的裁決是
+**14 FIXED、4 PARTIALLY FIXED、5 DISCLOSED-accurate**（部分重疊）。
+
+| # | 嚴重度 | Finding | 處置 |
+|---|---|---|---|
+| V1 | HIGH | **gate 是不決定性的**。Windows 撞名 mutant 的 kill 需要第三、第四次執行落在同一個 wall-clock 秒內，而跨 WSL→pwsh.exe 大約要一秒 —— 等於擲硬幣。驗證者的**第一次** gate 執行就紅了（16/17，後續四層 NOT REACHED），7 次獨立重複裡存活 2 次。報告的「17/17、逐一檢查、沒有一個是碰巧」描述的是一次幸運抽樣 | **已修**。改成強制撞名：先把接下來幾秒的時間戳目錄全部建好，唯一化迴圈必然被走到。帶 mutant 連跑 5 次，每次都紅 3 條 |
+| V2 | HIGH | **Must NOT #2 對應到 L10，但 L10 的 apply 帶 `--exclude=scripts`** —— 四支被改寫的既有 POSIX 腳本，內容從來沒有跟 base 比對過。把 `tree-sitter` 從 brew 清單拿掉（AGENTS.md 明文禁止修剪的那一項）能存活整套 387 個測試 | **已修**。L10 現在逐支比對渲染結果。**這同時暴露出一件我沒宣告的事**，見下方「已宣告的 Must NOT #2 偏離」 |
+| V3 | MEDIUM-HIGH | 哪個平台拿哪一個 cc-statusline asset **沒有被任何東西釘住**。supply-chain 天生看不到：sum 是按 asset 名稱查的，把 darwin 的 arm64/x64 對調之後 URL 與 pin 仍然一致、雜湊也仍然相符。實際後果是 Intel Mac 拿到 arm64 執行檔 | **已修**。L5 補上逐平台的預期 asset；mutation 新增 `cc-statusline-arch-swap` |
+| V4 | MEDIUM | PowerShell profile 的**內容完全沒被釘住**。把主題檔名改掉 → external 裝的與 profile 讀的不一致 → profile 的 `Test-Path` 守衛**靜靜跳過** oh-my-posh 初始化，使用者只看到沒有主題的提示字元、沒有任何錯誤 | **已修**。L2 補上「profile 讀的主題檔名要與 external 裝的一致」加四條關鍵行；mutation 新增 `pwsh-profile-theme-name` |
+| V5 | MEDIUM | `windows-path.ps1` 被拿掉不會被任何測試發現，而 L7 因為重導向了 `%LOCALAPPDATA%`／`%ProgramFiles%`，**結構上不可能偵測到它**。後果是 50-neovim 走「mise not found, skipping neovim」那條路並以 **exit 0** 結束 —— 整個安裝靜靜地沒發生 | **已修**。L2 補斷言；mutation 新增 `windows-path-not-included`。這個失效模式在 SPEC 的 M1–M12 表裡沒有對應列 —— SPEC 已核准不改，記在這裡 |
+| V6 | MEDIUM | 已知限制的形狀被當成**窮舉**寫進三處文件，但還有第五種（加引號的 key `"status_line" =`） | **已修**。第五種加進 `KNOWN_LIMITATION`；三處文件都改成「這是目前已知的，不是窮舉」，並改為描述那三個前提而不是列表長度 |
+| V7 | MEDIUM-LOW | Must NOT #5 的豁免只列了 `.oh-my-zsh` 一項；LazyVim starter 的 `git clone` **沒有釘 ref 也沒有 checksum**，抓的是 nvim 會執行的 Lua，而 Windows 這支腳本是這次新增的 | **已揭露**，寫進 AGENTS.md 與下方 Must NOT #5 那一列。釘住它會改變 POSIX 機器抓到的東西，因此記錄而不改 |
+| V8 | LOW | 第一輪 Finding 4 的隔離正面控制只有 POSIX 有；Windows 的 stub 不留記號，沒有任何斷言證明跑到的是 stub 而不是主機上的真工具 | **已修**。Windows stub 也留記號，補上對稱的斷言 |
+| V9 | LOW/INFO | L8 的十一條「逐位元組」裡有五條是 0 bytes 比 0 bytes | **不需處置**。驗證者自己的結論：另外六條非空的比對是正面控制，`_cm_win` 壞掉會讓它們變紅，所以攻不破 |
+
+### 已宣告的 Must NOT #2 偏離
+
+修第一輪 Finding 9（備份時間戳撞名）時，我在 **POSIX** 腳本裡也加了唯一化迴圈。
+那**改變了 POSIX 端的渲染輸出**，而 SPEC 的 Must NOT #2 要求逐位元組不變。
+當時我沒有宣告它 —— 是第三輪 V2 補上腳本內容比對之後才顯現出來的。
+
+現況：它是 `tests/cases/L10` 裡的**具名例外**，形狀被釘死（那個迴圈以外的任何差異
+仍然會失敗）。行為上它只在「原本會把舊備份埋掉」的情形下有差別，也就是嚴格的
+資料安全改善。**但它確實是對已核准 SPEC 的偏離，需要你決定**：保留（資料安全）
+還是還原（嚴守 Must NOT #2，POSIX 維持既有的埋備份行為）。
 
 ### 第二輪
 
@@ -281,7 +309,7 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
   回報分數。**runner 完全循序、沒有併發**，所以「並行 job 共用 build 目錄」的污染機制
   在這裡不存在；每個 mutant 在同一個拋棄式 worktree 裡「套用 → 跑 → 還原」，
   套用與還原都有 assert。
-- **Mutation kill 歸因** —— 不是抽樣，而是**逐一檢查全部 17 個**：每個 mutant 的失敗
+- **Mutation kill 歸因** —— 不是抽樣，而是**逐一檢查全部 21 個**：每個 mutant 的失敗
   斷言名稱都指名它破壞的那個行為，沒有一個是無關測試剛好紅了。
 
 ---
@@ -296,7 +324,7 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
     使用者環境，**沒有取得授權**，所以什麼都沒跑。L4 的語法解析**不是** lint 的替代品：
     它只保證「解析得過」，抓不到 quoting、未引用變數這類問題。
   - *Changed-line coverage* —— 三種語言都沒有覆蓋率工具。set 3（可執行但無覆蓋率對應）
-    ＝ 2444 行（不含本報告則同為 2444），是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
+    ＝ 2562 行，是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
     mutation 與 property 三層。
 - **SUBSTITUTED：**
   - *Real execution* —— 沒有跑「完整安裝一次」。跑的是 `L7`（重導向環境裡真的執行腳本）
@@ -330,7 +358,7 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
 **這整份報告沒有任何一個數字來自「一台真的裝過這份 dotfiles 的 Windows 機器」。**
 
 做到的是：三個平台的模板渲染、Windows 主機上真實 chezmoi 的唯讀比對、在重導向的環境
-裡真的執行安裝腳本的檔案搬移邏輯、以及對 codex 設定改寫的 322 個案例差分。
+裡真的執行安裝腳本的檔案搬移邏輯、以及對 codex 設定改寫的 329 個案例差分。
 **沒做到的**是：`winget install` 真的跑一次、裝完的 PowerShell 7 + oh-my-posh + PSFzf
 + mise 真的開一個 shell 起來、LazyVim 第一次啟動真的去編 treesitter parser。
 
