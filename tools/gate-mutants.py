@@ -318,6 +318,8 @@ def run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--json", type=Path, default=None)
+    parser.add_argument("--repeat", type=int, default=2,
+                        help="每個 mutant 重複幾輪；全部輪次都要致死才算 KILLED")
     args = parser.parse_args()
 
     # 產品樹必須乾淨：mutant 是在 HEAD 的複本上套的，工作樹有未提交的東西就代表
