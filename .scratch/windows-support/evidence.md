@@ -76,7 +76,7 @@
 |---|---|---|
 | `.chezmoitemplates/platform.toml`（新增） | `L1`（四個平台組合逐欄位；無 override 時退回真實 OS） | pass |
 | `.chezmoitemplates/versions.toml`（新增） | `L2`（兩個平台的 50-neovim 釘同一個版本／marker／starter）、`L5`（PSFzf 版本） | pass |
-| `.chezmoitemplates/windows-path.ps1`（新增） | `L4`（PowerShell 解析）、`L7`（Windows 50-neovim 實跑） | pass |
+| `.chezmoitemplates/windows-path.ps1`（新增） | **`L11-C`（渲染 golden，涵蓋整個 partial）**、`L2`（PATH 條目斷言）、`L4`。~~`L7`~~ 對這個單元結構上是盲的（它把 `%ProgramFiles%` 重導向到空沙盒），已從對應中移除 | pass |
 | `.chezmoitemplates/pwsh-profile-loader.ps1`（新增） | `L7`（跑三次恰好留下一行、**內容逐字比對**） | pass |
 | `.chezmoitemplates/nvim-plugins-completion.lua`（搬移 R100） | `L10`（`diff -r` 與 base ref 相同） | pass |
 | `.chezmoitemplates/uv.toml`（搬移 R100） | 同上 | pass |
@@ -91,11 +91,11 @@
 | `run_onchange_after_40-git-lfs.sh.tmpl`（改） | 同上 | pass |
 | `run_onchange_before_50-neovim.sh.tmpl`（改） | `L2`、`L4`、**`L7` POSIX 備份行為實跑（四次執行；三份備份彼此獨立、無巢狀；在 mount namespace 裡隔離）** | pass |
 | `run_after_default-shell.sh.tmpl`（改） | `L2`（僅 linux 非空）、`L4` | pass |
-| `run_onchange_before_30-install-winget-packages.ps1.tmpl`（新增） | `L2`、`L4`、`L8`、**supply-chain 逐一解析 winget ID** | pass |
-| `run_onchange_before_35-install-ps-modules.ps1.tmpl`（新增） | 同上，**外加 `L5`「Install-PSResource 必須帶 -Version」** | pass |
-| `run_onchange_after_40-git-lfs.ps1.tmpl`（新增） | `L2`、`L4`、`L8` | pass |
-| `run_onchange_before_50-neovim.ps1.tmpl`（新增） | `L2`、`L4`、`L8`、**`L7` Windows 備份行為實跑（三個目錄、備份集合精確比對、marker 冪等）** | pass |
-| `run_after_60-pwsh-profile.ps1.tmpl`（新增） | `L2`（**含 `$target = $PROFILE.CurrentUserAllHosts` 這一行的斷言**）、`L4`、`L8` | pass |
+| `run_onchange_before_30-install-winget-packages.ps1.tmpl`（新增） | **`L11-C`（渲染 golden —— supply-chain 只驗「列出來的 ID 解析得到」，少一個它不會失敗）**、`L2`、`L4`、`L8`、supply-chain | pass |
+| `run_onchange_before_35-install-ps-modules.ps1.tmpl`（新增） | **`L11-C`**、`L2`、`L4`、`L8`、`L5`「Install-PSResource 必須帶 -Version」 | pass |
+| `run_onchange_after_40-git-lfs.ps1.tmpl`（新增） | **`L11-C`**、`L2`、`L4`、`L8` | pass |
+| `run_onchange_before_50-neovim.ps1.tmpl`（新增） | **`L11-C`**、**`L7` Windows 備份行為實跑（三個目錄、備份集合精確比對、marker 冪等、**mise 不存在時的退出碼**）**、`L2`、`L4`、`L8` | pass |
+| `run_after_60-pwsh-profile.ps1.tmpl`（新增） | **`L11-C`（渲染 golden —— 這是唯一能抓到「腳本不再呼叫 loader」的層）**、`L2`（`$target` 那一行）、`L4`、`L8` | pass |
 
 ### 產品：target 檔案與設定
 
@@ -103,22 +103,22 @@
 |---|---|---|
 | `.chezmoiignore`（改） | `L3` 四個平台的 managed 集合 golden + 互斥性 + repo-only 不得落地 | pass |
 | `.chezmoiexternal.toml.tmpl`（改） | `L5`、`L10`、supply-chain（實際下載比對 sha256） | pass |
-| `private_dot_config/powershell/profile.ps1.tmpl`（新增） | `L3`、`L4`、`L8` | pass |
-| `AppData/Local/nvim/lua/plugins/completion.lua.tmpl`（新增） | `L3`、`L6` | pass |
-| `AppData/Roaming/uv/uv.toml.tmpl`（新增） | `L3`、`L6` | pass |
+| `private_dot_config/powershell/profile.ps1.tmpl`（新增） | **`L11-C`**、`L2`（主題檔名與 external 一致等四條）、`L3`、`L4`、`L8` | pass |
+| `AppData/Local/nvim/lua/plugins/completion.lua.tmpl`（新增） | **`L11-A`（與 POSIX 落點逐位元組相同）**、`L3`。~~`L6`~~ 從不讀這個檔案，已從對應中移除 | pass |
+| `AppData/Roaming/uv/uv.toml.tmpl`（新增） | **`L11-A`**、`L3`。~~`L6`~~ 同上 | pass |
 | `private_dot_config/nvim/lua/plugins/completion.lua.tmpl`（新增） | `L10` | pass |
 | `private_dot_config/uv/uv.toml.tmpl`（新增） | `L10` | pass |
 | `dot_codex/modify_private_config.toml`（改：sh+awk → modify-template） | **`L6` 16 個 golden 案例（`cmp` 逐位元組）、`L6` 結構性斷言、`L8` 真實 Windows apply、properties 層 329 個案例含 P0 差分** | pass |
 | `dot_claude/modify_settings.json`（改） | `L6`（POSIX 與 Windows 兩組 golden，`cmp` 比對）、`L8` | pass |
 | `dot_zshrc.tmpl` / `dot_zprofile.tmpl`（改） | `L10`、`L4` | pass |
-| `init.ps1`（新增） | `L4`（pwsh 7 解析、Windows PowerShell 5.1 解析、純 ASCII）、supply-chain（ID 解析） | pass |
+| `init.ps1`（新增） | **`L11-D`（三個自舉套件與其偵測命令、GitHub 帳號、symlink 警告）**、`L4`（pwsh 7 與 WPS 5.1 解析、純 ASCII）、supply-chain（ID 解析）。它不經 chezmoi 算繪，所以在 `L11-C` 的邊界外 —— 這是第五輪指出的 | pass |
 
 ### 非產品
 
 | Changed unit | Test | Status |
 |---|---|---|
-| `tests/**`（runner、lib、9 個 case、fixtures、goldens） | 測試資產 | n-a |
-| `tools/**`（8 個 gate 腳本） | §Negative controls 逐一驗過 | n-a |
+| `tests/**`（runner、lib、**10 個 case**、fixtures、goldens、sandbox 探針） | 測試資產；探針的義務由 `L11-D` 釘住 | n-a |
+| `tools/**`（**7 個** gate 腳本） | §Negative controls 逐一驗過 | n-a |
 | `docs/`、`README.md`、`AGENTS.md`、`.scratch/`、`.gitignore` | 文件 | n-a |
 | 純搬移／改名（2 檔，R100） | — | n-a |
 | **刪除：無**（`git diff --diff-filter=D` 為空） | — | n-a |
@@ -140,6 +140,16 @@
 | **Must NOT #5**：不得引入未釘版本或無 checksum 的外部下載 | `L5`（**六個平台組合**全部渲染過；checksum 必須是 64 個十六進位字元，空值不算 —— 實測 chezmoi 對空 checksum 是「不驗證就安裝」 + **Install-PSResource 必須帶 -Version**）；supply-chain 實際下載比對。**兩項具名豁免**：(1) `.oh-my-zsh` 本體追 `master.tar.gz`、無 checksum，是 base ref 就有的設計，`L5` 明文豁免；(2) `50-neovim` 的 `git clone` LazyVim starter 沒有釘 ref 也沒有 checksum —— POSIX 端早於 base ref，Windows 端是這次新增的（第三輪 V7） | pass（含兩項具名豁免） |
 | **Must NOT #6**：不得為了讓測試變綠去改測試 | 四次測試修改，各附理由與獨立驗證，見 Honest notes 2 | pass |
 | **Must NOT #7**：報告不得寫沒真的跑過的檢查 | 每個數字都指向 `.gate/windows-support/` 的產出檔 | pass |
+| M1（`.sh` 在 Windows 被 exec） | `L2` 的結構性不變式（每支 `.sh` 在兩個 Windows 組合上都必須渲染成空）、`L8`；mutant `apt-script-guard`、`seam-leaks-into-production-config` | pass |
+| M2（Windows 覆蓋或刪除既有 nvim 設定） | `L7` Windows 備份行為實跑；mutant `windows-nvim-data-backup`、Windows 版的 `Move-Item`→`Remove-Item` 鏡像（獨立驗證自己寫的，也被殺） | pass |
+| M3（重跑把使用者設定當外來設定搬走） | `L7` marker 冪等（兩平台）；mutant `windows-nvim-marker` | pass |
+| M4（codex 設定毀損） | `L6` 16 個 golden、properties 329 案例含與原版的差分；mutant `codex-duplicate-keys`、`codex-trailing-blank`、`codex-empty-tui-crash` | pass |
+| M5（claude settings.json 洗掉未管理的 key） | `L6` 兩組 golden（含既有 key 的種子檔）；獨立驗證另以九種敵意輸入確認與 base ref 行為相同 | pass |
+| M6（Oh My Zsh 的 `exact=true` external 在 Windows 被求值） | `L5` 清單斷言 + 「Windows 上不得有任何 .oh-my-zsh external」 | pass |
+| M7（`.chezmoiignore` 寫反） | `L3` 四／六個平台的 managed golden 與互斥性；mutant `ignore-windows-block`、`seam-leaks-into-production-config` | pass |
+| M8（接縫與真實 Windows 行為不一致） | `L8` 真實 Windows chezmoi 逐位元組比對；**`L1` 生產 config 不得含 override**（第五輪補上的入口守衛） | pass |
+| M10（profile loader 重複追加） | `L7` 跑三次恰好一行、內容逐字；mutant `loader-idempotency`、`loader-line-content` | pass |
+| M11（順手改壞 POSIX） | `L10` 對 base ref 的整棵樹 `diff -r` 加逐支腳本渲染比對；mutant `posix-script-content-drift` | pass（含一項具名偏離） |
 | M9（winget ID 打錯） | **supply-chain 第四項**：抽出實際會安裝的 12 個 ID 逐一解析；抽取規則對不上程式碼就直接失敗 | pass |
 | M12（zig 能否讓 tree-sitter 在 Windows 編出 parser） | `tests/sandbox/_probe.ps1` | **unverified —— L9 尚未執行** |
 
