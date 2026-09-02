@@ -159,7 +159,8 @@ def main() -> None:
     #    a spec filed elsewhere archived nowhere while `--check` still
     #    reported clean. Both halves are asserted here.
     agree("spec root",
-          (workflow, r"`([\w/-]+)/<scope>/SPEC\.md`"),
+          (contract, r"`([\w./-]+)/<scope>/SPEC\.md`"),
+          (workflow, r"`([\w./-]+)/<scope>/SPEC\.md`"),
           (archiver, r'root / "([\w-]+)" / scope'),
           (archiver_skill, r"`([\w/-]+)/<scope>/` to"))
     forbid(workflow, "spec path stated as optional", "suggested path")

@@ -1,4 +1,4 @@
-{{- /* managed-by: chezmoi | source: .chezmoitemplates/evidence-first-contract.md | v0.5 */ -}}
+{{- /* managed-by: chezmoi | source: .chezmoitemplates/evidence-first-contract.md | v0.6 */ -}}
 <!-- evidence-first:contract -->
 <workflow name="evidence-first" role="contract">
 
@@ -22,8 +22,10 @@ SPEC → approve+commit → RED → GREEN (per behavior) → gate → evidence
 ```
 
 1. **Intent on record.** A spec the human approved BEFORE implementation,
-   committed to the repo: scenarios with concrete inputs and outputs, Must
-   NOT constraints, and a declared tier. Approval is a structured act bound
+   committed to the repo at `specs/<scope>/SPEC.md` — that path binds every
+   workflow, not just the reference one, because the CLOSE step's tooling
+   reads it there and nowhere else — with scenarios with concrete inputs and
+   outputs, Must NOT constraints, and a declared tier. Approval is a structured act bound
    to one spec version — not a parsed phrase: the approving words are quoted
    verbatim into the spec's own approval record (words, date, version bound)
    and committed with it, so the gate reads `confirmed` from git, never from
