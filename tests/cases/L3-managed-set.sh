@@ -36,6 +36,7 @@ for _os in $ALL_OSES; do
     assert_not_contains "$_os 不得把 tests/ 裝進 \$HOME" "$_m" "tests"
     assert_not_contains "$_os 不得把 docs/ 裝進 \$HOME" "$_m" "docs"
     assert_not_contains "$_os 不得把 .scratch/ 裝進 \$HOME" "$_m" ".scratch"
+    assert_not_contains "$_os 不得把 tools/ 裝進 \$HOME" "$_m" "tools"
 done
 
 unset _os _t _win _lin _m

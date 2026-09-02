@@ -24,7 +24,14 @@ else
     selected=""
 fi
 
-for case_file in "$REPO"/tests/cases/*.sh; do
+# TESTS_SHUFFLE=1 打亂 case 的執行順序。給 suite health 那一層用：每一個 case
+# 都應該自己準備自己需要的狀態，順序一換就壞掉代表有隱藏的相依。
+_case_list=$(ls "$REPO"/tests/cases/*.sh 2>/dev/null || true)
+if [ "${TESTS_SHUFFLE:-0}" = "1" ] && command -v shuf >/dev/null 2>&1; then
+    _case_list=$(printf '%s\n' "$_case_list" | shuf)
+fi
+
+for case_file in $_case_list; do
     [ -e "$case_file" ] || continue
     base=$(basename "$case_file" .sh)
     layer=${base%%-*}
