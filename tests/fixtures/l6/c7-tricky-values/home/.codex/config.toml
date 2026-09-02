@@ -1,0 +1,11 @@
+# 這些值是 fromToml|toToml 往返會改壞的東西（見 docs/research 那篇 §3.3）：
+# 不帶 offset 的 local date 會被本機時區位移，multi-line string 會被壓平。
+ld = 2024-01-01
+ldt = 2024-01-01T00:00:00
+multi = """
+line one
+line two
+"""
+
+[tui]
+status_line = ["OLD"]

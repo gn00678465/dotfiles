@@ -1,0 +1,6 @@
+{
+  "theme": "dark",
+  "editorMode": "vim",
+  "tui": { "nested": true, "n": 1 },
+  "autoMemoryEnabled": true
+}

@@ -1,0 +1,15 @@
+{
+  "authDreamEnabled": false,
+  "autoMemoryEnabled": false,
+  "editorMode": "vim",
+  "statusLine": {
+    "command": "STATUSLINE_USAGE_STYLE=dots ~/.claude/cc-statusline/cc-statusline",
+    "padding": 2,
+    "type": "command"
+  },
+  "theme": "dark",
+  "tui": {
+    "n": 1,
+    "nested": true
+  }
+}

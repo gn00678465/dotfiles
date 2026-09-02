@@ -1,0 +1,4 @@
+[tui]
+status_line = ["FIRST"]
+keep_me = "yes"
+status_line = ["SECOND"]

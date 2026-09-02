@@ -1,0 +1,4 @@
+{
+  "statusLine": { "type": "command", "command": "SOMETHING-ELSE" },
+  "keepThis": "yes"
+}
