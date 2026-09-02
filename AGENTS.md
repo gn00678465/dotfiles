@@ -16,13 +16,85 @@ The five canonical roles, with label strings equal to their names. See `docs/age
 
 Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+## Platform selection
+
+`.chezmoitemplates/platform.toml` is the **only** place that decides what OS this
+is. Callers do `{{- $p := includeTemplate "platform.toml" . | fromToml -}}` and
+read `$p.os` / `$p.arch` / `$p.isWindows` / `$p.isPosix` / `$p.brewPrefix`.
+Do not write `eq .chezmoi.os "..."` anywhere else -- there are three target
+platforms now, and scattered platform knowledge is how one of them gets missed.
+
+That partial also owns the `osOverride` / `archOverride` test seam, which is what
+lets a single Linux machine render all three platforms. There is no macOS
+hardware and the Windows host may not be applied to, so that seam is the only
+route to evidence for two of the three. `tests/cases/L8` validates the seam
+itself against the real Windows chezmoi.
+
+`.chezmoitemplates/versions.toml` holds the values that both the POSIX and the
+Windows copy of a script need (the neovim pin, the LazyVim starter URL, the
+marker filename), so bumping one cannot silently leave the other behind.
+
 ## Install scripts (`.chezmoiscripts/`)
 
-Linux **and macOS** are both targets. Keep them in sync:
+Linux, **macOS** and **native Windows** are all targets.
+
+**Cross-platform isolation has exactly one mechanism: render the script empty.**
+chezmoi silently skips a script whose rendered content is blank (both OSes,
+measured), and a non-empty `.sh` on Windows aborts the entire apply with
+`%1 is not a valid Win32 application` (also measured). So every script is wrapped
+whole in a platform guard. `.chezmoiignore` is not a substitute: ignoring a
+script removes it from every platform, not just the wrong one. See
+`docs/research/windows-native-support.md` 1.
+
+chezmoi runs `.ps1` through `pwsh -NoLogo -File` on **both** Linux and Windows,
+so an unguarded `.ps1` would be attempted on POSIX too.
+
+Keep the POSIX and Windows halves in sync:
 
 - `10-install-packages` (apt, Linux only) holds OS prerequisites only: `zsh git curl` plus what the Homebrew installer needs. Do not add tools here.
 - `30-install-brew-packages` (brew, both OS) is the single list for tools (`mise fzf git-lfs`, ...). New tools go here so macOS gets them too.
 - `40-git-lfs` is `run_onchange_after_` on purpose: `git lfs install` must run after `create_empty_dot_gitconfig` so it writes `~/.gitconfig`, not chezmoi-owned `~/.config/git/config`.
 - `50-neovim` installs neovim through mise (not brew, and pinned to an explicit version -- see the comment there before bumping) and clones the LazyVim starter into `~/.config/nvim` once, then deletes its `.git`. Any pre-existing `~/.config/nvim`, `~/.local/share/nvim`, `~/.local/state/nvim` or `~/.cache/nvim` is moved to `.bak` first, never deleted; the `.chezmoi-lazyvim-starter` marker it leaves behind is what stops a re-run from doing that to the user's own config. It is `run_onchange_before_` on purpose: `git clone` refuses a non-empty target, so the starter must land before chezmoi applies the files it owns under `private_dot_config/nvim/` on top of it. Anything the source tree does not name stays the user's to edit in place -- nothing here is `exact`.
+- `30-install-winget-packages` (winget, Windows only) is the Windows counterpart of
+  `30-install-brew-packages`. New tools go in **both**. `Microsoft.PowerShell` and
+  `Git.Git` are deliberately absent: chezmoi needs git to clone and pwsh 7 to run
+  any `.ps1`, so those two belong to `init.ps1`.
+- `35-install-ps-modules` (Windows only) is for PowerShell Gallery modules, which
+  winget does not carry. Currently just PSFzf (the fzf-tab equivalent).
+- `40-git-lfs` and `50-neovim` each have a `.ps1` twin. `50-neovim.ps1` backs up
+  **three** directories, not four: on Windows `stdpath("state")` and
+  `stdpath("log")` are the same directory as `stdpath("data")`.
+- `60-pwsh-profile` (Windows only) writes a one-line loader into whatever
+  `$PROFILE.CurrentUserAllHosts` resolves to at run time, because Documents can be
+  redirected to OneDrive and a chezmoi target path cannot be computed by template.
+  Its logic lives in `.chezmoitemplates/pwsh-profile-loader.ps1` so it can be
+  tested without writing to a real user profile.
+- Anything a Windows script needs on PATH must go through
+  `.chezmoitemplates/windows-path.ps1` first -- the Windows analogue of
+  `brew shellenv`, plus the fact that Windows PATH is a process-start snapshot
+  and will not show what the previous script just installed.
+- `init.ps1` is **ASCII-only, comments included**. Windows PowerShell 5.1 decodes a
+  BOM-less `.ps1` with the ANSI code page, and a mangled comment is a parse error.
+  The same applies to `tests/sandbox/_probe.ps1`. Scripts under `.chezmoiscripts/`
+  are not affected: pwsh 7 reads them as UTF-8.
 - `tree-sitter` in `30-install-brew-packages` is not a standalone tool: nvim-treesitter's `main` branch shells out to it to build every parser, so it is a LazyVim dependency. Do not prune it.
 - Anything needing a brew binary inside a script must `eval "$(<prefix>/bin/brew shellenv)"` first; chezmoi runs scripts without the interactive shell PATH.
+
+## `modify_` files
+
+Both `modify_` sources are **modify-templates** (they start with
+`{{- /* chezmoi:modify-template */ -}}`), not scripts. chezmoi execs a `modify_`
+script, which fails outright on Windows; a modify-template is rendered by chezmoi
+itself and works everywhere from one implementation. Do not turn either of them
+back into a shell script.
+
+## Tests
+
+`tests/run.sh` (POSIX sh + chezmoi, no other dependencies). `tests/run.sh L3 L6`
+runs selected layers. Layers: L1 platform partial, L2 script render matrix,
+L3 managed target set, L4 syntax, L5 externals, L6 file-level goldens (the
+data-preservation cases), L7 behaviour (real script runs in a redirected
+environment), L8 real-Windows seam validation, L10 POSIX regression against the
+base ref. L9 is the Windows Sandbox end-to-end run -- see `tests/sandbox/`.
+
+L4, L7 and L8 skip cleanly without WSL interop. Everything else runs anywhere.

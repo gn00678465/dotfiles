@@ -104,6 +104,31 @@ exit 0" 2>&1); then
     fi
     rm -f "$_WINTMP_WSL/chezmoi-l4-51-$$.ps1"
 fi
+
+# sandbox 的探針由 Windows Sandbox 的 LogonCommand 以 Windows PowerShell 5.1 執行
+# （沙箱基礎映像沒有 pwsh），所以它跟 init.ps1 受同一組限制。壞掉的探針等於白跑
+# 一次 20-30 分鐘的沙箱。
+if LC_ALL=C grep -qP '[^\x00-\x7F]' "$REPO/tests/sandbox/_probe.ps1" 2>/dev/null; then
+    _fail "sandbox _probe.ps1 是純 ASCII" "$(LC_ALL=C grep -nP '[^\x00-\x7F]' "$REPO/tests/sandbox/_probe.ps1" | head -3)"
+else
+    _pass "sandbox _probe.ps1 是純 ASCII"
+fi
+if [ -z "$_WPS" ] || [ -z "$_WINTMP_WIN" ]; then
+    skip "sandbox _probe.ps1 通過 Windows PowerShell 5.1 解析" "找不到 powershell.exe"
+else
+    cp "$REPO/tests/sandbox/_probe.ps1" "$_WINTMP_WSL/chezmoi-l4-probe-$$.ps1"
+    if _err=$("$_WPS" -NoProfile -NonInteractive -Command "
+\$errors = \$null
+[void][System.Management.Automation.Language.Parser]::ParseFile('$_WINTMP_WIN\\chezmoi-l4-probe-$$.ps1', [ref]\$null, [ref]\$errors)
+if (\$errors.Count) { \$errors | ForEach-Object { \$_.ToString() }; exit 1 }
+exit 0" 2>&1); then
+        _pass "sandbox _probe.ps1 通過 Windows PowerShell 5.1 解析"
+    else
+        _fail "sandbox _probe.ps1 通過 Windows PowerShell 5.1 解析" "$_err"
+    fi
+    rm -f "$_WINTMP_WSL/chezmoi-l4-probe-$$.ps1"
+fi
+
 unset _WPS _WINTMP_WIN _WINTMP_WSL
 
 # init.ps1 必須是純 ASCII。Windows PowerShell 5.1 用 ANSI 代碼頁去解無 BOM 的
