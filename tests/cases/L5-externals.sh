@@ -50,3 +50,14 @@ assert_contains "oh-my-posh powerlevel10k_rainbow 主題的 sha256" "$_win_ext" 
 assert_contains "Windows 的 cc-statusline 取 .exe" "$_win_ext" "cc-statusline.exe"
 
 unset _os _posix_expected _windows_expected _missing _win_ext
+
+# Must NOT #5 不只適用於 .chezmoiexternal。安裝腳本裡任何抓「可執行程式碼」的
+# 呼叫都算，而 PowerShell Gallery 的模組正是這種。獨立驗證指出原本的
+# Install-PSResource 沒有 -Version，等於在安裝腳本裡放一個浮動相依。
+_ps_install=$(render_file windows .chezmoiscripts/run_onchange_before_35-install-ps-modules.ps1.tmpl)
+assert_contains "PowerShell 模組安裝有帶 -Version" "$_ps_install" "-Version"
+# 註解行本來就會提到這個 cmdlet（說明為什麼要釘版本），先濾掉。
+_unpinned=$(printf '%s\n' "$_ps_install" | grep 'Install-PSResource' \
+    | grep -v '^[[:space:]]*#' | grep -v -- '-Version' || true)
+assert_eq "沒有任何 Install-PSResource 少了 -Version" "" "$_unpinned"
+unset _ps_install _unpinned

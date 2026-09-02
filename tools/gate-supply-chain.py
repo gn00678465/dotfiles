@@ -11,6 +11,10 @@ package-manager IDs. Three checks:
   3. Capability diff: which outbound hosts and which external commands the
      source declares now, versus at the base ref. Declared surface only --
      import/URL/command literals -- no judgement about how they are used.
+  4. Every winget package ID the source installs is resolved with
+     `winget show --exact` (read-only). Covers SPEC M9: a typo'd ID otherwise
+     surfaces only as a silent missing tool on a real machine. Skipped, and
+     said so, when winget.exe is not reachable.
 
 Fails closed: a download error, a hash mismatch, a secret hit, or an unreadable
 input is a hard failure. There is no offline mode; a network the gate cannot
@@ -24,6 +28,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import re
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -80,6 +85,35 @@ def externals(source: Path) -> dict[str, str]:
                 url = line.split("=", 1)[1].strip().strip('"')
             elif line.startswith("checksum.sha256 =") and url:
                 found[url] = line.split("=", 1)[1].strip().strip('"')
+    return found
+
+
+def winget_ids() -> dict[str, list[str]]:
+    """來源樹裡實際會被安裝的 winget ID，連同它出現的位置。
+
+    抽取規則寫死成兩個明確的位置而不是掃全樹：掃全樹的正則會把研究筆記與註解裡
+    提到的 ID 也撈進來，那些不是「會被安裝的東西」。
+    """
+    found: dict[str, list[str]] = {}
+
+    pkg = REPO / ".chezmoiscripts" / "run_onchange_before_30-install-winget-packages.ps1.tmpl"
+    text = pkg.read_text(encoding="utf-8")
+    block = re.search(r"\$packages = @\((.*?)\n\)", text, re.S)
+    if not block:
+        raise SystemExit(f"gate-supply-chain: 在 {pkg.name} 裡找不到 $packages 區塊"
+                         " —— 抽取規則跟程式碼脫節了，這是失敗不是略過")
+    for m in re.finditer(r"'([A-Za-z0-9][\w.\-]*\.[\w.\-]+)'", block.group(1)):
+        found.setdefault(m.group(1), []).append(pkg.name)
+
+    boot = REPO / "init.ps1"
+    btext = boot.read_text(encoding="utf-8")
+    hits = re.findall(r"Install-IfMissing\s+-Id\s+'([^']+)'", btext)
+    if not hits:
+        raise SystemExit("gate-supply-chain: 在 init.ps1 裡找不到 Install-IfMissing -Id"
+                         " —— 抽取規則跟程式碼脫節了")
+    for i in hits:
+        found.setdefault(i, []).append(boot.name)
+
     return found
 
 
@@ -153,6 +187,27 @@ def main() -> int:
     print(f"  移除的外部 host: {sorted(b_hosts - h_hosts) or '（無）'}")
     print(f"  新增的外部命令: {sorted(h_cmds - b_cmds) or '（無）'}")
     print(f"  移除的外部命令: {sorted(b_cmds - h_cmds) or '（無）'}")
+
+    # ---------------------------------------------------------- 4. winget IDs
+    ids = winget_ids()
+    winget = shutil.which("winget.exe") or shutil.which("winget")
+    if not winget:
+        print(f"winget ids: {len(ids)} 個 ID 抽取成功，但 winget.exe 不可達，"
+              "**沒有驗證它們存在**（evidence report 記為 SUBSTITUTED）")
+        for i in sorted(ids):
+            print(f"  ?   {i}  ({', '.join(sorted(set(ids[i])))})")
+    else:
+        print(f"winget ids: 逐一以 winget show --exact 解析 {len(ids)} 個 ID")
+        for i in sorted(ids):
+            r = subprocess.run(
+                [winget, "show", "--id", i, "--exact", "--accept-source-agreements"],
+                capture_output=True, text=True,
+            )
+            if r.returncode != 0:
+                failures.append(f"winget 解析不到套件 ID: {i} "
+                                f"（出現在 {', '.join(sorted(set(ids[i])))}）")
+            else:
+                print(f"  OK  {i}")
 
     if failures:
         print("\ngate-supply-chain: 失敗", file=sys.stderr)

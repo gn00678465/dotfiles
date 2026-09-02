@@ -11,3 +11,7 @@ neovim = "0.12.5"
 lazyvimStarter = "https://github.com/LazyVim/starter"
 # 我們自己的標記檔，不是 LazyVim 的。作用見 50-neovim 腳本裡的註解。
 lazyvimMarker = ".chezmoi-lazyvim-starter"
+# PowerShell Gallery 的模組。這是可執行程式碼，跟 .chezmoiexternal 裡的
+# 每一個下載一樣要釘住版本（Must NOT #5）。PSGallery 沒有提供 checksum，
+# 釘版本是它能給的最強保證。升級：改這裡，並在 CHANGELOG 說明。
+psfzf = "2.7.12"
