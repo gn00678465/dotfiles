@@ -1,0 +1,3 @@
+commit=02ed8e119d9f45aa7e94e388c7cbccf298acb800
+worktree=clean
+untracked_whitelist=.gate/

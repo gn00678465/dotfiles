@@ -1,0 +1,5 @@
+
+
+[tui]
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "five-hour-limit", "weekly-limit", "context-window-size", "used-tokens"]
+status_line_use_colors = true

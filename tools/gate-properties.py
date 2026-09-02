@@ -136,6 +136,9 @@ def outside_tui(text: str) -> list[str]:
     """
     out: list[str] = []
     in_tui = False
+    if text == "":
+        # Python 的 "".split("\n") 給 [""]，會讓「空檔」憑空多出一行要保留。
+        return out
     for line in text.split("\n"):
         stripped = line.lstrip(" \t")
         if stripped.startswith("["):
