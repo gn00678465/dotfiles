@@ -1,7 +1,8 @@
 # Evidence Report — native Windows 支援 (Tier 3)
 
 - `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）**
-  · 獨立驗證跑了**三輪**，三輪都判 failed；共 28 條 findings 全部已處置，見 §獨立驗證
+  · 獨立驗證跑了**四輪**，四輪都判 failed；共 36 條 findings 全部已處置，見 §獨立驗證。
+  第四輪明確記錄：**產品程式碼本身沒有找到缺陷**，殘留的都是驗證缺口
 - `command`: `evidence`
 - `contract`: applied（`~/.claude/CLAUDE.md` 的 evidence-first 契約；本 repo 的
   `AGENTS.md` 沒有覆寫它）
@@ -17,7 +18,7 @@
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `202aa8a9a3aa766cfdd69db9719cd19ee9cde2b6`
+- `source_state`: `f26b9fdcf7cf45465e4764fa8fb14a6435cfe61a`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只會再多一個 commit —— 本報告本身 ——
@@ -63,7 +64,7 @@
 
 ## Changed unit → Test
 
-130 個檔案，其中 128 個在 `.scratch/` 之外（另兩個是 SPEC 與本報告）。
+137 個檔案，其中 135 個在 `.scratch/` 之外（另兩個是 SPEC 與本報告）。
 分組列出，每一組涵蓋該組全部檔案。
 
 > 這個數字由 `changed_unit_command` 直接產生。**上一版寫 101，是舊的**：
@@ -107,7 +108,7 @@
 | `AppData/Roaming/uv/uv.toml.tmpl`（新增） | `L3`、`L6` | pass |
 | `private_dot_config/nvim/lua/plugins/completion.lua.tmpl`（新增） | `L10` | pass |
 | `private_dot_config/uv/uv.toml.tmpl`（新增） | `L10` | pass |
-| `dot_codex/modify_private_config.toml`（改：sh+awk → modify-template） | **`L6` 16 個 golden 案例（`cmp` 逐位元組）、`L6` 結構性斷言、`L8` 真實 Windows apply、properties 層 294 個案例含 P0 差分** | pass |
+| `dot_codex/modify_private_config.toml`（改：sh+awk → modify-template） | **`L6` 16 個 golden 案例（`cmp` 逐位元組）、`L6` 結構性斷言、`L8` 真實 Windows apply、properties 層 329 個案例含 P0 差分** | pass |
 | `dot_claude/modify_settings.json`（改） | `L6`（POSIX 與 Windows 兩組 golden，`cmp` 比對）、`L8` | pass |
 | `dot_zshrc.tmpl` / `dot_zprofile.tmpl`（改） | `L10`、`L4` | pass |
 | `init.ps1`（新增） | `L4`（pwsh 7 解析、Windows PowerShell 5.1 解析、純 ASCII）、supply-chain（ID 解析） | pass |
@@ -152,14 +153,18 @@
 | 層 | 在 base 上的結果 | 說明 |
 |---|---|---|
 | L1 | **4/4 失敗**，之後中斷 | 斷言失敗（值不符），`platform.toml` 不存在 |
-| L2 | 41 條裡 **21 條失敗**，之後中斷 | Windows 腳本不存在 + 既有腳本沒有平台守衛 |
-| L3 | 34 條裡 **16 條失敗**，跑完 | managed 集合與互斥性 |
-| L4 | 33 條裡 **1 條失敗**，之後中斷 | 失敗的是「init.ps1 存在」。其餘 32 條在 base 上就通過 —— 既有 POSIX 腳本的語法檢查，是 regression armor 不是 RED |
-| L5 | 12 條裡 **5 條失敗**，之後中斷 | Windows external 清單、新 sha256、PSFzf 版本釘住 |
-| L6 | 100 條裡 **18 條失敗**，跑完 | Windows settings.json golden、modify-template 結構性斷言、五個敵意輸入案例。**codex 的 golden 在 base 上通過** —— 設計如此，它們就是從 base 的 awk 產生的 |
-| L7 | 18 條裡 **2 條失敗**，之後中斷 | 失敗的是備份唯一化（base 沒有那個迴圈）。POSIX 備份的其餘部分在 base 上就是綠的 —— 既有功能，regression armor。Windows 那半因為腳本不存在而中斷，是真的 RED |
+| L2 | 53 條裡 **27 條失敗**，之後中斷 | Windows 腳本不存在 + 既有腳本沒有平台守衛 |
+| L3 | 44 條裡 **20 條失敗**，跑完 | managed 集合與互斥性 |
+| L4 | 47 條裡 **1 條失敗**，之後中斷 | 失敗的是「init.ps1 存在」。其餘 46 條在 base 上就通過 —— 既有 POSIX 腳本的語法檢查，是 regression armor 不是 RED |
+| L5 | 15 條裡 **5 條失敗**，之後中斷 | Windows external 清單、新 sha256、PSFzf 版本、asset↔arch 對應 |
+| L6 | 100 條裡 **18 條失敗**，跑完 | Windows settings.json golden、modify-template 結構性斷言、敵意輸入案例。**codex 的 golden 在 base 上通過** —— 設計如此，它們就是從 base 的 awk 產生的 |
+| L7 | 19 條裡 **3 條失敗**，之後中斷 | 備份唯一化與隔離的正面控制。POSIX 備份的其餘部分在 base 上就是綠的 —— 既有功能，regression armor。Windows 那半因為腳本不存在而中斷 |
 | L8 | 5 條裡 **3 條失敗**，之後中斷 | 真實 Windows 的 managed 與腳本渲染比對 |
 | L10 | **skip** | L10 從 SPEC 讀 base ref，而 SPEC 在 base 上不存在 |
+| L11 | 16 條裡 **8 條失敗**，跑完 | 跨平台等價、跨 arch 等價、Windows golden 快照 —— base 上沒有任何 Windows 產物 |
+
+> 這組數字是用**目前**的 `tests/` 重跑出來的。上一版報告裡的那組描述的是修補前
+> 的舊版測試（獨立驗證第四輪 R4-4），已作廢。
 
 **這不是「base 缺少被測平台」的情形**：base ref 有 chezmoi、有 sh、有既有腳本，
 失敗是因為被測行為不存在，多數是斷言層級（值不符）而非收集期錯誤。
@@ -183,14 +188,14 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=202aa8a…`, `worktree=clean` |
-| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **414 passed, 0 failed, 0 skipped** |
-| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，414/414 |
-| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 414 passed, 0 failed |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=f26b9fd…`, `worktree=clean` |
+| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **430 passed, 0 failed, 0 skipped** |
+| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，430/430 |
+| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 430 passed, 0 failed |
 | Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
-| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活的 mutant | **21/21 killed，0 survivors**（每一個都在 5 次獨立重複裡穩定致死，見 V1） |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 5522 行（不含本報告為 4815 行）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 2253 / set3 2562 / 共 4815 行 |
+| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **25/25 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 5995 行（**不含本報告為 5260 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 2246 / set3 3014 / 共 5260 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
 | Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
 
@@ -218,6 +223,38 @@ Tier 3 依契約派了一個獨立的 `verifier`，只給四項輸入（任務�
 | 9 | LOW | 備份時間戳只到秒，同一秒內第三次 bootstrap 會把上一份備份埋進新的裡（不遺失資料，但正是程式碼註解說要避免的那件事） | **已修**。兩個平台的備份函式都加唯一化迴圈；L7 加跑第四次；mutant `backup-timestamp-collision` |
 | 10 | LOW | M9 沒有自動檢查；`twpayne.chezmoi` 不在 SPEC F12 的 11 個 ID 表裡 | **已修**。supply-chain 新增第四項，逐一解析 12 個 ID（含 `twpayne.chezmoi`），抽取規則對不上程式碼就失敗 |
 | 11 | LOW | SPEC §2.4 說備份四個目錄、實作備份三個（實作是對的，SPEC 自己前後不一致）但沒揭露；核准綁定的 sha256 無法從 git 驗證 | **已揭露**，見 Honest notes 4 與 9。程式碼不改：SPEC F6 自己記載 Windows 的 state 與 data 是同一個路徑 |
+
+### 第四輪
+
+判定仍是 **failed**，8 條 findings。但這一輪最重要的不是它找到什麼，而是它的**根因診斷**，
+以及一句話：
+
+> Nothing here is above LOW only in the sense of "the shipped code is wrong" —
+> **I found no defect in the product code itself.** All three surviving mutants
+> describe verification gaps, not current bugs.
+
+根因是：**Windows 平台沒有外部 oracle**。POSIX 的每個產物都能跟 base ref 逐位元組比對
+（L10），那一個機制免費擋掉整類內容漂移；Windows 只有三個程序，而它們結構上都不可能
+因為內容改變而失敗 —— L2 比一份手列的子字串、L7 把環境重導向到空沙盒、L8 比的是同一份
+來源的兩次渲染。四輪都在這個缺口裡找到「第一次出現」的實例而不是既有問題的小變形，
+那是機制缺一塊的徵狀，不是缺陷尾巴在收斂。它的建議是「補機制，不要補實例」。
+
+| # | 嚴重度 | Finding | 處置 |
+|---|---|---|---|
+| R4-1 | HIGH | `60-pwsh-profile` 可以整個不呼叫 loader 而沒有任何測試變紅。後果：`$PROFILE` 永遠拿不到那一行，oh-my-posh／PSReadLine／PSFzf／mise 全部不載入 —— **整個 Windows shell 設定靜靜地不存在**。Table 1 為這個單元列的三層，沒有一層能因為它失敗 | **已修**（機制）。L11-C 的 golden 快照；mutant `pwsh-profile-loader-not-called` |
+| R4-2 | MEDIUM-HIGH | 兩個 Windows 專屬 target（`AppData/` 下的 nvim plugin 與 uv 設定）內容沒有任何東西釘住，而 Table 1 為它們列的 `L6` **從來不讀那兩個檔案** | **已修**（機制）。L11-A 跨平台等價：那兩對各是「一行 includeTemplate 同一個 partial」，內容必須逐位元組相同；mutant `windows-nvim-plugin-content` |
+| R4-3 | MEDIUM | 第三輪 V2 的修法結構上只能覆蓋 POSIX（它逐支比對 base ref 的腳本，Windows 沒有 base）。四個獨立的 Windows 腳本內容變更各自存活整套測試，包含把 `tree-sitter.tree-sitter-cli` 拿掉 —— AGENTS.md 明文禁止修剪的那一項 | **已修**（機制）。L11-C golden；mutant `winget-drop-tree-sitter` |
+| R4-4 | MEDIUM | 報告數字不重現：RED 表描述的是舊版 `tests/`；另有 294／5522 兩個過期數字 | **已修**。RED 表用目前的 `tests/` 重跑（見上表的說明）；兩個過期數字已更正；不穩定的那一個改成引用不含 `.scratch/` 的版本 |
+| R4-5 | MEDIUM | 「每一個都在 5 次獨立重複裡穩定致死」沒有任何 artifact 支撐 —— 被引用的處置只重複了**一個** mutant，而 runner 一輪只跑一次 | **已修**（機制）。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗。這句話現在由 `.gate/windows-support/mutants.json` 的 `rounds` 欄位支撐 |
+| R4-6 | LOW-MEDIUM | 行數分類器把整類 `.json` 當資料，但 chezmoi 的 modify-template 不能有 `.tmpl` 後綴 —— `modify_settings.json` 副檔名是 `.json`、內容是模板程式碼，六行會被求值的 action 被記進「不可執行」，違反腳本自己的政策 | **已修**。`.json` 移出資料副檔名清單 |
+| R4-7 | LOW | L10 的具名例外過寬：濾條含「任何註解行」與「任何含 done 的行」，刪掉兩行註解也能躲進例外 | **已修**。改成與一份寫死的預期 diff 逐行比對；negative control 確認刪註解現在會紅 |
+| R4-8 | LOW | `windows-path.ps1` 只有四個 PATH 條目中的兩個被釘住；Table 1 仍為它列了結構上盲的 `L7` | **已修**。L11-C golden 涵蓋整個 partial 的渲染結果；mutant `windows-path-drop-git` |
+
+**機制補在哪裡**：新增 `tests/cases/L11-render-golden.sh`，三種強度分明的斷言 ——
+(A) 跨平台等價與 (B) 跨 arch 等價是**真 oracle**（陳述的是必然成立的性質）；
+(C) 是 Windows 專屬產物的 **golden 快照，明確標示為變更偵測器而非正確性 oracle**：
+它證明的是「沒有人在沒被看見的情況下改了內容」，正確性來自其他層。第四輪存活的
+四個 mutant 現在全部被殺。
 
 ### 第三輪
 
@@ -309,7 +346,7 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
   回報分數。**runner 完全循序、沒有併發**，所以「並行 job 共用 build 目錄」的污染機制
   在這裡不存在；每個 mutant 在同一個拋棄式 worktree 裡「套用 → 跑 → 還原」，
   套用與還原都有 assert。
-- **Mutation kill 歸因** —— 不是抽樣，而是**逐一檢查全部 21 個**：每個 mutant 的失敗
+- **Mutation kill 歸因** —— 不是抽樣，而是**逐一檢查全部 25 個**：每個 mutant 的失敗
   斷言名稱都指名它破壞的那個行為，沒有一個是無關測試剛好紅了。
 
 ---
@@ -324,7 +361,7 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
     使用者環境，**沒有取得授權**，所以什麼都沒跑。L4 的語法解析**不是** lint 的替代品：
     它只保證「解析得過」，抓不到 quoting、未引用變數這類問題。
   - *Changed-line coverage* —— 三種語言都沒有覆蓋率工具。set 3（可執行但無覆蓋率對應）
-    ＝ 2562 行，是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
+    ＝ 3014 行，是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
     mutation 與 property 三層。
 - **SUBSTITUTED：**
   - *Real execution* —— 沒有跑「完整安裝一次」。跑的是 `L7`（重導向環境裡真的執行腳本）
