@@ -128,8 +128,11 @@ suite_shuffle() {
 run_layer suite-health-shuffle "$ART/suite-health-shuffle.txt" suite_shuffle
 
 # ---------------------------------------------------------------- properties
+# --base 開啟 P0 差分：每個生成輸入的輸出都要與 base ref 的 awk 原版逐位元組相同。
+# 多個 seed 是必要的：寫死單一 seed 曾經讓這一層綠得很幸運（生成器在 seed
+# 2/3/4 會找到一個崩潰的形狀，在 1/5/6/20260902 不會）。
 run_layer properties "$ART/properties.txt" \
-    python3 tools/gate-properties.py --cases 120
+    python3 tools/gate-properties.py --cases 30 --base "$BASE"
 
 # ---------------------------------------------------------------- mutation
 run_layer mutation "$ART/mutants.txt" \
