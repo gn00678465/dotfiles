@@ -4,11 +4,16 @@
   · 獨立驗證跑了**五輪**，五輪都判 failed；共 44 條 findings 全部已處置，見 §獨立驗證。
   第五輪找到第一輪之後唯一一個**真正的產品缺陷**（已修），並判定「未收斂，但距離收斂只剩一步」
 - `command`: `evidence`
-- `contract`: applied，**含一項路徑偏離**。契約要求已核准的 SPEC 提交在
-  `specs/<scope>/SPEC.md`；本 repo 自己的 `docs/agents/issue-tracker.md` 指定
-  `.scratch/<feature-slug>/spec.md`，而契約明文說專案自己的約定優先。SPEC 因此在
-  `.scratch/windows-support/spec.md`。**代價**：CLOSE 步驟的 `spec-archive` 工具
-  只在契約指定的路徑找 SPEC，找不到這一份。
+- `contract`: **overridden by `docs/agents/issue-tracker.md`**（路徑一項）。
+  契約要求已核准的 SPEC 提交在 `specs/<scope>/SPEC.md`；本 repo 自己的
+  `docs/agents/issue-tracker.md` 指定 `.scratch/<feature-slug>/spec.md`，
+  而契約明文說專案自己的約定優先。SPEC 因此在 `.scratch/windows-support/spec.md`。
+  **代價**：CLOSE 步驟的 `spec-archive` 工具只在契約指定的路徑找 SPEC，找不到這一份。
+
+  **SPEC 第 6 行寫「未被本 repo 覆寫」與這一行牴觸。** 兩者都不是筆誤：那句話在
+  核准當下為真 —— 當時的契約沒有指定 SPEC 路徑，那個條款是核准之後才加進契約的。
+  已核准的 SPEC 不會被回頭改（改了核准就失效），所以矛盾留在原地，由這一行解釋。
+  （第六輪指出兩份已提交的產物對「有沒有覆寫」說法不一致。）
 - `scope`: `windows-support`
 - `change_set`: `0d72b8e...HEAD`
 - `base`: `0d72b8e`
@@ -174,7 +179,7 @@
 | L7 | 19 條裡 **3 條失敗**，之後中斷 | 備份唯一化與隔離的正面控制。POSIX 備份的其餘部分在 base 上就是綠的 —— 既有功能，regression armor。Windows 那半因為腳本不存在而中斷 |
 | L8 | 5 條裡 **3 條失敗**，之後中斷 | 真實 Windows 的 managed 與腳本渲染比對 |
 | L10 | **skip** | L10 從 SPEC 讀 base ref，而 SPEC 在 base 上不存在 |
-| L11 | 16 條裡 **8 條失敗**，跑完 | 跨平台等價、跨 arch 等價、Windows golden 快照 —— base 上沒有任何 Windows 產物 |
+| L11 | 16 條裡 **14 條失敗**，之後中斷 | 跨平台等價、跨 arch 等價、Windows golden 快照 —— base 上沒有任何 Windows 產物。**上一版寫「8 條失敗、跑完」，兩處都錯**：8 是 R5-3 修好之前的數字（那個 `\|\| true` 正是讓六條取不到內容的斷言變成靜默通過的原因），而 L11-D 的第一行就是 `cat init.ps1`，在 base 上不存在 → `set -e` 中止 → **L11-D 的 22 條斷言一條都沒被跑到**。也就是說 L11-D 在這個重建裡結構上取得不到 RED，如實記在這裡（第六輪 Finding 3） |
 
 > 這組數字是用**目前**的 `tests/` 重跑出來的。上一版報告裡的那組描述的是修補前
 > 的舊版測試（獨立驗證第四輪 R4-4），已作廢。
