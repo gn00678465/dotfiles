@@ -208,7 +208,9 @@ Suite health 排在 mutation 與行數會計**之前**，因為後兩者的結�
   也紅。修過 checker 的空字串 artifact 之後**重做過一次**，仍然會咬。
   另以不同 seed（7）跑 150 個案例，確認不是只對單一 seed 成立。
 - **`tools/gate-supply-chain.py`** —— 把主題的 sha256 換成全 0 → exit 1 並印出
-  pinned/actual 對照；在 diff 裡植入 `AKIAIOSFODNN7EXAMPLE` → exit 1 並指出
+  pinned/actual 對照；在 diff 裡植入一個 AWS 文件用的範例 access key（`AKIA` 開頭、共 20 碼；
+  這裡刻意不逐字寫出來，否則本檔自己就會觸發這個掃描器 —— 而它那樣做是對的）
+  → exit 1 並指出
   「疑似機密（AWS access key id）」。
 - **`tools/gate.sh` 的 fail-closed** —— 把 `platform.toml` 改壞並提交到 worktree，
   gate 在 `suite` 層停下（exit 1），**後面的 mutation 等層一次都沒有執行**
