@@ -62,6 +62,28 @@ assert_not_contains() { # name haystack needle
     esac
 }
 
+# 真正的逐位元組比對。assert_eq 收的是字串，而字串是經過 $(...) 得到的 ——
+# command substitution 會吃掉**全部**結尾換行，所以只差在結尾位元組的兩個檔案
+# 用 assert_eq 永遠比不出來（實測：193 bytes 與 194 bytes 被判為相同）。
+# 凡是宣稱「逐位元組」的斷言都必須走這一條。
+assert_bytes_eq() { # name expected-file actual-file
+    if [ ! -f "$3" ]; then
+        TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf 'not ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1"
+        printf '#   實際檔案不存在: %s\n' "$3"
+        return
+    fi
+    if cmp -s "$2" "$3"; then _pass "$1"; else
+        TESTS_RUN=$((TESTS_RUN + 1)); TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf 'not ok %d - [%s] %s\n' "$TESTS_RUN" "$CURRENT_CASE" "$1"
+        printf '#   %s\n' "$(cmp "$2" "$3" 2>&1)"
+        printf '#   expected %s bytes, actual %s bytes\n' \
+            "$(wc -c < "$2" | tr -d ' ')" "$(wc -c < "$3" | tr -d ' ')"
+        _dump expected "$(cat "$2")"
+        _dump actual "$(cat "$3")"
+    fi
+}
+
 # 「渲染成空」是本 repo 唯一的跨平台隔離手段（見 SPEC F2/F3），所以它有專屬斷言：
 # 只有空白的內容才算空，一個非空白字元就會讓 chezmoi 真的去執行這支腳本。
 assert_blank() { # name actual

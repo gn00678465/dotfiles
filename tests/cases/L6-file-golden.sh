@@ -20,18 +20,18 @@ for _c in $(ls "$REPO/tests/fixtures/l6"); do
     _d_lin="$TMP/l6-linux-$_c"
     _out=$(_l6_apply linux "$_c" "$_d_lin")
     if [ -n "$_out" ]; then _fail "$_c linux apply 無錯誤" "$_out"; else _pass "$_c linux apply 無錯誤"; fi
-    assert_eq "$_c: ~/.codex/config.toml（linux）" \
-        "$(cat "$GOLDEN/l6/$_c/.codex/config.toml")" "$(cat "$_d_lin/.codex/config.toml" 2>&1)"
-    assert_eq "$_c: ~/.claude/settings.json（linux）" \
-        "$(cat "$GOLDEN/l6/$_c/.claude/settings.json")" "$(cat "$_d_lin/.claude/settings.json" 2>&1)"
+    assert_bytes_eq "$_c: ~/.codex/config.toml（linux）" \
+        "$GOLDEN/l6/$_c/.codex/config.toml" "$_d_lin/.codex/config.toml"
+    assert_bytes_eq "$_c: ~/.claude/settings.json（linux）" \
+        "$GOLDEN/l6/$_c/.claude/settings.json" "$_d_lin/.claude/settings.json"
 
     _d_win="$TMP/l6-windows-$_c"
     _out=$(_l6_apply windows "$_c" "$_d_win")
     if [ -n "$_out" ]; then _fail "$_c windows apply 無錯誤" "$_out"; else _pass "$_c windows apply 無錯誤"; fi
-    assert_eq "$_c: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）" \
-        "$(cat "$GOLDEN/l6/$_c/.codex/config.toml")" "$(cat "$_d_win/.codex/config.toml" 2>&1)"
-    assert_eq "$_c: ~/.claude/settings.json（windows）" \
-        "$(cat "$GOLDEN/l6/$_c/settings.windows.json")" "$(cat "$_d_win/.claude/settings.json" 2>&1)"
+    assert_bytes_eq "$_c: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）" \
+        "$GOLDEN/l6/$_c/.codex/config.toml" "$_d_win/.codex/config.toml"
+    assert_bytes_eq "$_c: ~/.claude/settings.json（windows）" \
+        "$GOLDEN/l6/$_c/settings.windows.json" "$_d_win/.claude/settings.json"
 done
 
 # 上面那些 apply 是在 Linux 上跑的，所以就算 modify_ 是一支 sh 腳本也會過。

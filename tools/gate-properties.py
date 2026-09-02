@@ -8,6 +8,10 @@ it corrupt a file it was only supposed to add two keys to.
 
 Properties checked on every generated input:
 
+  P0 differential     byte-for-byte identical to the sh+awk original at the base
+                      ref. SPEC 2.6 demands identity, so this is the property that
+                      actually states the porting contract; P1-P5 stay because
+                      they still hold when the original eventually goes away.
   P1 idempotence      applying to the output again changes nothing
   P2 preservation     every line outside [tui] survives byte-identically, in order
   P3 exactly-once     exactly one status_line and one status_line_use_colors,
@@ -15,11 +19,15 @@ Properties checked on every generated input:
   P4 TOML validity    if the input parsed, the output parses
   P5 managed values   the two managed keys hold exactly the values we manage
 
+Runs several seeds, not one. A single hard-coded seed made this layer green by
+luck once already: the generator finds a crashing shape at seeds 2, 3 and 4 but
+not at 1, 5, 6 or 20260902.
+
 P2 is deliberately implemented here from the property statement rather than
 borrowed from the template -- a checker that shares the implementation's idea of
 "inside [tui]" would agree with it about a bug.
 
-Usage: tools/gate-properties.py [--cases N] [--seed S]
+Usage: tools/gate-properties.py [--cases N] [--seeds "S1 S2 ..."] [--base REF]
 Exit:  0 all properties held, 1 any violation or any runner failure.
 """
 
@@ -103,14 +111,30 @@ def generate(rng: random.Random) -> str:
     return text
 
 
-def apply_once(content: str, workdir: Path, n: int) -> str:
+ADVERSARIAL = [
+    "",                       # 空檔
+    "\n",                     # 只有一個空行
+    "[tui]\n",                # 空的 [tui]（曾經讓模板 nil pointer）
+    "[tui]",                  # 空的 [tui]，且沒有結尾換行
+    "[tui]\n[other]\nz = 1\n",
+    "[tui]\n[tui.sub]\nx = 1\n",
+    "[tui]\n   \n",
+    "[tui]\nstatus_line = [\"X\"]\n   \n",
+    "   [ tui ]\nstatus_line = [\"X\"]\n",
+    "[other]\nz = 1\n",
+    "# only a comment\n",
+    "[tui]\n\n\n[other]\nz = 1\n",
+]
+
+
+def apply_once(content: str, workdir: Path, n: int, source: Path = REPO) -> str:
     dest = workdir / f"d{n}"
     (dest / ".codex").mkdir(parents=True, exist_ok=True)
     (dest / ".codex" / "config.toml").write_text(content, encoding="utf-8")
     proc = subprocess.run(
         [
             "chezmoi",
-            "--source", str(REPO),
+            "--source", str(source),
             "--config", str(CONFIG),
             "--destination", str(dest),
             "--persistent-state", str(workdir / f"s{n}.boltdb"),
@@ -209,43 +233,77 @@ def check(inp: str, out: str) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cases", type=int, default=120)
-    ap.add_argument("--seed", type=int, default=20260902)
+    ap.add_argument("--cases", type=int, default=60)
+    ap.add_argument("--seeds", type=str, default="1 2 3 4 5 6 20260902")
+    ap.add_argument("--base", type=str, default=None,
+                    help="base ref；它的來源樹會被解出來做 P0 差分比對")
+    ap.add_argument("--base-src", type=Path, default=None,
+                    help="已經解好的 base 來源樹目錄（給不在 git repo 裡跑的情形，例如 negative control）")
     args = ap.parse_args()
 
-    rng = random.Random(args.seed)
     workdir = Path(tempfile.mkdtemp(prefix="gate-props-"))
+    base_src: Path | None = args.base_src
+    if args.base and not base_src:
+        base_src = workdir / "base"
+        base_src.mkdir()
+        rc = subprocess.run(
+            f"git -C {REPO} archive {args.base} | tar -x -C {base_src}",
+            shell=True, capture_output=True, text=True,
+        )
+        if rc.returncode != 0:
+            print(f"gate-properties: 取不出 base ref {args.base}: {rc.stderr}", file=sys.stderr)
+            return 1
+
+    seeds = [int(x) for x in args.seeds.split()]
     violations = 0
+    checked = 0
     try:
-        for n in range(args.cases):
-            inp = generate(rng)
-            try:
-                out1 = apply_once(inp, workdir, n)
-                out2 = apply_once(out1, workdir, n + 100000)
-            except RuntimeError as e:
-                print(f"case {n}: runner failure: {e}", file=sys.stderr)
-                print(f"--- input ---\n{inp}", file=sys.stderr)
-                return 1
+        n = 0
+        for seed in seeds:
+            rng = random.Random(seed)
+            inputs = list(ADVERSARIAL) + [generate(rng) for _ in range(args.cases)]
+            for inp in inputs:
+                n += 1
+                checked += 1
+                try:
+                    out1 = apply_once(inp, workdir, n)
+                    out2 = apply_once(out1, workdir, n + 1000000)
+                    base_out = apply_once(inp, workdir, n + 2000000, base_src) if base_src else None
+                except RuntimeError as e:
+                    print(f"seed {seed} case {n}: runner failure: {e}", file=sys.stderr)
+                    print(f"--- input ---\n{inp!r}", file=sys.stderr)
+                    return 1
 
-            problems = check(inp, out1)
-            if out2 != out1:
-                problems.append("P1 idempotence: 第二次套用改變了內容")
+                problems = check(inp, out1)
+                if out2 != out1:
+                    problems.append("P1 idempotence: 第二次套用改變了內容")
+                if base_out is not None and base_out != out1:
+                    problems.append(
+                        "P0 differential: 與 base ref 的 awk 原版輸出不同\n"
+                        f"      awk : {base_out!r}\n"
+                        f"      新版: {out1!r}"
+                    )
 
-            if problems:
-                violations += 1
-                print(f"case {n} (seed={args.seed}) 違反:", file=sys.stderr)
-                for p in problems:
-                    print(f"  - {p}", file=sys.stderr)
-                print(f"--- input ---\n{inp}\n--- output ---\n{out1}", file=sys.stderr)
-                if violations >= 3:
-                    break
+                if problems:
+                    violations += 1
+                    print(f"seed {seed} case {n} 違反:", file=sys.stderr)
+                    for p in problems:
+                        print(f"  - {p}", file=sys.stderr)
+                    print(f"--- input ---\n{inp!r}", file=sys.stderr)
+                    if violations >= 3:
+                        break
+            if violations >= 3:
+                break
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
 
     if violations:
         print(f"gate-properties: {violations} 個案例違反性質", file=sys.stderr)
         return 1
-    print(f"gate-properties: {args.cases} 個生成案例，P1-P5 全部成立 (seed={args.seed})")
+    diff = "P0-P5" if base_src else "P1-P5（沒給 --base，未做差分）"
+    print(f"gate-properties: {len(seeds)} 個 seed x ({args.cases} 生成 + "
+          f"{len(ADVERSARIAL)} 固定敵意輸入) = {checked} 個案例，{diff} 全部成立")
+    print(f"  seeds: {' '.join(str(x) for x in seeds)}")
     return 0
 
 

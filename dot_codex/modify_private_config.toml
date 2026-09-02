@@ -63,8 +63,14 @@
 {{-       range $i, $b := $buf -}}
 {{-         if not (regexMatch "^[ \t]*$" $b) -}}{{- $last = $i -}}{{- end -}}
 {{-       end -}}
-{{-       $head := slice $buf 0 (add $last 1) -}}
-{{-       $trailingBlanks := slice $buf (add $last 1) -}}
+      {{- /* $last 停在 -1 有兩種情形：區塊完全是空的、或整塊都是空白行。
+             這時不能算 slice —— slice $buf 0 0 會得到 nil，接著 concat 解參考
+             它就是 runtime nil pointer dereference，整個 apply 以非零結束。
+             `[tui]` 後面直接接下一個表頭或檔尾是很平常的 TOML。 */ -}}
+{{- /* sprig 的 sub 回傳 int64，until 只吃 int，所以在這裡就轉掉。 */ -}}
+{{-       $blankCount := int (sub (len $buf) (add $last 1)) -}}
+{{-       $head := list -}}
+{{-       if ge $last 0 -}}{{- $head = slice $buf 0 (add $last 1) -}}{{- end -}}
 {{-       $out = concat $out $head -}}
 {{-       $appended := false -}}
 {{-       range $k := $order -}}
@@ -74,10 +80,13 @@
 {{-           $appended = true -}}
 {{-         end -}}
 {{-       end -}}
-{{-       $out = concat $out $trailingBlanks -}}
+      {{- /* 結尾的空白行照數量補回去，但一律輸出成空字串 —— awk 版的
+             `for (i=1;i<=blank;i++) print ""` 就是這個行為，所以「只有空白的一行」
+             會被正規化成真正的空行。要與它逐位元組相同就必須照做。 */ -}}
+{{-       range $i := until $blankCount -}}{{- $out = append $out "" -}}{{- end -}}
       {{- /* 有補寫、原本又沒有結尾空行時，補一個空行把 [tui] 跟下一個 table 隔開。
              檔尾不需要。 */ -}}
-{{-       if and $appended (eq (len $trailingBlanks) 0) (not $atEof) -}}
+{{-       if and $appended (eq $blankCount 0) (not $atEof) -}}
 {{-         $out = append $out "" -}}
 {{-       end -}}
 {{-       $buf = list -}}
