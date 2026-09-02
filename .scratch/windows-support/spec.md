@@ -1,0 +1,279 @@
+# SPEC: native Windows 支援
+
+Status: `approved`
+Tier: **3**（高風險：會移動／改寫使用者既有的 nvim 設定、`~/.codex/config.toml`、
+`~/.claude/settings.json`，任一步寫錯就是使用者資料遺失）
+Contract: `~/.claude/CLAUDE.md` 的 evidence-first 契約，未被本 repo 覆寫
+Base ref: `0d72b8e`（`feat/windows-support` 分支起點）
+
+---
+
+## 0. 目標
+
+這個 repo 目前只產出 Linux/macOS 的環境。要讓同一份 source 也能在 **native Windows**
+（不是 WSL）上 `chezmoi init --apply` 出一套等價的環境：
+
+| 面向 | Linux / macOS（現況，不得改變行為） | Windows（本次新增） |
+|---|---|---|
+| 套件管理 | apt（僅 Linux 前置）+ Homebrew | **winget** |
+| Shell | zsh + Oh My Zsh | **PowerShell 7** |
+| Prompt | Powerlevel10k | **oh-my-posh，powerlevel10k_rainbow 主題** |
+| 補全／建議 | zsh-autosuggestions + zsh-syntax-highlighting | **PSReadLine**（pwsh 7 內建） |
+| 模糊搜尋 | fzf + fzf-tab | **fzf + PSFzf** |
+| 版本管理 | mise（brew 裝） | **mise（winget 裝）** |
+| 編輯器 | neovim（mise 釘 0.12.5）+ LazyVim starter | **同上，路徑不同** |
+
+---
+
+## 1. 已實測確立的事實（本次規劃的地基）
+
+以下每一條都是在本機實測跑出來的，不是推論。環境：WSL2 Debian 12 (`agent`) +
+Windows 11 25H2 主機、chezmoi v2.72.0（兩端同版）、pwsh 7.6.5、winget v1.29.290。
+
+| # | 事實 | 怎麼測的 |
+|---|---|---|
+| F1 | chezmoi 在 **Linux 與 Windows 兩端**，`.ps1` 的預設 interpreter 都是 `pwsh -NoLogo -File` | `chezmoi dump-config --format json` 兩端各跑一次 |
+| F2 | **渲染後為空的腳本會被靜默跳過**，兩端皆然 | 探針 source dir：`{{ if eq .chezmoi.os "linux" }}` 包住的 `.ps1.tmpl` 在 Linux 上沒被執行、apply exit 0 |
+| F3 | **非空的 `.sh` 腳本在 Windows 上硬失敗並中斷整個 apply**：`fork/exec ...: %1 is not a valid Win32 application`，exit 1 | 同一個探針 source dir 在 Windows 端 apply |
+| F4 | `.ps1` 腳本在 Windows 端由 pwsh 7.6.5 正常執行、exit 0 | 探針腳本寫出 marker 檔並驗證存在 |
+| F5 | Windows 端 chezmoi 可以用 UNC 路徑 `\\wsl.localhost\agent\...` 直接讀 WSL 內的 source，`.chezmoi.os` = `windows`、`.chezmoi.arch` = `amd64`、`.chezmoi.homeDir` = `C:/Users/gn006` | `chezmoi execute-template --source <UNC>` |
+| F6 | neovim 0.12.5 在 Windows 的 `stdpath()`：config=`%LOCALAPPDATA%\nvim`、data=state=log=`%LOCALAPPDATA%\nvim-data`、cache=`%LOCALAPPDATA%\Temp\nvim` | `nvim --headless -l probe.lua`，Windows 端實跑 |
+| F7 | pwsh 7 的 `$PROFILE.CurrentUserAllHosts` = `C:\Users\gn006\Documents\PowerShell\profile.ps1`（本機 Documents 未被 OneDrive 轉向；別台機器可能會） | `pwsh.exe -NoProfile -Command '$PROFILE...'` |
+| F8 | mise 的全域 config 在 Windows 上一樣是 `~/.config/mise/config.toml`（不是 `%APPDATA%`） | `mise config ls`，Windows 端 |
+| F9 | `mise activate pwsh` 存在且可用（mise 2026.8.14 windows-x64） | 實跑並看輸出 |
+| F10 | 本機 `$env:POSH_THEMES_PATH` 指向的目錄**不存在**（oh-my-posh 是 Store 版），所以主題不能靠這個變數定位 | `Get-ChildItem $env:POSH_THEMES_PATH` → `Cannot find path` |
+| F11 | cc-statusline v2.0.1 **有** Windows release asset：`cc-statusline-win32-x64.zip`（內含 `cc-statusline.exe`）與 `win32-arm64.zip`，官方 `.sha256` 可取得 | GitHub API + 下載後 `sha256sum` 比對相符 |
+| F12 | 全部要用的 winget package ID 都存在 | 逐一 `winget show --id <id> --exact` |
+
+winget ID 實測清單（版本為當下查到的）：
+
+| ID | 名稱 | 版本 | 對應 POSIX |
+|---|---|---|---|
+| `Microsoft.PowerShell` | PowerShell | 7.6.5.0 | zsh |
+| `Git.Git` | Git | 2.55.0.3 | git |
+| `jdx.mise` | mise-en-place | 2026.8.5 | mise |
+| `junegunn.fzf` | fzf | 0.74.3 | fzf |
+| `GitHub.GitLFS` | Git LFS | 3.7.1 | git-lfs |
+| `BurntSushi.ripgrep.MSVC` | RipGrep MSVC | 15.2.0 | ripgrep |
+| `sharkdp.fd` | fd | 10.5.0 | fd |
+| `JesseDuffield.lazygit` | lazygit | 0.64.1 | lazygit |
+| `tree-sitter.tree-sitter-cli` | tree-sitter-cli | 0.26.12 | tree-sitter |
+| `JanDeDobbeleer.OhMyPosh` | Oh My Posh | 31.1.2 | powerlevel10k |
+| `zig.zig` | Zig | 0.16.0 | build-essential（C compiler） |
+
+`tree-sitter-cli` 0.26.12 滿足 nvim-treesitter `main` 分支要求的 ≥ 0.26.1
+（見 `docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md` §6）。
+
+---
+
+## 2. 設計
+
+### 2.1 平台判斷收斂到單一 partial（重構）
+
+現況：`$brewPrefix` 那 6 行 OS/arch 判斷在 4 支腳本裡逐字複製貼上，`dot_zshrc.tmpl`
+與 `dot_zprofile.tmpl` 又各有一份變體。再加上 Windows 會變成 3 份平台知識散在 8 個檔案。
+
+改為單一來源 `.chezmoitemplates/platform.toml`：一個純函式 partial，吐 TOML，
+呼叫端一律 `{{- $p := includeTemplate "platform.toml" . | fromToml -}}`，得到一個 dict：
+
+```
+os          = "linux" | "darwin" | "windows"
+isWindows   = bool
+brewPrefix  = "/home/linuxbrew/.linuxbrew" | "/opt/homebrew" | "/usr/local" | ""
+nvimConfig  = "~/.config/nvim"        | "%LOCALAPPDATA%\nvim"
+nvimData    = "~/.local/share/nvim"   | "%LOCALAPPDATA%\nvim-data"
+nvimState   = "~/.local/state/nvim"   | "%LOCALAPPDATA%\nvim-data"
+nvimCache   = "~/.cache/nvim"         | "%LOCALAPPDATA%\Temp\nvim"
+ccStatuslineAsset / ccStatuslineSum   （含 win32-x64 / win32-arm64）
+```
+
+**測試接縫（deliberate seam）**：partial 內部第一行是
+`{{- $os := .osOverride | default .chezmoi.os -}}`（arch 同理）。
+`osOverride` 只有這一個檔案認得，正式環境的 config 不會有這個 key，
+因此永遠退回 `.chezmoi.os`。測試用一份 `--config tests/fixtures/os-<name>.toml`
+餵 `[data] osOverride = "darwin"`，就能在單一台 Linux 上渲染出三個 OS 的完整結果——
+這是取得 **macOS 證據**的唯一手段（沒有 mac 機器）。這個接縫本身也要被驗證：
+第 3.8 層會用 Windows 主機端的真實 chezmoi 跑一次，斷言
+「`osOverride=windows` 模擬出來的結果」與「真實 `.chezmoi.os == windows`」逐字相同。
+
+### 2.2 檔案配置
+
+新增：
+
+| 路徑 | target | 說明 |
+|---|---|---|
+| `.chezmoitemplates/platform.toml` | — | §2.1 |
+| `.chezmoitemplates/nvim-plugins-completion.lua` | — | nvim plugin 內容的唯一來源 |
+| `.chezmoitemplates/uv.toml` | — | uv 設定的唯一來源 |
+| `private_dot_config/powershell/profile.ps1.tmpl` | `~/.config/powershell/profile.ps1` | Windows shell 設定本體（chezmoi 全管） |
+| `AppData/Local/nvim/lua/plugins/completion.lua.tmpl` | `%LOCALAPPDATA%\nvim\lua\plugins\completion.lua` | 一行 `includeTemplate` |
+| `AppData/Roaming/uv/uv.toml.tmpl` | `%APPDATA%\uv\uv.toml` | uv 官方文件：Windows 使用者層設定在 `%APPDATA%\uv\uv.toml` |
+| `.chezmoiscripts/run_onchange_before_30-install-winget-packages.ps1.tmpl` | — | §2.3 |
+| `.chezmoiscripts/run_onchange_after_40-git-lfs.ps1.tmpl` | — | Windows 版 `git lfs install --skip-repo` |
+| `.chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl` | — | §2.4 |
+| `.chezmoiscripts/run_after_60-pwsh-profile.ps1.tmpl` | — | §2.5 |
+| `init.ps1` | — | Windows 自舉腳本 |
+| `docs/research/windows-native-support.md` | — | 研究筆記（§4） |
+| `tests/` | — | §3 |
+
+改動：
+
+- `private_dot_config/nvim/lua/plugins/completion.lua` → `.tmpl`，改成一行 `includeTemplate`
+  （**渲染結果必須與現況逐位元組相同**）
+- `private_dot_config/uv/uv.toml` → 同上
+- `.chezmoiignore`：加入 per-OS 區塊
+- `.chezmoiexternal.toml.tmpl`：Oh My Zsh 全區塊只在 POSIX 輸出；新增 oh-my-posh 主題 external；
+  cc-statusline 擴充到 win32
+- 4 支既有 `.sh.tmpl` 腳本 + 2 支 zsh dotfile：改用 `platform.toml` partial
+- `dot_codex/modify_private_config.toml`：sh+awk → 跨平台 modify-template（§2.6）
+- `dot_claude/modify_settings.json`：`statusLine.command` 依 OS 產生
+- `README.md` / `AGENTS.md`：補 Windows 章節
+
+`.chezmoiignore` 規則（兩邊互斥，測試會斷言 managed 集合）：
+
+```
+非 Windows 忽略：AppData/、.config/powershell/
+Windows 忽略：  .zshrc .zprofile .p10k.zsh .oh-my-zsh/ .config/nvim/ .config/uv/
+共同忽略：      README.md init.sh init.ps1 AGENTS.md CLAUDE.md docs/ tests/ .scratch/ .git
+```
+
+### 2.3 winget 安裝腳本
+
+`winget install --exact --id <ID> --silent --accept-package-agreements
+--accept-source-agreements --disable-interactivity`，逐一檢查
+`winget list --exact --id <ID>` 已安裝就跳過（對應 brew 腳本的 `brew list || brew install`）。
+
+`Microsoft.PowerShell` 與 `Git.Git` 不在這支腳本裡——它們是 `init.ps1` 的自舉責任
+（chezmoi 要有 git 才能 clone，要有 pwsh 才能跑 `.ps1` 腳本，見 F1）。
+
+### 2.4 Windows neovim 腳本
+
+與 POSIX 版逐條對稱，只有路徑不同（F6）：
+
+1. `mise use --global neovim@0.12.5`（同一個釘版，理由見 POSIX 腳本裡的註解）
+2. marker 檔 `<nvimConfig>\.chezmoi-lazyvim-starter` 不存在時：
+   把既有的 config / data / state / cache **四個目錄 mv 成 `.bak`**（已存在 `.bak` 就加時間戳），
+   **一律不刪**，再 `git clone --depth 1 https://github.com/LazyVim/starter` 進 config、
+   刪掉 `.git`、`touch` marker
+3. 有 marker 就整段跳過（re-run 時使用者自己的設定不會被搬走）
+
+### 2.5 PowerShell profile（依你選的方案）
+
+- chezmoi 全管 `~/.config/powershell/profile.ps1`（內容：oh-my-posh init、PSReadLine 選項、
+  PSFzf、`mise activate pwsh`、WSL 無關的 alias）
+- `run_after_60-pwsh-profile.ps1` 在**執行期**由 pwsh 自己解析 `$PROFILE.CurrentUserAllHosts`
+  （因此 OneDrive 轉向 Documents 的機器也正確，見 F7），確保檔案存在且**恰好含有一行** loader
+  `. "$HOME\.config\powershell\profile.ps1"`；已經有了就是 no-op（冪等）
+
+oh-my-posh 主題：**powerlevel10k_rainbow**，但不靠 `$env:POSH_THEMES_PATH`（F10 證明它不可靠），
+改成 `.chezmoiexternal.toml.tmpl` 釘住 tag `v31.1.2` + sha256
+`d55074433400c2a532ab883986f4e2ebd2b35d9f5d61f355f27eeb1243a78713` 抓到
+`~/.config/oh-my-posh/powerlevel10k_rainbow.omp.json`。這與 repo 既有慣例一致
+（zsh 的每一個 plugin/theme 都是釘版本 + checksum 的 external）。
+
+### 2.6 `~/.codex/config.toml` 的 modify_ 移植（依你選的方案）
+
+把現有 awk 的逐行改寫演算法，原樣改寫成 chezmoi modify-template（純 Go template，零外部相依），
+三個 OS 共用一份實作。行為契約與 awk 版**完全相同**，並由 §3.6 的 golden 測試釘住：
+只替換 `[tui]` 內受管的 key，其餘位元組原樣輸出（註解、空行、key 順序、其他 table、
+重複 key 的處理、整檔沒有 `[tui]` 時補在檔尾）。
+
+---
+
+## 3. 驗證計畫（每一層都會被實際執行並記錄）
+
+執行入口：`tests/run.sh`（純 POSIX sh + chezmoi，無其他相依）。
+每個 case 先在實作前跑出 **RED**。
+
+| 層 | 內容 | 在哪跑 |
+|---|---|---|
+| L1 | `platform.toml` partial：linux/darwin(arm64,amd64)/windows 逐欄位斷言 | 任何機器 |
+| L2 | 渲染矩陣：三個 OS 各渲染全部 `.chezmoiscripts/*`，斷言「該跑的非空、不該跑的**渲染成空**」（F2/F3 是這層存在的理由） | 任何機器 |
+| L3 | `chezmoi managed` / `ignored` 三 OS 集合斷言（Windows 上沒有 `.zshrc`、POSIX 上沒有 `AppData/`…） | 任何機器 |
+| L4 | 語法檢查：非空 `.sh` 過 `sh -n`；非空 `.ps1` 過 pwsh `Parser::ParseInput`（無 pwsh 時標 SKIP） | WSL |
+| L5 | `.chezmoiexternal.toml.tmpl` 三 OS 渲染後解析 TOML：Windows 不得出現任何 `.oh-my-zsh` 條目；每個條目都要有 checksum | 任何機器 |
+| L6 | **檔案層 golden**：`chezmoi apply --exclude=scripts,externals` 到預先塞好內容的暫存 destination，比對整棵樹。含 codex/claude 的資料保全案例（有註解、多 table、重複 key、缺 `[tui]`、空檔） | 任何機器 |
+| L7 | **行為測試**：50-neovim 兩個版本各自實跑（HOME/LOCALAPPDATA 指向暫存目錄，`mise`/`git` 用 stub），斷言備份不覆寫、不刪除、marker 冪等；60-pwsh-profile 連跑兩次只有一行 loader | WSL（`.ps1` 經 pwsh.exe） |
+| L8 | **接縫驗證**：Windows 主機端真實 `chezmoi.exe`（`.chezmoi.os == windows`）跑 `managed` + `apply --dry-run`，與 L3 的 `osOverride=windows` 結果逐字比對 | Windows 主機（唯讀） |
+| L9 | **E2E**：Windows Sandbox 內 `_probe.ps1` 自舉 winget → 跑完整 `init.ps1` → 斷言 11 個工具、profile、nvim 目錄、prompt 都到位，transcript 寫到 `C:\out\` | Sandbox（由你按下啟動） |
+| L10 | **回歸**：對 base ref `0d72b8e` 跑同一份 L3/L6，斷言 Linux 與 macOS 的 target 集合與檔案內容**沒有任何改變** | 任何機器 |
+
+收尾：`verification-gate` skill（`gate` 迭代、`evidence` 一次），Tier 3 再派 `verifier` agent 獨立驗證。
+
+## 4. 研究筆記
+
+新增 `docs/research/windows-native-support.md`，比照既有兩篇的體例
+（先講結論、逐條標「實測」或引官方原文、查不到就寫查不到）。至少涵蓋：
+neovim Windows standard-path（官方 `starting.txt` 原文 + 本機實測，含**兩者不一致**的
+cache 路徑：文件寫 `Temp/nvim-data`、0.12.5 實際吐 `Temp\nvim`）、pwsh `$PROFILE` 與
+OneDrive 轉向、chezmoi 在 Windows 的腳本／interpreter 語意（F1–F5）、winget 非互動旗標、
+uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compiler 現況。
+
+---
+
+## 5. Must NOT（違反任一條即視為失敗）
+
+1. **不得**在 Windows 主機上執行任何 `winget install`、或 `chezmoi apply` 到真實的
+   `C:\Users\gn006`。真實安裝只准在 Windows Sandbox 或 CI。
+2. **不得**改變 Linux/macOS 現有的 target 集合與檔案內容。nvim/uv 改走共用 template
+   屬等價重構，渲染結果必須**逐位元組相同**（L10 釘住）。
+3. **不得**刪除任何既有使用者檔案或目錄。既有 nvim 設定一律 `mv` 到 `.bak`，
+   且不得覆蓋已存在的 `.bak`。
+4. **不得**讓 `.sh` 在 Windows 被執行，或 `.ps1` 在 POSIX 被執行。跨平台的隔離手段
+   只有一種：**渲染成空**（F2），不是靠 `.chezmoiignore` 兜。
+5. **不得**引入未釘版本或無 checksum 的外部下載。
+6. **不得**為了讓測試變綠去改測試。測試看起來不對 → 回來討論 SPEC。
+7. **不得**在 evidence report 裡寫沒有真的跑過的檢查。
+
+---
+
+## 6. Tier 3 失效模型
+
+| # | 失效模式 | 實際傷害 | 對應檢查 |
+|---|---|---|---|
+| M1 | `.sh` 腳本在 Windows 被 exec | apply 中斷（F3 已實測），使用者拿到半套環境 | L2、L8 |
+| M2 | 50-neovim 在 Windows 覆蓋或刪除既有 `%LOCALAPPDATA%\nvim` | **使用者 nvim 設定與外掛資料永久遺失** | L7 |
+| M3 | 重跑 apply 時 marker 判斷失效，把使用者自己的設定當成外來設定搬走 | 同 M2 | L7（冪等案例） |
+| M4 | codex modify-template 移植走樣：吃掉註解、丟掉其他 table、重排 key | `~/.codex/config.toml` 毀損 | L6 golden |
+| M5 | claude modify-template 洗掉未受管的 key | `~/.claude/settings.json` 狀態遺失 | L6 golden |
+| M6 | Oh My Zsh external（`exact = true`）在 Windows 仍被求值 | 誤刪 `~/.oh-my-zsh` 下的東西 | L5 |
+| M7 | `.chezmoiignore` 寫反 → Windows 落下 zsh 檔／POSIX 落下 `AppData/` | 環境汙染 | L3 |
+| M8 | `osOverride` 接縫與真實 Windows 行為不一致 → 整個渲染矩陣的證據失效 | 假綠 | L8 |
+| M9 | winget ID 錯字 → 靜默沒裝到 | 環境不完整 | F12 逐一實測 + L9 |
+| M10 | pwsh profile loader 重複 append | profile 每次 apply 長一行 | L7 |
+| M11 | 這次重構順手改壞 POSIX 端 | 現有機器壞掉 | L10 |
+| M12 | zig 無法讓 tree-sitter CLI 在 Windows 編出 parser | LazyVim 在 Windows 上 treesitter 半殘 | L9；**這條目前未證實**，只有社群資料，見 §7 |
+
+---
+
+## 7. 已知限制與未證實項目
+
+- **M12（C compiler）**：nvim-treesitter `main` 分支用 `tree-sitter build` 編 parser，
+  在 Windows 上預設走 MSVC `cl.exe`。社群做法是改用 zig，本 SPEC 因此把 `zig.zig`
+  放進 winget 清單，**但我沒有辦法在主機上驗證**（Must NOT #1），只有 L9 sandbox 能證實。
+  若 L9 證明不行，備案是 `Microsoft.VisualStudio.2022.BuildTools`（體積大很多）；
+  evidence report 會如實記錄這條的狀態。
+- **macOS 沒有實機**。macOS 的證據全部來自 `osOverride=darwin` 的渲染矩陣（L1–L6, L10），
+  沒有任何一次真實 apply。這是明確的 downgrade，會寫進 evidence report。
+- **Windows Sandbox 沒有 App Installer**，`_probe.ps1` 需要先自舉 winget；
+  這段自舉程式碼只服務測試，不會進到 `init.ps1`。
+- `core.autocrlf = input` 維持不變（Windows 上 checkout 為 LF）。這是刻意不動，不是遺漏。
+
+---
+
+## 8. Approval record
+
+核准是綁定在**這一版 SPEC** 上的結構化行為，不是對話裡的一句話。以下逐字記錄。
+
+- **approval: confirmed**
+- version bound: v1 — 核准當下 `.scratch/windows-support/spec.md` 的 sha256
+  （即本節被改寫成核准狀態**之前**的檔案內容）= `ea20ea21f78b5eac5118270bb9f17775965da8da36ffe04ae21138b4499555ae`
+- date: 2026-09-02
+- approver: repo owner（Madao）
+- verbatim words（使用者原話，逐字）:
+
+  > 核准 spec
+
+- 範圍：本 SPEC §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
+  §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。SPEC 內容若有實質變更，
+  這筆核准即失效，必須重新取得。
