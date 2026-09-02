@@ -347,6 +347,55 @@ MUTANTS: list[Mutant] = [
         ),
     ),
     Mutant(
+        name="init-git-bootstrap-commented-out",
+        path="init.ps1",
+        old="Install-IfMissing -Id 'Git.Git'              -Command 'git'",
+        new="# Install-IfMissing -Id 'Git.Git'              -Command 'git'",
+        layer="L11",
+        rationale=(
+            "把整行註解掉而不是刪掉。子字串斷言仍然看得到它，supply-chain 的正則也"
+            "仍然會在註解裡匹配到那個 ID —— 兩者都不會失敗，但乾淨的 Windows 11 上"
+            "git 不會被裝，chezmoi 因此 clone 不了"
+        ),
+    ),
+    Mutant(
+        name="init-owner-overridden-later",
+        path="init.ps1",
+        old="Write-Host \"init: chezmoi $($chezmoiArgs -join ' ')\"",
+        new=(
+            "$chezmoiArgs = @('init', '--apply', 'attacker/dotfiles')\n"
+            "Write-Host \"init: chezmoi $($chezmoiArgs -join ' ')\""
+        ),
+        layer="L11",
+        rationale=(
+            "在正確的那一行之後再賦值一次別的帳號。子字串斷言只驗「正確那行存在」，"
+            "覆寫它的那一行看不到 —— irm | iex 會 clone 並套用別人的 dotfiles"
+        ),
+    ),
+    Mutant(
+        name="probe-m12-body-gutted",
+        path="tests/sandbox/_probe.ps1",
+        old="    $job = Start-Job -ScriptBlock {",
+        new="    return 'skipped'\n    $job = Start-Job -ScriptBlock {",
+        layer="L11",
+        rationale=(
+            "保留 M12 檢查的標題、把內容換掉。這正是那條斷言的註解說它要防的事："
+            "拿到一份看起來通過、實際上沒問過那個問題的結果"
+        ),
+    ),
+    Mutant(
+        name="test-layer-L8-deleted",
+        path="tests/cases/L8-windows-seam.sh",
+        old="# L8 — 用 Windows 主機上真實的 chezmoi 驗證測試接縫本身。",
+        new="return 0\n# L8 — 用 Windows 主機上真實的 chezmoi 驗證測試接縫本身。",
+        layer="L11",
+        rationale=(
+            "L8 是 SPEC 對 M8 唯一指名的程序，而沒有任何 mutant 指向它 —— "
+            "整層失效不會讓 gate 變紅。這份報告每一條 Windows 與 macOS 的主張"
+            "都是經由那個接縫推導出來的"
+        ),
+    ),
+    Mutant(
         name="codex-empty-tui-crash",
         path="dot_codex/modify_private_config.toml",
         old="{{-       if ge $last 0 -}}{{- $head = slice $buf 0 (add $last 1) -}}{{- end -}}",

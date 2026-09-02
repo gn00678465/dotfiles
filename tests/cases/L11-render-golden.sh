@@ -119,4 +119,30 @@ assert_contains "sandbox 探針會檢查 zsh 專屬檔案沒有落地" "$_probe"
 for _t in mise fzf rg fd lazygit git-lfs tree-sitter oh-my-posh zig nvim; do
     assert_contains "sandbox 探針會檢查 $_t 在 PATH 上" "$_probe" "'$_t'"
 done
-unset _init _probe _pair _id _cmd _t
+# 上面那 22 條是 assert_contains —— 子字串在不在，跟那一行會不會執行是兩回事。
+# 獨立驗證用四個變異證明了差別：把 Git 的自舉整行**註解掉**、把三行搬到 chezmoi
+# 呼叫**之後**、在正確的那行**之後再賦值一次**別的帳號、把 M12 檢查的**內容**換掉 ——
+# 四個都存活整套 458 個測試（其中兩個連 supply-chain 都過，因為它的正則會匹配到
+# 註解裡的內容）。子字串斷言只抓得到「刪除」，抓不到「停用、改序、覆寫」。
+#
+# 這兩個檔案不是模板，git 本來就追得到；但 gate 是靠測試而不是靠人看 diff。
+# 逐位元組比對是「golden pin」原本的意思。
+for _pair in "init.ps1|$REPO/init.ps1" "_probe.ps1|$REPO/tests/sandbox/_probe.ps1"; do
+    _name=${_pair%%|*}; _path=${_pair##*|}
+    assert_bytes_eq "verbatim golden：$_name 沒有被改動（含註解掉、改序、覆寫）" \
+        "$GOLDEN/verbatim/$_name" "$_path"
+done
+
+# 測試層自己也會被刪掉。gate 的 manifest 稽核管的是 **gate 的層**，不是測試層；
+# 而 tests/run.sh 在指定的層檔案不存在時是 exit 0（`1..0`）。L1/L2/L3/L5/L6/L7/L10/L11
+# 被刪掉會讓對應的 mutant 變成 SURVIVED 而讓 mutation 層變紅，但 **L4 與 L8 沒有任何
+# mutant 指向它們** —— 獨立驗證實測：把這兩個檔案刪掉，整個 gate 照樣全綠。
+# L8 是 SPEC 對 M8 唯一指名的程序（接縫與真實 Windows 行為是否一致），而這份報告
+# 每一條 Windows 與 macOS 的主張都是經由那個接縫推導出來的。
+assert_eq "測試層的檔案集合" \
+    "$(printf '%s\n' L1-platform.sh L10-posix-regression.sh L11-render-golden.sh \
+        L2-script-render-matrix.sh L3-managed-set.sh L4-syntax.sh L5-externals.sh \
+        L6-file-golden.sh L7-behavior.sh L8-windows-seam.sh | LC_ALL=C sort)" \
+    "$(ls "$REPO/tests/cases" | LC_ALL=C sort)"
+
+unset _init _probe _pair _id _cmd _t _name _path
