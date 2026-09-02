@@ -31,11 +31,17 @@ assert_not_contains "windows 上不得有任何 .oh-my-zsh external（exact=true
 # 每個 external 都要釘住內容。唯一的例外是 .oh-my-zsh 本體：ohmyzsh 不發 git tag，
 # 這個 repo 刻意用 refreshPeriod 追 master（原始碼裡就有這句註解）。其餘每一個
 # 條目都必須有 checksum.sha256，否則就是引入了未釘住的外部下載（Must NOT #5）。
+# 比對的是「64 個十六進位字元」而不是「這一行存在」：實測 chezmoi 對空字串的
+# checksum 是「不驗證就安裝」而不是「驗證失敗」，所以空值比錯值更危險，
+# 而只檢查有沒有那一行的寫法會直接放它過去。
 for _os in $ALL_OSES; do
     _missing=$(render_file "$_os" .chezmoiexternal.toml.tmpl | awk '
         function flush() { if (cur != "" && cur != ".oh-my-zsh" && !has) print cur }
         /^\[".*"\]$/ { flush(); cur = $0; sub(/^\["/, "", cur); sub(/"\]$/, "", cur); has = 0; next }
-        /^[ \t]*checksum\.sha256/ { has = 1 }
+        /^[ \t]*checksum\.sha256[ \t]*=/ {
+            v = $0; sub(/^[^=]*=[ \t]*/, "", v); gsub(/"/, "", v)
+            if (length(v) == 64) has = 1        # mawk 不吃 {64} 區間量詞，改用長度
+        }
         END { flush() }' | LC_ALL=C sort)
     assert_eq "$_os 的每個 external（.oh-my-zsh 本體除外）都有 checksum" "" "$_missing"
 done

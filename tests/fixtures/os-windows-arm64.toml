@@ -1,0 +1,7 @@
+# 測試用 chezmoi config。osOverride/archOverride 只有 .chezmoitemplates/platform.toml
+# 認得；正式環境的 config 沒有這兩個 key，partial 會退回 .chezmoi.os / .chezmoi.arch。
+# 這是本 repo 取得 macOS 證據的唯一手段（沒有實體 mac）。
+[data]
+    osOverride = "windows"
+    archOverride = "arm64"
+    isWSL = false

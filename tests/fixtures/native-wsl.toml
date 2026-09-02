@@ -1,0 +1,5 @@
+# 與 native.toml 相同，但 isWSL = true。dot_zshrc.tmpl 有一段只在 WSL 上輸出的
+# alias；如果沒有這個 fixture，Must NOT #2 的「逐位元組不變」就只釘住了
+# isWSL = false 的那一種渲染。
+[data]
+    isWSL = true

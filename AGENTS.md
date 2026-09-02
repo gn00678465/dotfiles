@@ -88,6 +88,16 @@ script, which fails outright on Windows; a modify-template is rendered by chezmo
 itself and works everywhere from one implementation. Do not turn either of them
 back into a shell script.
 
+**Known limitation, inherited from the `awk` original**: the codex rewriter assumes
+every managed key sits on **one line**. Four shapes break that assumption and turn
+valid TOML into invalid TOML -- a multi-line `status_line` array (the managed value
+*is* an 8-element array, so a reformat is the likely trigger), `[[tui]]`, `["tui"]`,
+and an inline `tui = { ... }`. All four are byte-identical to the pre-port `awk`
+implementation, so this is preserved behaviour, not a regression; fixing it would
+change POSIX output. They are pinned in `tools/gate-properties.py`'s
+`KNOWN_LIMITATION` list, checked for byte-identity with the original only, so a
+future drift away from that parity still fails the gate.
+
 ## Tests
 
 `tests/run.sh` (POSIX sh + chezmoi, no other dependencies). `tests/run.sh L3 L6`

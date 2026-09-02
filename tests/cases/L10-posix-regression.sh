@@ -90,3 +90,18 @@ if [ -n "$_BASE_REF2" ] && [ -d "$TMP/base-src" ]; then
     assert_eq "本機 OS 上，external 的實際定義與 base ref 相同（忽略空行與註解）" "$_base_ext" "$_new_ext"
 fi
 unset _BASE_REF2 _base_ext _new_ext
+
+# isWSL = true 的那一種渲染也要釘。dot_zshrc.tmpl 有一段只在 WSL 上輸出的 alias，
+# 而上面的 apply 全部走 isWSL = false 的 fixture。
+if [ -d "$TMP/base-src" ]; then
+    _base_wsl=$(chezmoi --source "$TMP/base-src" --destination "$TMP/dest-base" \
+        --persistent-state "$TMP/st-base.boltdb" --config "$FIXTURES/native-wsl.toml" --no-tty \
+        execute-template < "$TMP/base-src/dot_zshrc.tmpl")
+    _new_wsl=$(render_file native-wsl dot_zshrc.tmpl)
+    assert_eq "isWSL = true 時 .zshrc 的渲染與 base ref 相同" "$_base_wsl" "$_new_wsl"
+    assert_contains "isWSL = true 確實會輸出 WSL 專用的 alias（證明這個 fixture 有作用）" \
+        "$_new_wsl" "clip.exe"
+    _new_nowsl=$(render_file native dot_zshrc.tmpl)
+    assert_not_contains "isWSL = false 時不輸出那段 alias" "$_new_nowsl" "clip.exe"
+fi
+unset _base_wsl _new_wsl _new_nowsl

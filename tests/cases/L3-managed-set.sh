@@ -10,7 +10,9 @@ _managed() { cm "$1" managed --exclude=externals | LC_ALL=C sort; }
 for _os in $POSIX_OSES; do
     assert_eq "$_os 的 managed 清單" "$(cat "$GOLDEN/managed-posix.txt")" "$(_managed "$_os")"
 done
-assert_eq "windows 的 managed 清單" "$(cat "$GOLDEN/managed-windows.txt")" "$(_managed windows)"
+for _os in $WINDOWS_OSES; do
+    assert_eq "$_os 的 managed 清單" "$(cat "$GOLDEN/managed-windows.txt")" "$(_managed "$_os")"
+done
 
 # 上面的 golden 一旦被誰「順手更新」就會失去意義，所以把最關鍵的幾條互斥性
 # 再獨立寫一次。這幾條是使用者真的會看到的後果。

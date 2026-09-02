@@ -62,17 +62,21 @@ else
     # 逐支腳本：真實 Windows 的渲染結果 vs Linux 上 osOverride 模擬的結果。
     # 兩者必須逐位元組相同，否則模擬出來的證據不成立。
     _scripts=$(grep '^\.chezmoiscripts/' "$GOLDEN/managed-windows.txt")
+    # 比對走原始位元組（cmp），兩邊都不做 tr -d '\r'。用 $(...) 拿字串會吃掉結尾
+    # 換行，再 tr 掉 CR 更是直接抹平行尾差異 —— 那樣宣稱「逐位元組」是假的。
+    # 這裡真的比位元組，所以「Windows 端寫出 CRLF」這種差異也會被抓到。
     for _t in $_scripts; do
         _name=$(basename "$_t")
         _cm_win "s-$_name" "$_DEST_WIN" cat "$_DEST_WIN\\.chezmoiscripts\\$_name"
-        _real=$(_win_out "s-$_name")
-        _sim=$(cm windows cat "$TMP/dest-windows/.chezmoiscripts/$_name" 2>/dev/null || true)
-        assert_eq "接縫：$_name 的真實 Windows 渲染 == 模擬渲染" "$_sim" "$_real"
+        cm windows cat "$TMP/dest-windows/.chezmoiscripts/$_name" > "$_OUT_WSL/sim-$_name" 2>/dev/null || true
+        assert_bytes_eq "接縫：$_name 的真實 Windows 渲染 == 模擬渲染（逐位元組）" \
+            "$_OUT_WSL/sim-$_name" "$_OUT_WSL/s-$_name.out"
     done
 
     _cm_win prof "$_DEST_WIN" cat "$_DEST_WIN\\.config\\powershell\\profile.ps1"
-    assert_eq "接縫：profile.ps1 的真實 Windows 渲染 == 模擬渲染" \
-        "$(cm windows cat "$TMP/dest-windows/.config/powershell/profile.ps1")" "$(_win_out prof)"
+    cm windows cat "$TMP/dest-windows/.config/powershell/profile.ps1" > "$_OUT_WSL/sim-profile.ps1"
+    assert_bytes_eq "接縫：profile.ps1 的真實 Windows 渲染 == 模擬渲染（逐位元組）" \
+        "$_OUT_WSL/sim-profile.ps1" "$_OUT_WSL/prof.out"
 
     # 真的在 Windows 上跑一次 apply（只套檔案，不執行腳本、不抓 external）。
     # 這是「codex 的 modify_ 移植成 modify-template 之後在 Windows 上真的能用」
@@ -81,12 +85,12 @@ else
     cp -r "$REPO/tests/fixtures/l6/c2-comments-and-tables/home/." "$_APPLY_WSL/"
     _cm_win ap "$_APPLY_WIN" apply --exclude=scripts,externals
     assert_eq "Windows 主機端 apply 無錯誤" "" "$(_win_err ap)"
-    assert_eq "Windows 主機端產生的 ~/.codex/config.toml 與 golden 相同" \
-        "$(cat "$GOLDEN/l6/c2-comments-and-tables/.codex/config.toml")" \
-        "$(tr -d '\r' < "$_APPLY_WSL/.codex/config.toml" 2>&1)"
-    assert_eq "Windows 主機端產生的 ~/.claude/settings.json 與 golden 相同" \
-        "$(cat "$GOLDEN/l6/c2-comments-and-tables/settings.windows.json")" \
-        "$(tr -d '\r' < "$_APPLY_WSL/.claude/settings.json" 2>&1)"
+    assert_bytes_eq "Windows 主機端產生的 ~/.codex/config.toml 與 golden 逐位元組相同" \
+        "$GOLDEN/l6/c2-comments-and-tables/.codex/config.toml" \
+        "$_APPLY_WSL/.codex/config.toml"
+    assert_bytes_eq "Windows 主機端產生的 ~/.claude/settings.json 與 golden 逐位元組相同" \
+        "$GOLDEN/l6/c2-comments-and-tables/settings.windows.json" \
+        "$_APPLY_WSL/.claude/settings.json"
 
     rm -rf "$_DEST_WSL" "$_APPLY_WSL" "$_OUT_WSL"
 fi

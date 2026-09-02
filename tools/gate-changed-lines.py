@@ -81,12 +81,24 @@ def main() -> int:
             counts[bucket] += 1
             per_file[current][bucket] += 1
 
+    # evidence report 自己也在 diff 裡，所以「含它」的總數每改一次報告就變。
+    # 另外算一份不含 .scratch/ 的，報告引用那一份才會穩定。
+    prod = {"set2": 0, "set3": 0}
+    for f, c in per_file.items():
+        if f.startswith(".scratch/"):
+            continue
+        prod["set2"] += c["set2"]
+        prod["set3"] += c["set3"]
+
     total = counts["set2"] + counts["set3"]
     print(f"changed-line accounting vs {args.base}")
     print(f"  set 1  executable + instrumented : {counts['set1']}")
     print(f"  set 2  not executable            : {counts['set2']}")
     print(f"  set 3  executable, NO mapping    : {counts['set3']}")
     print(f"  total added lines                : {total}")
+    print()
+    print(f"  不含 .scratch/（evidence report 本身）的產品/測試數字："
+          f"set2={prod['set2']} set3={prod['set3']} total={prod['set2'] + prod['set3']}")
     print()
     print("  set 3 是全部 —— 這個 repo 的三種語言（chezmoi Go template、"
           "POSIX/zsh shell、PowerShell）在這個環境裡都沒有覆蓋率工具。")

@@ -179,6 +179,37 @@ MUTANTS: list[Mutant] = [
         rationale="同一秒內連續備份會撞名，把上一份備份埋進新的備份裡",
     ),
     Mutant(
+        name="backup-timestamp-collision-windows",
+        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        old=(
+            "        $stamp = Get-Date -Format 'yyyyMMddHHmmss'\n"
+            '        $dest = "$Path.bak.$stamp"\n'
+            "        $n = 1\n"
+            "        while (Test-Path -LiteralPath $dest) {\n"
+            '            $dest = "$Path.bak.$stamp.$n"\n'
+            "            $n++\n"
+            "        }"
+        ),
+        new="        $dest = \"$Path.bak.$(Get-Date -Format 'yyyyMMddHHmmss')\"",
+        layer="L7",
+        rationale=(
+            "Windows 端同一秒內連續備份會撞名，把上一份備份埋進新的裡。"
+            "這個 mutant 的鏡像（POSIX 版）本來就有，Windows 版沒有，"
+            "所以它一度可以存活整個套件"
+        ),
+    ),
+    Mutant(
+        name="external-checksum-empty",
+        path=".chezmoiexternal.toml.tmpl",
+        old='"win32-arm64"      "dd4fd5ea2811f91031953f806e0a65855c1d623fae4732d554f6489db33f7abd"',
+        new='"win32-arm64"      ""',
+        layer="L5",
+        rationale=(
+            "空字串的 pin 讓 chezmoi「不驗證就安裝」（實測），比錯的 pin 更危險；"
+            "而且 win32-arm64 這個分支原本沒有任何 fixture 會渲染到它"
+        ),
+    ),
+    Mutant(
         name="codex-empty-tui-crash",
         path="dot_codex/modify_private_config.toml",
         old="{{-       if ge $last 0 -}}{{- $head = slice $buf 0 (add $last 1) -}}{{- end -}}",

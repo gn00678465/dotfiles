@@ -438,6 +438,29 @@ end-to-end 執行（`tests/sandbox/`）。
 
 ---
 
+## 11.5 codex 設定改寫的「一行一個 key」前提（**實測**）
+
+`~/.codex/config.toml` 的 modify-template 是逐行改寫，前提是**受管的 key 各佔一行**。
+四種形狀會讓這個前提失效，合法的 TOML 進去、不合法的 TOML 出來：
+
+| 輸入形狀 | 結果 |
+|---|---|
+| `status_line` 排成多行陣列 | 續行變成孤兒（`"a",` `"b",` `]`），輸出不是合法 TOML |
+| `[[tui]]`（array of tables） | 輸出宣告了兩次 `tui` |
+| `["tui"]`（加引號的表頭） | 同上 |
+| `tui = { ... }`（inline table） | 同上 |
+
+**這四種與移植前的 `sh`+`awk` 實作逐位元組相同**，也就是說它是沿用下來的既有行為，
+不是這次移植引入的；修掉它會改變 POSIX 端的輸出。
+
+第一種最值得注意：受管的 `status_line` 值本身就是一個八元素陣列，任何把它換行排版的
+工具或人都會踩到。目前的緩解只有「不要那樣排版」。
+
+這四種形狀釘在 `tools/gate-properties.py` 的 `KNOWN_LIMITATION`，只驗「與原版逐位元組
+相同」；哪天輸出與原版不一致了，那就是真的回歸，gate 會擋下來。
+
+---
+
 ## 12. 引用來源
 
 - chezmoi：[target-types](https://www.chezmoi.io/reference/target-types/)、

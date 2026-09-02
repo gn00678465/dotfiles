@@ -119,10 +119,21 @@ assert_ok() { # name command...
 # 免得 run_onchange_ 的狀態在 OS 之間互相汙染。
 cm() { # os subcommand...
     _os=$1; shift
+    # fixture 檔名有兩種：平台矩陣用的 os-<name>.toml，以及不帶 override 的
+    # <name>.toml（native、native-wsl）。兩種都找不到就硬失敗 —— chezmoi 對
+    # 「--config 指向不存在的檔案」不會報錯，會安靜地用預設值算繪，於是一個
+    # 打錯的 OS 名稱會變成一個看起來正常、實際上什麼 fixture 都沒套的測試。
+    _cfg="$FIXTURES/os-$_os.toml"
+    if [ ! -f "$_cfg" ]; then _cfg="$FIXTURES/$_os.toml"; fi
+    if [ ! -f "$_cfg" ]; then
+        printf 'tests: 找不到 fixture config: %s（試過 os-%s.toml 與 %s.toml）\n' \
+            "$_os" "$_os" "$_os" >&2
+        return 2
+    fi
     mkdir -p "$TMP/dest-$_os"
     chezmoi \
         --source "$REPO" \
-        --config "$FIXTURES/os-$_os.toml" \
+        --config "$_cfg" \
         --destination "$TMP/dest-$_os" \
         --persistent-state "$TMP/state-$_os.boltdb" \
         --no-tty \
@@ -140,5 +151,9 @@ render_file() { # os path-relative-to-repo
     cm "$1" execute-template < "$REPO/$2"
 }
 
-ALL_OSES='linux darwin-arm64 darwin-amd64 windows'
-POSIX_OSES='linux darwin-arm64 darwin-amd64'
+# 六個組合，不是四個。cc-statusline 有六個 release asset，而每個平台的渲染只會吐出
+# 對應它自己那一個 —— 少渲染一個組合，就等於那個 asset 的 checksum 從來沒有被任何
+# 檢查看過。win32-arm64 與 linux-arm64-musl 原本就是這樣漏掉的。
+ALL_OSES='linux linux-arm64 darwin-arm64 darwin-amd64 windows windows-arm64'
+POSIX_OSES='linux linux-arm64 darwin-arm64 darwin-amd64'
+WINDOWS_OSES='windows windows-arm64'

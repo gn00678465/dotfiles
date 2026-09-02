@@ -11,17 +11,17 @@
 # 免得新增一支腳本卻忘了給它平台守衛。
 _expect() {
     case $1 in
-        run_onchange_before_10-install-packages.sh.tmpl)      echo 'linux' ;;
-        run_once_before_20-install-homebrew.sh.tmpl)          echo 'linux darwin-arm64 darwin-amd64' ;;
-        run_onchange_before_30-install-brew-packages.sh.tmpl) echo 'linux darwin-arm64 darwin-amd64' ;;
-        run_onchange_before_30-install-winget-packages.ps1.tmpl) echo 'windows' ;;
-        run_onchange_before_35-install-ps-modules.ps1.tmpl)    echo 'windows' ;;
-        run_onchange_after_40-git-lfs.sh.tmpl)                echo 'linux darwin-arm64 darwin-amd64' ;;
-        run_onchange_after_40-git-lfs.ps1.tmpl)               echo 'windows' ;;
-        run_onchange_before_50-neovim.sh.tmpl)                echo 'linux darwin-arm64 darwin-amd64' ;;
-        run_onchange_before_50-neovim.ps1.tmpl)               echo 'windows' ;;
-        run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows' ;;
-        run_after_default-shell.sh.tmpl)                      echo 'linux' ;;
+        run_onchange_before_10-install-packages.sh.tmpl)      echo 'linux linux-arm64' ;;
+        run_once_before_20-install-homebrew.sh.tmpl)          echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_onchange_before_30-install-brew-packages.sh.tmpl) echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_onchange_before_30-install-winget-packages.ps1.tmpl) echo 'windows windows-arm64' ;;
+        run_onchange_before_35-install-ps-modules.ps1.tmpl)    echo 'windows windows-arm64' ;;
+        run_onchange_after_40-git-lfs.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_onchange_after_40-git-lfs.ps1.tmpl)               echo 'windows windows-arm64' ;;
+        run_onchange_before_50-neovim.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_onchange_before_50-neovim.ps1.tmpl)               echo 'windows windows-arm64' ;;
+        run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows windows-arm64' ;;
+        run_after_default-shell.sh.tmpl)                      echo 'linux linux-arm64' ;;
         *) echo '__UNKNOWN__' ;;
     esac
 }

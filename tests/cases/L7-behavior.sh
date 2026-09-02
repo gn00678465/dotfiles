@@ -199,6 +199,18 @@ PSEOF
     assert_eq "Windows: 第二份備份用時間戳另存" "2" \
         "$(ls -d "$_bw"/local/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
 
+    # 第四次。時間戳只到秒，同一秒內再備份一次必須另外命名而不是塞進上一份備份裡。
+    # POSIX 那半本來就有這一段；Windows 這半原本沒有，於是鏡像的 mutant 可以存活 ——
+    # 程式碼修好了、能證偽它的程序卻只落在一個平台上。
+    rm -f "$_bw/local/nvim/.chezmoi-lazyvim-starter"
+    if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_bn\\run.ps1" 2>&1); then
+        _pass "Windows 50-neovim 第四次執行成功"
+    else _fail "Windows 50-neovim 第四次執行成功" "$(printf '%s' "$_out" | tr -d '\r')"; fi
+    assert_eq "Windows: 三份備份彼此獨立" "3" \
+        "$(ls -d "$_bw"/local/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
+    assert_eq "Windows: 沒有任何備份被塞進另一份備份裡" "" \
+        "$(find "$_bw/local" -mindepth 2 -maxdepth 2 -name nvim -type d 2>/dev/null)"
+
     # ================= C. pwsh profile loader 的冪等性 =================
     # 真正的 $PROFILE 指向使用者的 Documents，不能拿來測。所以 loader 的邏輯被抽成
     # .chezmoitemplates/pwsh-profile-loader.ps1，由呼叫端先設好 $target；

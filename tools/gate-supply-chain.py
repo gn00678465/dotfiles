@@ -36,7 +36,13 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 FIXTURES = REPO / "tests" / "fixtures"
-OS_CONFIGS = ["os-linux.toml", "os-darwin-arm64.toml", "os-darwin-amd64.toml", "os-windows.toml"]
+# 六個組合，不是四個：每個平台的渲染只吐出屬於它自己的那一個 cc-statusline asset，
+# 少一個組合就等於那個 asset 的 pin 從來沒有被下載驗證過。
+OS_CONFIGS = [
+    "os-linux.toml", "os-linux-arm64.toml",
+    "os-darwin-arm64.toml", "os-darwin-amd64.toml",
+    "os-windows.toml", "os-windows-arm64.toml",
+]
 
 SECRET_PATTERNS = [
     (r"AKIA[0-9A-Z]{16}", "AWS access key id"),
@@ -84,6 +90,8 @@ def externals(source: Path) -> dict[str, str]:
             if line.startswith("url ="):
                 url = line.split("=", 1)[1].strip().strip('"')
             elif line.startswith("checksum.sha256 =") and url:
+                # 空字串的 pin 會讓 chezmoi「不驗證就安裝」（實測），比錯的 pin
+                # 更危險，所以這裡把它記成空值讓下面的比對必然失敗，而不是略過。
                 found[url] = line.split("=", 1)[1].strip().strip('"')
     return found
 
@@ -149,6 +157,9 @@ def main() -> int:
             failures.append(f"下載失敗（pin 因此未經驗證）: {url}: {e}")
             continue
         got = hashlib.sha256(data).hexdigest()
+        if len(want) != 64:
+            failures.append(f"pin 不是一個 sha256（空值會讓 chezmoi 不驗證就安裝）: {url} pin={want!r}")
+            continue
         if got != want:
             failures.append(f"sha256 不符: {url}\n  pinned={want}\n  actual={got}")
         else:
@@ -162,7 +173,16 @@ def main() -> int:
         for line in added:
             if rx.search(line):
                 failures.append(f"疑似機密（{label}）出現在新增的行: {line[:120]}")
-    print(f"secrets: 掃過 {len(added)} 行新增內容")
+    # 這個 diff 也含 evidence report 自己，所以總數會隨報告變動；另外算一份
+    # 不含 .scratch/ 的，讓報告能引用一個穩定的數字。掃描本身仍然涵蓋全部。
+    prod_added = 0
+    cur = ""
+    for line in diff.splitlines():
+        if line.startswith("+++ b/"):
+            cur = line[6:]
+        elif line.startswith("+") and not line.startswith("+++") and not cur.startswith(".scratch/"):
+            prod_added += 1
+    print(f"secrets: 掃過 {len(added)} 行新增內容（其中不含 .scratch/ 的為 {prod_added} 行）")
 
     # ---------------------------------------------------------- 3. capabilities
     def surface(text: str) -> tuple[set[str], set[str]]:
