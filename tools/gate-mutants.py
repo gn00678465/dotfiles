@@ -256,6 +256,46 @@ MUTANTS: list[Mutant] = [
         ),
     ),
     Mutant(
+        name="pwsh-profile-loader-not-called",
+        path=".chezmoiscripts/run_after_60-pwsh-profile.ps1.tmpl",
+        old='{{ includeTemplate "pwsh-profile-loader.ps1" . }}',
+        new="",
+        layer="L11",
+        rationale=(
+            "腳本設好 $target 之後什麼都不做：$PROFILE 永遠拿不到那一行 loader，"
+            "於是 oh-my-posh、PSReadLine、PSFzf、mise 全部不會載入 —— "
+            "整個 Windows shell 設定靜靜地不存在"
+        ),
+    ),
+    Mutant(
+        name="windows-nvim-plugin-content",
+        path="AppData/Local/nvim/lua/plugins/completion.lua.tmpl",
+        old='{{ template "nvim-plugins-completion.lua" . }}',
+        new="return {}",
+        layer="L11",
+        rationale="Windows 的 nvim plugin 落點內容被換掉，與 POSIX 那一份不再是同一個東西",
+    ),
+    Mutant(
+        name="winget-drop-tree-sitter",
+        path=".chezmoiscripts/run_onchange_before_30-install-winget-packages.ps1.tmpl",
+        old="    'tree-sitter.tree-sitter-cli'\n",
+        new="",
+        layer="L11",
+        rationale=(
+            "AGENTS.md 明文禁止修剪的那一項，Windows 版。"
+            "POSIX 的鏡像（posix-script-content-drift）由 L10 對 base ref 比對擋下，"
+            "Windows 沒有 base 可比，這一條就是 L11 存在的理由"
+        ),
+    ),
+    Mutant(
+        name="windows-path-drop-git",
+        path=".chezmoitemplates/windows-path.ps1",
+        old="    (Join-Path $env:ProgramFiles 'Git\\cmd')\n",
+        new="",
+        layer="L11",
+        rationale="PATH 補強少了 Git，腳本在 git 只裝在 Program Files 的機器上會找不到它",
+    ),
+    Mutant(
         name="codex-empty-tui-crash",
         path="dot_codex/modify_private_config.toml",
         old="{{-       if ge $last 0 -}}{{- $head = slice $buf 0 (add $last 1) -}}{{- end -}}",

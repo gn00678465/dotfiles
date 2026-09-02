@@ -37,7 +37,12 @@ COMMENT_PREFIXES = ("#", "//", "--", "<#", "#>", ".SYNOPSIS", ".DESCRIPTION",
 DELIMITERS = {"{", "}", "(", ")", ")}", "}}", "]", "[", ");", "'@", "@'", "@(", "))"}
 
 # 純資料／文件檔：整個檔案沒有可執行的行。
-DATA_SUFFIXES = {".md", ".json", ".txt", ".tsv"}
+#
+# .json **不在**這裡：chezmoi 的 modify-template 不能有 .tmpl 後綴，所以
+# dot_claude/modify_settings.json 副檔名是 .json、內容卻是模板程式碼。
+# 把整類 .json 當資料，等於把六行會被求值的模板 action 記進「不可執行」，
+# 那正是這個腳本自己的政策禁止的方向（有疑義一律進 set 3）。
+DATA_SUFFIXES = {".md", ".txt", ".tsv"}
 
 
 def classify(path: str, line: str) -> str:

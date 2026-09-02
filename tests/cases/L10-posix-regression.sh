@@ -130,11 +130,25 @@ if [ -d "$TMP/base-src" ]; then
         # 的任何差異仍然要失敗。evidence report 有完整說明，這一項需要使用者決定
         # 是要保留（資料安全）還是還原（嚴守 Must NOT #2）。
         if [ "$_s" = "run_onchange_before_50-neovim.sh.tmpl" ]; then
-            _delta=$(diff "$TMP/base-script-$_s" "$TMP/new-script-$_s" | grep '^[<>]' \
-                     | grep -v 'dest="\$1.bak' | grep -v 'local stamp=' | grep -v 'local n=1' \
-                     | grep -v 'while \[\[ -e \$dest \]\]' | grep -v 'n=\$((n + 1))' \
-                     | grep -v 'done' | grep -v '^[<>] *#' || true)
-            assert_eq "$_s 與 base ref 的差異只有備份唯一化迴圈這一項（具名偏離）" "" "$_delta"
+            # 這個例外要窄到剛好等於那個迴圈。原本的濾條含「任何註解行」與
+            # 「任何含 done 的行」，於是刪掉兩行註解也能躲進例外裡（獨立驗證實測）。
+            # 註解是真的會被寫出去的位元組，其他每一支腳本都是逐位元組比對。
+            # 這裡改成把差異正規化之後跟一份寫死的預期 diff 比對。
+            _delta=$(diff "$TMP/base-script-$_s" "$TMP/new-script-$_s" | grep '^[<>]' | sed 's/^\(.\) */\1 /')
+            assert_eq "$_s 與 base ref 的差異，逐行等於那個備份唯一化迴圈（具名偏離）" \
+"$(printf '%s\n' \
+  '< dest="$1.bak.$(date +%Y%m%d%H%M%S)"' \
+  '> # 時間戳只到秒。同一秒內連續兩次 bootstrap 會撞名，而撞名的後果正是這個' \
+  '> # 函式要避免的那件事：mv 會把來源搬「進」既有的備份裡。所以再加一個序號。' \
+  '> local stamp="$(date +%Y%m%d%H%M%S)"' \
+  '> dest="$1.bak.$stamp"' \
+  '> local n=1' \
+  '> while [[ -e $dest ]]; do' \
+  '> dest="$1.bak.$stamp.$n"' \
+  '> n=$((n + 1))' \
+  '> done')" \
+                "$_delta"
+            _delta=""
         else
             assert_bytes_eq "本機 OS 上，$_s 的渲染結果與 base ref 逐位元組相同" \
                 "$TMP/base-script-$_s" "$TMP/new-script-$_s"
