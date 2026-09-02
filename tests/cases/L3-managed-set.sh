@@ -4,7 +4,8 @@
 # 或 POSIX 上落下 AppData\。整份清單用 golden 比對，順便擋住「新增檔案卻忘了
 # 給它平台守衛」以及「repo-only 的檔案漏掉、被裝進 $HOME」。
 
-_managed() { cm "$1" managed --exclude=externals | sort; }
+# LC_ALL=C：排序結果不能隨機器語系而變，否則 golden 在別台機器上會假失敗。
+_managed() { cm "$1" managed --exclude=externals | LC_ALL=C sort; }
 
 for _os in $POSIX_OSES; do
     assert_eq "$_os 的 managed 清單" "$(cat "$GOLDEN/managed-posix.txt")" "$(_managed "$_os")"
