@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
-- `spec_version`: v4
-- `status`: approved
+- `spec_version`: v5
+- `status`: revised-pending-approval
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
@@ -199,7 +199,7 @@ oh-my-posh 主題：**powerlevel10k_rainbow**，但不靠 `$env:POSH_THEMES_PATH
 | L6 | **檔案層 golden**：`chezmoi apply --exclude=scripts,externals` 到預先塞好內容的暫存 destination，比對整棵樹。含 codex/claude 的資料保全案例（有註解、多 table、重複 key、缺 `[tui]`、空檔） | 任何機器 |
 | L7 | **行為測試**：50-neovim 兩個版本各自實跑（HOME/LOCALAPPDATA 指向暫存目錄，`mise`/`git` 用 stub），斷言備份不覆寫、不刪除、marker 冪等；60-pwsh-profile 連跑兩次只有一行 loader | WSL（`.ps1` 經 pwsh.exe） |
 | L8 | **接縫驗證**：Windows 主機端真實 `chezmoi.exe`（`.chezmoi.os == windows`）跑 `managed` + `apply --dry-run`，與 L3 的 `osOverride=windows` 結果逐字比對 | Windows 主機（唯讀） |
-| L9 | **E2E**：Windows Sandbox 內 `_probe.ps1` 自舉 winget → 跑完整 `init.ps1` → 斷言 11 個工具、profile、nvim 目錄、prompt 都到位。兩種模式：**本機**（`prepare.sh` 對應 `C:\src`，輸出到對應出去的 `C:\out`，可測未推送的分支）與**遠端**（`-Branch <分支>`，chezmoi 自己 clone，輸出退到桌面並在結尾把結果全文印到主控台；只能測已推送的分支） | Sandbox（由你按下啟動） |
+| L9 | **E2E**：Windows Sandbox 內 `_probe.ps1` 自舉 winget → 跑完整 `init.ps1` → 斷言 11 個工具、profile、nvim 目錄、prompt 都到位。兩種模式：**本機**（`prepare.sh` 對應 `C:\src`，輸出到對應出去的 `C:\out`，可測未推送的分支）與**遠端**（`-Branch <分支>`，chezmoi 自己 clone，輸出退到桌面並在結尾把結果全文印到主控台；只能測已推送的分支）。**執行期間必須是可觀察的**：長時間步驟的子程序輸出邊收邊印，且每個長步驟開始前先印出「正在做什麼、預期多久」——操作者要能分辨「還在跑」與「卡死」。**工具是否在 PATH 上，必須以重讀 registry 的 Machine+User PATH 為準**，不是探針程序啟動時的快照 | Sandbox（由你按下啟動） |
 | L10 | **回歸**：對 base ref `0d72b8e` 跑同一份 L3/L6，斷言 Linux 與 macOS 的 target 集合與檔案內容**沒有任何改變** | 任何機器 |
 
 收尾：`verification-gate` skill（`gate` 迭代、`evidence` 一次），Tier 3 再派 `verifier` agent 獨立驗證。
@@ -247,6 +247,7 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 | M10 | pwsh profile loader 重複 append | profile 每次 apply 長一行 | L7 |
 | M11 | 這次重構順手改壞 POSIX 端 | 現有機器壞掉 | L10 |
 | M12 | zig 無法讓 tree-sitter CLI 在 Windows 編出 parser | LazyVim 在 Windows 上 treesitter 半殘 | L9；**這條目前未證實**，只有社群資料，見 §7 |
+| M14 | Git for Windows 預設 `core.autocrlf=true`，來源樹被 checkout 成 CRLF | 算繪結果帶進 `\r`，受管的設定檔出現混行尾；`modify_` 改寫器是逐行比對的，下一次 apply 會把 `key = value\r` 當成另一個 key | L6/L10 皆看不到（都從 LF 樹跑）；L9 第二次執行實際抓到 |
 | M13 | Windows 的 ExecutionPolicy 擋掉 chezmoi 寫到 `%TEMP%` 的 `.ps1` | **第一支 `before` 腳本就拒載，整個 apply 在任何檔案落地前中止** —— 全新 Windows 一律如此，使用者拿到的是一台什麼都沒發生的機器 | L2（`.chezmoi.toml.tmpl` 的 `[interpreters.ps1]`）+ L10（POSIX 不受影響）+ L9 |
 
 ---
@@ -261,11 +262,24 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
   **v4 更新**：L9 已經真的跑過一次（遠端模式），但那一次死在 M13，apply 在任何檔案
   落地前就中止，nvim 根本沒被裝起來 —— **M12 仍然未證實**，只是現在知道它為什麼沒被
   問到。
+
+  **v5 更新：這個假設已被推翻，不再是「未證實」。** L9 第二次執行後，使用者在
+  Sandbox 內開新終端機實跑 nvim，nvim-treesitter `main` 回報
+  `Unmet requirements: C compiler ❌`（curl、tar、tree-sitter CLI 都 ✅），
+  並建議 `winget install BrechtSanders.WinLibs.POSIX`。也就是說
+  **nvim-treesitter 的偵測不接受 zig**，把 `zig.zig` 放進 winget 清單並不能滿足它。
+  這一項的處置是產品層決定，選項與代價見 §9 的 v4 → v5。
+  （尚待確認：zig 當時是否真的在該終端機的 PATH 上。若不在，需先排除 A 那一類的
+  觀察誤差再下結論；但即使在，nvim-treesitter 的需求檢查仍是獨立於 zig 的一份清單。）
 - **macOS 沒有實機**。macOS 的證據全部來自 `osOverride=darwin` 的渲染矩陣（L1–L6, L10），
   沒有任何一次真實 apply。這是明確的 downgrade，會寫進 evidence report。
 - **Windows Sandbox 沒有 App Installer**，`_probe.ps1` 需要先自舉 winget；
   這段自舉程式碼只服務測試，不會進到 `init.ps1`。
-- `core.autocrlf = input` 維持不變（Windows 上 checkout 為 LF）。這是刻意不動，不是遺漏。
+- ~~`core.autocrlf = input` 維持不變（Windows 上 checkout 為 LF）。這是刻意不動，不是遺漏。~~
+  **v5 更正：這一條的推論是錯的。** `core.autocrlf = input` 是**這台機器上使用者自己的
+  git 設定**，不是 repo 的性質。Git for Windows 的預設是 `core.autocrlf=true`，而這個
+  repo **沒有 `.gitattributes`**，所以任何一台全新 Windows 都會把來源樹 checkout 成
+  CRLF。後果見 §6 的 M14 與 §9 的 v4 → v5。
 - **備份撞名（accepted risk，v2 決定）**：`backup_dir` /
   `Backup-NvimDirectory` 的時間戳只到秒。若 `dir.bak` 與 `dir.bak.<當秒>` 同時已存在，
   `mv` / `Move-Item` 會把來源搬「進」那份既有備份裡（`dir.bak.<秒>/nvim`）。
@@ -296,6 +310,14 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
+
+### v5 — 待核准
+
+- **approval: pending**
+- version bound: v5（見 §9 的變更清單）
+- 這一版尚未取得核准。契約規定核准綁定單一版本，v4 的核准不自動延伸到 v5。
+- 這一版有**四項**實質變更，其中一項（M12 的處置）需要你在幾個選項之間做決定。
+  **核准之前不會有任何實作** —— 產品與探針都不動。
 
 ### v4 — 2026-09-03
 
@@ -346,6 +368,126 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 ---
 
 ## 9. Revisions
+
+### v4 → v5
+
+全部來自 L9 遠端模式的兩次真實執行。
+
+| # | 變更 | 性質 | 動到什麼 |
+|---|---|---|---|
+| 1 | §3 的 L9 一列新增「執行期間必須是可觀察的」 | 實質（可操作性） | 探針 |
+| 2 | §3 的 L9 一列新增「PATH 判定以重讀 registry 為準」 | 實質（正確性） | 探針 |
+| 3 | §6 新增 **M14**：Git for Windows 預設 `core.autocrlf=true` 把來源樹 checkout 成 CRLF；§7 更正原本「autocrlf 刻意不動」的推論 | 實質（失效模型缺口） | 產品 |
+| 4 | §7 的 **M12 從「未證實」改為「假設已被推翻」**，處置待你決定 | 實質（需要決定） | 產品 |
+
+---
+
+#### 1. L9 執行期間必須是可觀察的
+
+探針有兩段會讓主控台長時間完全靜止：`PASS winget is available` 到
+`PASS init.ps1 installs pwsh 7, git and chezmoi` 之間（三個 `winget install`，好幾分鐘），
+以及 `probe: chezmoi init --apply ...` 之後（整個 apply 期間）。
+
+原因是探針把子程序輸出**整段收進變數、跑完才印**。操作者因此分不出「還在跑」與
+「卡死」，唯一的判斷依據是等待時間。遠端模式特別要命：Sandbox 一關什麼都沒有，
+強制關閉等於整輪重來二三十分鐘。
+
+要求：子程序輸出改成**邊收邊印**（`Tee-Object`，或逐行 `ForEach-Object` 同時寫主控台
+與變數）；**FAIL detail 的內容維持不變**（仍是輸出尾段，格式不動）；每個長步驟開始前
+印一行「正在做什麼、預期要多久」。**不得改變任何檢查的判定邏輯** —— 這是這一項的邊界。
+
+不進 §6：它不會讓任何錯誤被發現或被漏掉，只影響操作者當下能不能判斷該等還是該中止。
+
+---
+
+#### 2. PATH 判定改讀 registry
+
+L9 第二次執行回報十個工具全部 `not found`，但 `chezmoi init --apply` exit 0。
+**這是探針的觀察錯誤，不是產品沒裝。** 兩條獨立證據：
+
+- 這個 repo 只管一個 nvim 檔案（`AppData/Local/nvim/lua/plugins/completion.lua`）。
+  `init.lua` 與 `.chezmoi-lazyvim-starter` 只可能來自 `50-neovim.ps1` 的 clone，
+  而那支腳本在 `mise` 找不到時會**在 clone 之前 `exit 0`**。
+  `nvim config is the LazyVim starter with our marker` 是 PASS，
+  所以 mise 對那支腳本是可見的 —— 套件真的裝了。
+- 使用者事後在 Sandbox 內開新終端機實測：mise、nvim 都正常。
+
+根因：探針的 `Update-ProbePath` 只把**四個寫死的目錄**塞進 `$env:PATH`，而 Windows
+的 PATH 是 process 啟動時的快照；探針程序在任何安裝發生之前就啟動了，winget 對
+registry PATH 的更新它永遠看不到。
+
+要求：改成重讀 registry 的 **Machine + User** PATH 再合成，而不是維護一份固定清單
+（清單今天少哪一個目錄不是重點，機制本身就是錯的）。每一條 `tool on PATH` 的結果
+一併記下**實際找到的路徑**，下一次失敗才讀得懂。
+
+---
+
+#### 3. M14：CRLF checkout（產品）
+
+L9 第二次執行：`FAIL codex config.toml has the managed [tui] keys —
+status_line_use_colors missing`。這條檢查在第一次執行時是空過的（見 evidence 的 P1），
+這是它第一次真的讀到檔案。
+
+根因已完整量測：
+
+| 量測 | 結果 |
+|---|---|
+| .NET `(?m)^status_line_use_colors = true$` 對 LF | **match** |
+| 同一條對 CRLF | **不 match**（`$` 落在 `\r` 之後） |
+| 從 LF 來源樹產生的 `~/.codex/config.toml` | 全部 LF |
+| 從 CRLF 來源樹產生的同一個檔 | 只有 `status_line_use_colors = true\r` 這一行帶 CR，其餘相同 |
+
+也就是：Git for Windows 預設 `core.autocrlf=true` → 來源樹被 checkout 成 CRLF →
+算繪結果把一個 `\r` 帶進受管的設定檔 → 探針那條 `$` 錨定的正則失敗。
+**POSIX 端看不到**：L6 的 golden 與 329 個 property case 全部從 LF 樹跑。
+
+修法（待核准後實作）：repo 加 `.gitattributes` 強制 LF checkout。這是 repo 端的性質，
+不依賴使用者的 git 設定，而且一次關掉整類問題（每一份模板、每一支算繪出來的腳本），
+不是只補這一個 key。
+
+**一併需要你決定的一個附帶問題**：使用者**既有的** `~/.codex/config.toml` 如果本身是
+CRLF（Windows 上的程式寫出來的常態），`modify_` 改寫器是逐行比對的，行尾的 `\r`
+會讓它把 `key = value\r` 看成另一個東西。要不要讓改寫器正規化 CR？代價是它目前被
+`gate-properties.py` 的 P0 釘在「與移植前的 awk 逐位元組相同」上，而 awk 原版不處理
+CR —— 動它就是刻意脫離那個 parity。三個選項：
+
+- **(a) 只加 `.gitattributes`，改寫器不動。** 成本最低，關掉來源端整類問題。
+  殘留風險：使用者既有的 CRLF 設定檔仍可能被錯誤解析。
+- **(b) `.gitattributes` + 改寫器正規化 CR。** 把殘留風險也關掉。
+  代價：脫離 awk parity，P0 要重新定義，POSIX 端的輸出在含 CR 的輸入上會改變。
+- **(c) 只加 `.gitattributes`，並把「既有 CRLF 設定檔」寫成具名的 known limitation。**
+  誠實、成本低，但風險留著。
+
+---
+
+#### 4. M12：zig 當 C compiler 的假設已被推翻（產品，需要決定）
+
+使用者在 Sandbox 內實跑 nvim：nvim-treesitter `main` 回報
+`Unmet requirements: C compiler ❌`，curl / tar / tree-sitter CLI 都 ✅，
+並建議 `winget install BrechtSanders.WinLibs.POSIX`。
+
+SPEC 從 v1 就把 `zig.zig` 放進 winget 清單，理由是「社群做法是改用 zig」。
+**那個假設在真機上不成立** —— 至少 nvim-treesitter 的需求檢查不認 zig。
+這不再是 §7 的「未證實」，而是一條被推翻的假設。
+
+選項（各自的代價都寫出來，請你選）：
+
+- **(a) winget 清單把 `zig.zig` 換成 `BrechtSanders.WinLibs.POSIX`（gcc）。**
+  這是 nvim-treesitter 自己建議的那一個，最可能一次過。
+  代價：下載體積比 zig 大很多（數百 MB 級），安裝時間拉長；`zig` 本身若沒有別的用途
+  就從清單移除。
+- **(b) 保留 zig，另外設法讓 nvim-treesitter 認它**（例如設 `CC`，或在 LazyVim 設定裡
+  指定 compiler）。代價：依賴 nvim-treesitter 的內部行為，脆弱，而且要另外找一個能
+  在 L9 證明它有效的方式；在證明之前 M12 仍然是未解。
+- **(c) 兩個都裝**（zig 保留給其他用途，另外加 WinLibs）。代價：安裝體積最大，
+  且多一個要維護的 winget ID。
+- **(d) 宣告 Windows 上不支援 treesitter parser 編譯**，把 M12 從失效模型移到具名的
+  已知限制，LazyVim 在 Windows 上 treesitter 半殘。代價：功能缺口，但誠實且零成本。
+
+SPEC §7 原本寫的備援是 `Microsoft.VisualStudio.2022.BuildTools`；依實測結果，
+WinLibs 是更小也更直接的那一個，所以列在 (a) 而不是原備援。
+
+**這四項在核准之前都不會實作。**
 
 ### v3 → v4
 
