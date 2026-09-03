@@ -1,8 +1,8 @@
 # Splitting the implementor into a subagent（evidence-first TDD 的 orchestrator / implementor 分離可行性）
 
 > 研究日期：2026-08-31。
-> 研究動機：目前 evidence-first workflow（`.chezmoitemplates/evidence-first-contract.md` + `dot_agents/workflow/evidence-first.md`）由 main session 同時擔任 orchestrator 與 implementor，RED→GREEN→REFACTOR 迴圈的全部 tool output（測試輸出、檔案編輯、重跑）都燒在 main context。本文查證：把 implementor 拆成 subagent（main session 只做 orchestration）是否可行、合約五性質在拆分後各自如何存活、殘餘信任缺口在哪裡，並對照三個既有模式（swarm-forge、spec-kitty implement-review、old-coder）給出設計建議。
-> 主要來源：本 repo `.chezmoitemplates/evidence-first-contract.md`、`dot_agents/workflow/evidence-first.md`、`dot_agents/skills/verification-gate/SKILL.md`、`.chezmoitemplates/verifier-protocol.md`；官方文件 code.claude.com/docs（sub-agents、how-claude-code-works、costs、worktrees、best-practices）；本機 `/mnt/wsl/DWSLWSLSharedevsharedvhdx/swarm-forge`（README + `origin/two-pack` role prompts）、`/home/madao/.claude/skills/spec-kitty-implement-review/SKILL.md`、`/home/madao/project/coder-gate-mesh/old-coder/skills/old-coder/SKILL.md`。
+> 研究動機：目前 evidence-first workflow（`.chezmoitemplates/evidence-first-contract.md` + `dot_agents/workflows/evidence-first.md`）由 main session 同時擔任 orchestrator 與 implementor，RED→GREEN→REFACTOR 迴圈的全部 tool output（測試輸出、檔案編輯、重跑）都燒在 main context。本文查證：把 implementor 拆成 subagent（main session 只做 orchestration）是否可行、合約五性質在拆分後各自如何存活、殘餘信任缺口在哪裡，並對照三個既有模式（swarm-forge、spec-kitty implement-review、old-coder）給出設計建議。
+> 主要來源：本 repo `.chezmoitemplates/evidence-first-contract.md`、`dot_agents/workflows/evidence-first.md`、`dot_agents/skills/verification-gate/SKILL.md`、`.chezmoitemplates/verifier-protocol.md`；官方文件 code.claude.com/docs（sub-agents、how-claude-code-works、costs、worktrees、best-practices）；本機 `/mnt/wsl/DWSLWSLSharedevsharedvhdx/swarm-forge`（README + `origin/two-pack` role prompts）、`/home/madao/.claude/skills/spec-kitty-implement-review/SKILL.md`、`/home/madao/project/coder-gate-mesh/old-coder/skills/old-coder/SKILL.md`。
 > 官方文件段落由背景 research agent 對 code.claude.com/docs 逐頁查證後回報；引文以該回報為準，來源 URL 逐條附上。
 
 ## TL;DR
@@ -150,7 +150,7 @@ Rejection 輪再加：**gate 的失敗輸出原文**（git/檔案可讀的 artif
 
 ### 5.4 Commit cadence：把 temporal 規則變成 git invariant
 
-SPEC 模板的 Setup plan 已有欄位（`dot_agents/workflow/templates/spec.md`：「checkpoint commit cadence: <e.g. at spec approval and each GREEN/REFACTOR>」）。拆分模式下該欄位應宣告並由人核准：
+SPEC 模板的 Setup plan 已有欄位（`dot_agents/workflows/templates/spec.md`：「checkpoint commit cadence: <e.g. at spec approval and each GREEN/REFACTOR>」）。拆分模式下該欄位應宣告並由人核准：
 
 ```text
 每 behavior：
