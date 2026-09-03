@@ -604,7 +604,10 @@ config 全 LF；CRLF 來源樹產生的同一個檔**只有那一行帶 CR**，�
 並建議 `winget install BrechtSanders.WinLibs.POSIX`。
 
 SPEC 從 v1 就把 `zig.zig` 放進 winget 清單，理由是「社群做法是改用 zig」。
-**那個假設在真機上不成立** —— 至少 nvim-treesitter 的需求檢查不認 zig。
+**那個假設在真機上不成立** —— nvim-treesitter 的需求檢查不認 zig。
+
+**而且這不是 A 那一類的觀察誤差**：使用者在同一個終端機跑 `zig version` 得到
+`0.16.0`，zig 裝好了也找得到。排除掉 PATH 這個混淆因子之後，結論是確定的。
 這條因此從「未證實」升級為「已被推翻」，處置是產品層決定，四個選項與各自的代價
 寫在 SPEC §9 的 v4 → v5，等使用者選。
 

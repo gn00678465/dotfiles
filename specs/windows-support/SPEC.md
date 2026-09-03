@@ -269,8 +269,10 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
   並建議 `winget install BrechtSanders.WinLibs.POSIX`。也就是說
   **nvim-treesitter 的偵測不接受 zig**，把 `zig.zig` 放進 winget 清單並不能滿足它。
   這一項的處置是產品層決定，選項與代價見 §9 的 v4 → v5。
-  （尚待確認：zig 當時是否真的在該終端機的 PATH 上。若不在，需先排除 A 那一類的
-  觀察誤差再下結論；但即使在，nvim-treesitter 的需求檢查仍是獨立於 zig 的一份清單。）
+
+  **zig 確實在 PATH 上**：使用者在同一個終端機跑 `zig version` 得到 `0.16.0`。
+  所以這不是 A 那一類的觀察誤差 —— zig 裝好了、找得到，nvim-treesitter `main` 的
+  需求檢查就是不接受它。這條假設的推翻是確定的，不需要再測一次 PATH。
 - **macOS 沒有實機**。macOS 的證據全部來自 `osOverride=darwin` 的渲染矩陣（L1–L6, L10），
   沒有任何一次真實 apply。這是明確的 downgrade，會寫進 evidence report。
 - **Windows Sandbox 沒有 App Installer**，`_probe.ps1` 需要先自舉 winget；
