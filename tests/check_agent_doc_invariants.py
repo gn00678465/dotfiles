@@ -94,9 +94,9 @@ def main() -> None:
 
     contract = root / ".chezmoitemplates/evidence-first-contract.md"
     protocol = root / ".chezmoitemplates/verifier-protocol.md"
-    workflow = root / "dot_agents/workflow/evidence-first.md"
-    spec_t = root / "dot_agents/workflow/templates/spec.md"
-    verif_t = root / "dot_agents/workflow/templates/verification.md"
+    workflow = root / "dot_agents/workflows/evidence-first.md"
+    spec_t = root / "dot_agents/workflows/templates/spec.md"
+    verif_t = root / "dot_agents/workflows/templates/verification.md"
     skill = root / "dot_agents/skills/verification-gate/SKILL.md"
     evidence_t = root / "dot_agents/skills/verification-gate/assets/templates/evidence.md"
     archiver_skill = root / "dot_agents/skills/spec-archive/SKILL.md"

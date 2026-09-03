@@ -13,7 +13,7 @@ and the evidence report carries `contract: overridden by <path>`.
 
 Any workflow may produce the change — /tdd, spec-kitty, manual work; when no
 tool fits, follow the reference implementation at
-`{{ .chezmoi.homeDir }}/.agents/workflow/evidence-first.md`. Whatever runs,
+`{{ .chezmoi.homeDir }}/.agents/workflows/evidence-first.md`. Whatever runs,
 the repository must end up carrying these five properties, because the
 verification step reads them from git, never from this conversation:
 
