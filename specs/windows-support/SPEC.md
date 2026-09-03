@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
-- `spec_version`: v5
-- `status`: approved
+- `spec_version`: v6
+- `status`: revised-pending-approval
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
@@ -199,7 +199,7 @@ oh-my-posh 主題：**powerlevel10k_rainbow**，但不靠 `$env:POSH_THEMES_PATH
 | L6 | **檔案層 golden**：`chezmoi apply --exclude=scripts,externals` 到預先塞好內容的暫存 destination，比對整棵樹。含 codex/claude 的資料保全案例（有註解、多 table、重複 key、缺 `[tui]`、空檔） | 任何機器 |
 | L7 | **行為測試**：50-neovim 兩個版本各自實跑（HOME/LOCALAPPDATA 指向暫存目錄，`mise`/`git` 用 stub），斷言備份不覆寫、不刪除、marker 冪等；60-pwsh-profile 連跑兩次只有一行 loader | WSL（`.ps1` 經 pwsh.exe） |
 | L8 | **接縫驗證**：Windows 主機端真實 `chezmoi.exe`（`.chezmoi.os == windows`）跑 `managed` + `apply --dry-run`，與 L3 的 `osOverride=windows` 結果逐字比對 | Windows 主機（唯讀） |
-| L9 | **E2E**：Windows Sandbox 內 `_probe.ps1` 自舉 winget → 跑完整 `init.ps1` → 斷言 11 個工具、profile、nvim 目錄、prompt 都到位。兩種模式：**本機**（`prepare.sh` 對應 `C:\src`，輸出到對應出去的 `C:\out`，可測未推送的分支）與**遠端**（`-Branch <分支>`，chezmoi 自己 clone，輸出退到桌面並在結尾把結果全文印到主控台；只能測已推送的分支）。**執行期間必須是可觀察的**：長時間步驟的子程序輸出邊收邊印，且每個長步驟開始前先印出「正在做什麼、預期多久」——操作者要能分辨「還在跑」與「卡死」。**工具是否在 PATH 上，必須以重讀 registry 的 Machine+User PATH 為準**，不是探針程序啟動時的快照 | Sandbox（由你按下啟動） |
+| L9 | **E2E**：Windows Sandbox 內 `_probe.ps1` 自舉 winget → 跑完整 `init.ps1` → 斷言 11 個工具、profile、nvim 目錄、prompt 都到位。兩種模式：**本機**（`prepare.sh` 對應 `C:\src`，輸出到對應出去的 `C:\out`，可測未推送的分支）與**遠端**（`-Branch <分支>`，chezmoi 自己 clone，輸出退到桌面並在結尾把結果全文印到主控台；只能測已推送的分支）。**執行期間必須是可觀察的**：長時間步驟的子程序輸出邊收邊印，且每個長步驟開始前先印出「正在做什麼、預期多久」——操作者要能分辨「還在跑」與「卡死」。**套件是否安裝，以 `winget list --exact --id` 逐一確認** `30-install-winget-packages` 清單裡的九個套件——與產品腳本自己的判斷指令相同，不依賴 PATH。「工具在使用者新開的終端機 PATH 上」這件事**不再由 L9 宣稱**，見 §7 的具名已知限制 | Sandbox（由你按下啟動） |
 | L10 | **回歸**：對 base ref `0d72b8e` 跑同一份 L3/L6，斷言 Linux 與 macOS 的 target 集合與檔案內容**沒有任何改變** | 任何機器 |
 
 收尾：`verification-gate` skill（`gate` 迭代、`evidence` 一次），Tier 3 再派 `verifier` agent 獨立驗證。
@@ -285,6 +285,18 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
   沒有任何一次真實 apply。這是明確的 downgrade，會寫進 evidence report。
 - **Windows Sandbox 沒有 App Installer**，`_probe.ps1` 需要先自舉 winget；
   這段自舉程式碼只服務測試，不會進到 `init.ps1`。
+- **「工具在新終端機的 PATH 上」不再自動驗證（具名已知限制，v6）**：L9 原本有十條
+  `tool on PATH` 檢查，**修了三輪都沒修好，而且根因始終沒有找到**（經過見 §9 的
+  v5 → v6 與 evidence report）。已知會紅的檢查會讓人學會忽略 FAIL，所以整組移除，
+  不是留著標記為預期失敗。
+  **改由誰證明**：
+  - *套件有沒有裝* —— 由 v6 新增的 `winget list --exact --id` 九條檢查證明（自動）。
+  - *nvim / gcc / tree-sitter 能不能執行* —— 由既有的 M12 檢查證明（自動）：
+    它必須真的跑起這三支才會產出 lua parser。
+  - *其餘工具在使用者新開的終端機 PATH 上* —— **只有手動驗證**。使用者在 L9 第三次
+    執行後於 Sandbox 內開新終端機逐一確認 mise、nvim 可用，並確認 `zig version`
+    回報 0.16.0。**這一項沒有自動化程序，L9 不再宣稱它。**
+
 - **既有的 CRLF 設定檔（具名已知限制，M14 選 (c) 的殘留風險）**：`.gitattributes`
   管得到的是**來源樹**。使用者機器上**已經存在**的 `~/.codex/config.toml` 若本身是
   CRLF（Windows 上的程式寫出來的常態），`modify_` 改寫器是逐行比對的，行尾的 `\r`
@@ -328,6 +340,15 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
+
+### v6 — 待核准
+
+- **approval: pending**
+- version bound: v6（見 §9 的變更清單）
+- 這一版尚未取得核准。契約規定核准綁定單一版本，v5 的核准不自動延伸到 v6。
+- 需要核准的實質變更：§3 的 L9 移除十條 `tool on PATH` 檢查，改為九條
+  `winget list --exact --id`；§7 新增一條具名已知限制，明寫「工具在新終端機
+  PATH 上」改由手動驗證、L9 不再宣稱。**核准之前不實作。**
 
 ### v5 的兩項選擇 — 2026-09-03
 
@@ -420,6 +441,54 @@ v5 本文把兩件事明寫成「待你決定」並列出選項。以下是那�
 ---
 
 ## 9. Revisions
+
+### v5 → v6
+
+| # | 變更 | 性質 |
+|---|---|---|
+| 1 | §3 的 L9 移除十條 `tool on PATH` 檢查與整段子程序查找機制（`Invoke-ToolLookup`、`tool lookup ran in a fresh process`） | **實質**（移除一項驗證） |
+| 2 | §3 的 L9 新增九條 `winget list --exact --id`，逐一確認 `30-install-winget-packages` 清單裡的套件已安裝 | **實質**（新增一項驗證） |
+| 3 | §7 新增具名已知限制：「工具在新終端機的 PATH 上」改由手動驗證，L9 不再宣稱 | **實質**（揭露少證了什麼） |
+
+#### 為什麼拿掉
+
+`tool on PATH` 這十條在 L9 的第二、三、四、五次執行都是紅的，**修了三輪都沒修好，
+而且根因始終沒有找到**：
+
+| 輪次 | 改法 | 本機驗證 | Sandbox 結果 |
+|---|---|---|---|
+| 1 | 固定四個目錄的 PATH 補強 → 重讀 registry 的 Machine+User | 通過 | 仍然十條全紅 |
+| 2 | 改用 `[Environment]::GetEnvironmentVariable`，並讓重建過程留下報告 | 通過 | 仍然十條全紅（報告顯示 PATH 裡確實有 `WinGet\Links`、`mise\shims`、`mingw64\bin`） |
+| 3 | 查找改到新程序裡做（子程序自己從 Machine+User 組 PATH） | 通過 | 子程序啟動成功、繼承 13 條 PATH，但父程序解析不到任何一條結果 |
+
+本機以 Windows PowerShell 5.1 逐一實驗排除了七種機制，全部無法重現：負向查找快取、
+檔案在程序啟動後才建立、`REG_EXPAND_SZ` 未展開、PATH 項目尾端反斜線、PATH 目錄裡是
+symlink、子程序用絕對路徑啟動、以及最後一輪指出的父程序 console 強制 UTF-8 之後的
+子程序回報通道（在主機上完整重現該條件，通道正常、三行輸出、tab 都在）。
+使用者另外確認此問題**與 PowerShell 5 或 7 無關**。
+
+也就是說：**本機不是那個 Sandbox 的可靠模型，本機綠燈對這一條而言是弱證據。**
+這正是連續三輪「本機驗證通過、Sandbox 仍然失敗」的原因。
+
+決定性的理由不是修不動，而是：**一條已知會紅的檢查會讓人學會忽略 FAIL。**
+留著它並標記為「預期失敗」會侵蝕整份 results.tsv 的可讀性——那正是這一層唯一的產出。
+
+#### 換成什麼
+
+- **九條 `winget list --exact --id <id>`**，對象是 `30-install-winget-packages` 清單裡
+  的九個套件。用的是**產品腳本自己的判斷指令**（那支腳本就是用同一條指令決定要不要
+  安裝），在 Sandbox 內已證明可執行，而且**完全不依賴 PATH**。
+- 搭配**既有的 M12 檢查**：它必須真的跑起 `nvim`、`gcc`、`tree-sitter` 才會產出
+  lua parser，所以那三支「能不能執行」是被證明的。
+
+兩條合起來覆蓋原本那十條想證明的大部分：套件裝了沒、關鍵工具能不能跑。
+
+#### 少證了什麼（明寫）
+
+**「其餘工具在使用者新開的終端機 PATH 上」不再有任何自動化程序。**
+現有的證據只有手動驗證：使用者在 L9 第三次執行後於 Sandbox 內開新終端機，
+逐一確認 mise、nvim 可用，並確認 `zig version` 回報 0.16.0。
+這一項寫進 §7 的具名已知限制，L9 不再宣稱它。
 
 ### v4 → v5
 

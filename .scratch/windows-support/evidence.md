@@ -20,8 +20,8 @@
 - `change_set`: `0d72b8e...HEAD`
 - `base`: `0d72b8e`
 - `report_language`: zh-TW
-- `intent_status`: **confirmed**（v1–v5 各自取得核准，逐字記在 SPEC §8）
-- `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v5`。
+- `intent_status`: **unconfirmed**（v1–v5 已核准；**v6 待核准，尚未實作**）
+- `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v6`。
   v1 於 `e5089df` 進入版本歷史（當時路徑 `.scratch/windows-support/spec.md`），
   **早於任何實作 commit**；核准逐字記在該檔 §8：
 
@@ -53,17 +53,21 @@
 
   兩者都逐字記在 SPEC §8。四項已全部實作完成，見下方「SPEC v5 的實作」。
 
+  **v6 待核准，尚未實作**：移除十條修不好的 `tool on PATH` 檢查，改為九條
+  `winget list --exact --id`，並把「工具在新終端機的 PATH 上」明寫為只有手動驗證。
+  見 SPEC §9 的 v5 → v6 與下方「L9 的五次執行」。
+
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `9f066fba4dd5fc702dd247b2a87a6228c65acf2e`
+- `source_state`: `acea95235491697c2c8f182080373d8a0119fd19`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只有一個 commit：把 v3 的核准逐字
   寫進 SPEC §8、並把本報告更新到這一輪數字的那一個。它只動 `.scratch/` 與
   `specs/windows-support/SPEC.md`，**不含任何產品、測試或 gate 檔案**
-  （可用 `git diff --stat 9f066fb..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
+  （可用 `git diff --stat acea952..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
   讀到（前者斷言它不得被裝進 `$HOME`，後者從中取 base ref），所以最終那棵樹
-  另外跑了一次完整測試套件確認 **501/501**；mutation、property、supply-chain
+  另外跑了一次完整測試套件確認 **511/511**；mutation、property、supply-chain
   三層的結論不可能被一段 markdown 核准記錄影響，沒有重跑。**上一輪報告在這裡踩過一次坑**：
   寫完報告後又提交了一個產品檔（`tests/sandbox/prepare.sh`），使得報告的自我描述
   在下一秒就過期。這次改成「報告是最後一個 commit」。
@@ -240,14 +244,14 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=9f066fb…`, `worktree=clean` |
-| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **501 passed, 0 failed, 0 skipped** |
-| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，501/501 |
-| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 501 passed, 0 failed |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=acea952…`, `worktree=clean` |
+| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **511 passed, 0 failed, 0 skipped** |
+| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，511/511 |
+| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 511 passed, 0 failed |
 | Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
 | Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **34/34 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 7821 行（**不含本報告為 7071 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 4198 / set3 3623 / 共 7071 行 |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 8129 行（**不含本報告為 7342 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 4375 / set3 3754 / 共 7342 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
 | Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
 
@@ -657,6 +661,58 @@ SPEC 從 v1 就把 `zig.zig` 放進 winget 清單，理由是「社群做法是�
 **M12 的狀態沒有因為這次實作而前進。** 換編譯器依據的是 nvim-treesitter 自己的建議，
 不是一次成功的 parser 編譯。狀態仍是「假設已被推翻、處置已選定、**修法未證實**」，
 只有第三次 L9 能改變它。
+
+---
+
+## L9 的五次執行（完整結果）
+
+L9 是這份工作裡唯一能證明「這份 dotfiles 在 Windows 上真的裝得起來」的一層。
+它總共跑了五次，全部是遠端模式，由使用者在 Windows Sandbox 內執行。
+
+| # | commit | 結果 | 這一次證明了什麼 / 找出了什麼 |
+|---|---|---|---|
+| 1 | `9f44752` | PASS=5 FAIL=19 | **M13**：ExecutionPolicy 擋掉 chezmoi 寫到 `%TEMP%` 的第一支 `.ps1`，整個 apply 在任何檔案落地前中止。同時揭穿探針自己的三個缺陷（空過的 codex 檢查、失敗細節讀不到、winget 輸出亂碼） |
+| 2 | `1e94ff8` | PASS=12 FAIL=12 | **M13 已修**（檔案全部落地）、**編碼已修**、**空過的檢查已修**（它第一次真的讀到檔案就抓到 M14）。新找出 **M14**（CRLF）與 `tool on PATH` 全紅。並推翻 M12 的 zig 假設 |
+| 3 | `3e7d9c7` | PASS=14 FAIL=10 | **M12 首次證實**（`lua parser built`）、**M14 證實已修**。`tool on PATH` 十條仍全紅 |
+| 4 | `24b3fe8` | PASS=15 FAIL=10 | M12、M14 再次證實。探針開始「會說話」：報告顯示 PATH 裡確實有 `WinGet\Links`、`mise\shims`、`mingw64\bin`，但父程序仍然找不到工具 |
+| 5 | `acea952` | PASS=16 FAIL=10 | M12、M14 再次證實。子程序啟動成功、繼承 13 條 PATH，但父程序解析不到任何一條工具結果 |
+
+**已證實的（自動、可重現）**：M13、M14、M12，以及每一次執行都通過的檔案落地
+（profile、loader 唯一一行、oh-my-posh 主題、cc-statusline、settings.json、
+codex config、nvim starter、zsh 檔案沒有落地、symlink）。
+
+### `tool on PATH`：修了三輪、根因未找到
+
+| 輪次 | 改法 | 本機驗證 | Sandbox |
+|---|---|---|---|
+| 1 | 固定四目錄 → 重讀 registry 的 Machine+User | 通過 | 十條全紅 |
+| 2 | 改用 `[Environment]::GetEnvironmentVariable`，並讓重建留下報告 | 通過 | 十條全紅 |
+| 3 | 查找改到新程序裡做 | 通過 | 子程序起得來，但父程序解析不到結果 |
+
+本機以 5.1 逐一排除了**七種**機制，沒有一種能重現：負向查找快取、檔案在程序啟動後
+才建立、`REG_EXPAND_SZ` 未展開、PATH 尾端反斜線、PATH 目錄裡是 symlink、
+子程序用絕對路徑啟動、以及父程序把 console 強制成 UTF-8 之後的子程序回報通道
+（最後這一條在主機上完整重現了該條件：通道正常、三行輸出、tab 都在）。
+使用者另外確認此問題**與 PowerShell 5 或 7 無關**。
+
+**誠實的結論：根因沒有找到，而本機不是那個 Sandbox 的可靠模型。**
+連續三輪「本機驗證通過、Sandbox 仍然失敗」不是運氣不好，是這條檢查的本機綠燈
+本來就是弱證據。
+
+過程中我自己的兩個缺陷也是靠 smoke test 才抓到，兩個都是「只在執行時才看得見」
+那一類：`& powershell.exe` 靠 PATH 解析（PATH 問題的解法自己依賴 PATH），
+以及 `-Command` 傳腳本會被 native argument 的引號處理吃掉內嵌雙引號。
+
+### 使用者的決定（v6，待核准）
+
+十條檢查**移除**，不是留著標記為預期失敗 —— 理由是**已知會紅的檢查會讓人學會忽略
+FAIL**，而 results.tsv 是這一層唯一的產出。改為九條
+`winget list --exact --id`（產品腳本自己的判斷指令，不依賴 PATH），搭配既有的 M12
+檢查（它必須真的跑起 nvim / gcc / tree-sitter）。
+
+**少證了什麼，明寫**：「其餘工具在使用者新開的終端機 PATH 上」**不再有任何自動化
+程序**，只有手動驗證 —— 使用者在第三次執行後於 Sandbox 內開新終端機確認 mise、
+nvim 可用，`zig version` 回報 0.16.0。這寫進 SPEC §7 的具名已知限制。
 
 ---
 
