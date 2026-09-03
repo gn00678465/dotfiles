@@ -111,7 +111,7 @@ human (browser)                preview server (HTTP+SSE)              agent (CLI
 
 ## 4. Fit assessment：套用到 evidence-first 的 SPEC REVIEW
 
-對照對象：`dot_agents/workflow/evidence-first.md`（本 repo）Phase 2 SPEC REVIEW——**Exploration**（以 frontier 為單位的多輪提問，答案 fold 回 spec、記進 Revisions）與 **Signing**（結構化核准行為，綁定 spec version，核准字句 verbatim 引入 spec 的 `## Approval` 節並 commit）。
+對照對象：`dot_agents/workflows/evidence-first.md`（本 repo）Phase 2 SPEC REVIEW——**Exploration**（以 frontier 為單位的多輪提問，答案 fold 回 spec、記進 Revisions）與 **Signing**（結構化核准行為，綁定 spec version，核准字句 verbatim 引入 spec 的 `## Approval` 節並 commit）。
 
 ### 可以把 spec 渲染成互動 review 頁嗎？——技術上高度契合
 
@@ -152,5 +152,5 @@ Artifacts 側的能力依據本環境 Claude Code 的 Artifact tool 契約（無
 - Skill 定義：<https://github.com/u-ichi/reviewable-html-workbench/blob/main/skills/reviewable-design-doc/SKILL.md>
 - 互動元件文件：<https://github.com/u-ichi/reviewable-html-workbench/blob/main/docs/skill-fragments/html-interactive-controls.ja.md>
 - Backlog（UI affordances 佐證）：<https://github.com/u-ichi/reviewable-html-workbench/tree/main/backlog/tasks>（task-1、task-10、task-12、task-17、task-18、task-20、task-21、task-7）
-- 本 repo 對照文件：`/mnt/wsl/DWSLWSLSharedevsharedvhdx/dotfiles/dot_agents/workflow/evidence-first.md`（Phase 2 SPEC REVIEW）
+- 本 repo 對照文件：`/mnt/wsl/DWSLWSLSharedevsharedvhdx/dotfiles/dot_agents/workflows/evidence-first.md`（Phase 2 SPEC REVIEW）
 - Claude Code Artifact tool 能力：本環境第一方 tool 契約（comment threads、sent-to-Claude、版本保存、watch），無公開 URL，特此標注非 web 來源。
