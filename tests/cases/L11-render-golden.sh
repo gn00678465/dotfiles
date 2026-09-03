@@ -168,6 +168,30 @@ assert_contains "PATH 重建本身是一條可以 FAIL 的檢查（靜靜失敗�
     "$_probe" "Check 'PATH rebuilt from Machine+User environment'"
 assert_contains "工具找不到時要說出搜了幾條 PATH、有哪些相關目錄" "$_probe" 'searched'
 assert_contains "工具找得到時要記下實際找到的路徑（SPEC v5 第 2 項明文要求）" "$_probe" '$c.Source'
+
+# L9 第四次執行把問題釘死成一件結構性的事：同一時刻，子程序（M12 那條的 Start-Job）
+# 找得到工具、使用者手動開的終端機也找得到，只有探針**自己這個程序**找不到 ——
+# 而它的 $env:PATH 字串裡明明就有那些目錄（探針自己印出來的 likely dirs 有
+# WinGet\Links、mise\shims、mingw64\bin）。本機以 5.1 逐一排除了負向查找快取、
+# 檔案在程序啟動後才建立、REG_EXPAND_SZ、尾端反斜線、PATH 目錄裡是 symlink 五種
+# 機制，都無法重現。
+#
+# 結論不是「再猜一個機制」，而是：這條檢查問錯了程序。它要回答的是「真實使用者
+# 裝完之後開一個終端機，這些工具在不在」，而探針程序在安裝**之前**就啟動了，
+# 不管往 $env:PATH 裡塞什麼都不等於一個新開的 shell。所以查找改到新程序裡做。
+assert_contains "工具查找在新程序裡做，不是在探針程序內" "$_probe" 'Invoke-ToolLookup'
+assert_contains "子程序自己從 Machine+User 組 PATH（新終端機就是這樣拿到 PATH 的）" \
+    "$_probe" 'child rebuilds its own PATH'
+assert_contains "父子兩邊的 PATH 條目數都記下來，下一次才分得出是字串還是程序" \
+    "$_probe" 'parent='
+# 用絕對路徑啟動子程序：靠 PATH 解析 powershell.exe，會讓「PATH 問題的解法」自己
+# 依賴 PATH。實測抓到——把 PATH 砍掉之後，子程序根本啟動不了。
+assert_contains "子程序用絕對路徑啟動，不靠 PATH 解析" "$_probe" 'MainModule.FileName'
+assert_not_contains "不得用裸的 powershell.exe 啟動子程序" "$_probe" '& powershell.exe'
+# -Command 會讓腳本經過 native argument 的引號處理，內嵌的雙引號被吃掉，子程序拿到
+# 一份剖析不了的腳本（實測：子程序只吐 parser error）。-EncodedCommand 沒有引號層。
+assert_contains "子程序腳本用 -EncodedCommand 傳，不經 native argument 的引號處理" \
+    "$_probe" '-EncodedCommand'
 # 固定目錄清單就是上一輪誤報的機制本身。唯一保留的例外是 mise 的 shim 目錄，
 # 它不在 registry PATH 上（是 profile 的 mise activate 加的），必須單獨補、單獨說明。
 _probe_fixed=$(grep -c "Join-Path \$env:ProgramFiles" "$REPO/tests/sandbox/_probe.ps1" || true)
