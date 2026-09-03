@@ -401,7 +401,14 @@ MUTANTS: list[Mutant] = [
 
 
 def run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    # errors="replace" 不是防禦性寫法，是對一段實測輸出的處理：L7 的 Windows 半邊
+    # 用 pwsh.exe 跑腳本，而 pwsh.exe 的工作目錄是 UNC 路徑（\\wsl.localhost\...）時，
+    # cmd.exe 會先吐一行「不支援 UNC 路徑」的警告，用主機的 ANSI 代碼頁編碼
+    # （這台是 CP950）。那行只會在斷言失敗、_fail 把 pwsh 的輸出印進診斷時出現，
+    # 也就是**只在 mutant 被殺掉的時候**。嚴格 UTF-8 解碼會在那一刻拋例外，
+    # 於是「這個 mutant 死了」被誤報成「跑不完」，整個 gate 中斷。實際發生過一次。
+    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
+                          errors="replace")
 
 
 def main() -> int:
