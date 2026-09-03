@@ -125,6 +125,29 @@ runs selected layers. Layers: L1 platform partial, L2 script render matrix,
 L3 managed target set, L4 syntax, L5 externals, L6 file-level goldens (the
 data-preservation cases), L7 behaviour (real script runs in a redirected
 environment), L8 real-Windows seam validation, L10 POSIX regression against the
-base ref. L9 is the Windows Sandbox end-to-end run -- see `tests/sandbox/`.
+SPEC's `base_ref`, L11 verbatim render goldens (`init.ps1`, `_probe.ps1`, the
+Windows scripts). L9 is the Windows Sandbox end-to-end run -- see
+`tests/sandbox/README.md`: **local mode** (`prepare.sh` + `sandbox.wsb`, tests an
+unpushed tree) and **remote mode** (one `irm | iex` line inside any Sandbox,
+tests a pushed branch; nothing survives the Sandbox closing except what the
+probe prints).
 
 L4, L7 and L8 skip cleanly without WSL interop. Everything else runs anywhere.
+
+`tools/gate.sh` is the verification gate the evidence-first contract hands off
+to: it runs the suite plus suite-health repeats and shuffles, property cases
+(`gate-properties.py`), hand-written mutants (`gate-mutants.py`), supply-chain
+resolution of every external and winget ID (`gate-supply-chain.py`),
+changed-line coverage, and a source-state check before and after. Every layer
+goes through `run_layer` so a failure is the layer's exit code, never `tee`'s;
+`gate-manifest-audit.sh` fails the gate if a layer declared in the manifest did
+not actually run. Artifacts land in `.gate/<scope>/` (ignored by git).
+
+## Evidence-first artifacts
+
+Specs live at `specs/<scope>/SPEC.md`, the path the contract fixes for every
+workflow because `spec-archive` reads it there at CLOSE. The evidence report for
+a shipped change is committed at `.scratch/<scope>/evidence.md` -- outside
+`specs/` on purpose, since `spec-archive` moves the whole `specs/<scope>/`
+directory. `windows-support` is the first change to have gone through the full
+SPEC v1..v6 → gate → evidence path; its report is the worked example.
