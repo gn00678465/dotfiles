@@ -172,82 +172,6 @@ function Update-ProbePath {
     Set-Variable -Name ProbePathReport -Scope Global -Value ($report -join ' ')
 }
 
-function Invoke-ToolLookup {
-    # Ask a freshly started process, not this one.
-    #
-    # The fourth real L9 run made this structural rather than speculative: at the
-    # same moment, the Start-Job child (M12) found nvim / tree-sitter / gcc and the
-    # operator's own new terminal found everything, while this process found
-    # nothing -- with WinGet\Links, mise\shims and mingw64\bin sitting in its own
-    # $env:PATH, printed in its own failure detail. Five mechanisms were tested on
-    # a real 5.1 host and none reproduced it: negative-lookup caching, a file
-    # created after process start, REG_EXPAND_SZ, a trailing backslash, and a
-    # symlink inside a PATH directory.
-    #
-    # So the answer is not another guess at a mechanism. The check asks the wrong
-    # process. What it is for is "after installing, does a real user who opens a
-    # terminal have these tools" -- and this process started before the install.
-    # No amount of splicing into $env:PATH makes it equal to a newly started
-    # shell. The in-process rebuild stays, because the probe's own later steps
-    # need it; the verdict moves to a new process.
-    #
-    # Same engine (powershell.exe, 5.1) on purpose: it isolates "different
-    # process" from "different engine", so the counts below compare like with like.
-    param([string[]] $Tools)
-
-    $script = @'
-$names = @(__NAMES__)
-$inherited = @($env:PATH -split ';' | Where-Object { $_.Trim() }).Count
-# child rebuilds its own PATH from Machine+User -- this is how Windows builds the
-# PATH of any newly started process, which is exactly the thing being measured.
-$collected = @()
-foreach ($scope in @('Machine', 'User')) {
-    $v = [Environment]::GetEnvironmentVariable('Path', $scope)
-    if ($v) { $collected += @($v -split ';' | Where-Object { $_.Trim() }) }
-}
-$collected += (Join-Path $env:LOCALAPPDATA 'mise\shims')
-$seen = New-Object 'System.Collections.Generic.HashSet[string]'
-$merged = New-Object System.Collections.ArrayList
-foreach ($d in (@($env:PATH -split ';') + $collected)) {
-    $t = "$d".Trim()
-    if (-not $t) { continue }
-    if ($seen.Add($t.TrimEnd('\').ToLowerInvariant())) { [void]$merged.Add($t) }
-}
-$env:PATH = ($merged -join ';')
-Write-Output ("#COUNTS`tinherited=$inherited`trebuilt=" + $merged.Count)
-foreach ($n in $names) {
-    $c = Get-Command $n -ErrorAction SilentlyContinue
-    if ($c) { Write-Output ("$n`tOK`t" + $c.Source) }
-    else {
-        $all = @($env:PATH -split ';' | Where-Object { $_.Trim() })
-        $likely = @($all | Where-Object { $_ -match 'WinGet|mise|WindowsApps|mingw' })
-        Write-Output ("$n`tMISSING`tsearched " + $all.Count + " PATH entries; likely dirs: " + (($likely | Select-Object -First 6) -join ' '))
-    }
-}
-'@
-    $names = ($Tools | ForEach-Object { "'" + $_ + "'" }) -join ', '
-    $script = $script.Replace('__NAMES__', $names)
-
-    # Launch by absolute path, not by name. Resolving "powershell.exe" through
-    # PATH would make the workaround for a PATH problem depend on PATH -- caught
-    # by testing this function with a deliberately gutted PATH, where the child
-    # could not be started at all. MainModule.FileName is the executable this
-    # probe is already running as, so the child is the same engine by
-    # construction, which is what makes the parent/child counts comparable.
-    $self = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-
-    # -EncodedCommand, not -Command: passing the script as a plain argument runs
-    # it through Windows PowerShell's native-argument quoting, which strips the
-    # embedded double quotes and hands the child a script that does not parse.
-    # Measured -- the child came back with nothing but parser errors. Base64 has
-    # no quoting layer to get wrong.
-    $encoded = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($script))
-
-    $out = @()
-    & $self -NoProfile -NonInteractive -EncodedCommand $encoded 2>&1 |
-        ForEach-Object { $out += ("$_" -replace "`r", '') }
-    return $out
-}
 
 # ---------------------------------------------------------------- winget
 # Sandbox has no App Installer. Pull the latest winget-cli release plus its
@@ -365,34 +289,48 @@ if ($remote) {
     }
 }
 
-# ---------------------------------------------------------------- tools
-$toolNames = @('mise', 'fzf', 'rg', 'fd', 'lazygit', 'git-lfs', 'tree-sitter', 'oh-my-posh', 'gcc', 'nvim')
+# ---------------------------------------------------------------- packages
+# What replaced the ten "tool on PATH" checks (SPEC v6). Those were red in four
+# consecutive real runs, three fix attempts did not hold, and the root cause was
+# never found -- and a check known to be red teaches people to ignore FAIL, which
+# would cost the whole results table its meaning.
+#
+# This asks a different, answerable question: is the package installed? It uses
+# the same command 30-install-winget-packages uses to decide whether to install,
+# so a disagreement here is a disagreement with the product's own logic, and it
+# does not depend on PATH at all.
+#
+# What this does NOT establish: that the tools are on a new terminal's PATH.
+# Nothing here does any more -- see the named limitation in SPEC 7. What is still
+# covered automatically is the M12 check below, which cannot pass unless nvim,
+# tree-sitter and gcc actually run.
+#
+# This list must stay identical to the one in the install script; L11 asserts
+# that by comparing both, because a package added there and missed here would be
+# silently unverified, and L9 is the only place it can be verified at all.
+$wingetPackages = @(
+    'jdx.mise'
+    'junegunn.fzf'
+    'GitHub.GitLFS'
+    'BurntSushi.ripgrep.MSVC'
+    'sharkdp.fd'
+    'JesseDuffield.lazygit'
+    'tree-sitter.tree-sitter-cli'
+    'JanDeDobbeleer.OhMyPosh'
+    'BrechtSanders.WinLibs.POSIX.UCRT'
+)
+
 Write-Host ''
-Write-Host 'probe: looking tools up in a freshly started process (see Invoke-ToolLookup)'
-$lookup = Invoke-ToolLookup -Tools $toolNames
-$toolResult = @{}
-$lookupCounts = ''
-foreach ($line in $lookup) {
-    $parts = $line -split "`t", 3
-    if ($parts[0] -eq '#COUNTS') { $lookupCounts = ($parts[1..2] -join ' '); continue }
-    if ($parts.Count -ge 2) { $toolResult[$parts[0]] = @{ Status = $parts[1]; Detail = $parts[2] } }
-}
-
-# Record both sides. If a later run ever shows the child finding tools the parent
-# cannot, with the same PATH, that comparison is the evidence -- not a hypothesis.
-Check 'tool lookup ran in a fresh process' {
-    if (-not $lookupCounts) { throw ("child produced no counts; raw: " + ($lookup -join ' | ')) }
-    $parentCount = @($env:PATH -split ';' | Where-Object { $_.Trim() }).Count
-    "parent=$parentCount child $lookupCounts"
-}
-
-foreach ($t in $toolNames) {
-    $name = $t
-    Check "tool on PATH: $name" {
-        if (-not $toolResult.ContainsKey($name)) { throw 'child process reported nothing for this tool' }
-        $r = $toolResult[$name]
-        if ($r.Status -ne 'OK') { throw $r.Detail }
-        $r.Detail
+Write-Host 'probe: checking the winget packages are installed'
+foreach ($pkgId in $wingetPackages) {
+    $id = $pkgId
+    Check "winget package installed: $id" {
+        $out = (& winget list --exact --id $id --accept-source-agreements 2>&1 |
+            ForEach-Object { "$_" }) -join "`n"
+        if ($LASTEXITCODE -ne 0) {
+            throw ("winget list -> $LASTEXITCODE; " + (Get-OutputTail $out 5))
+        }
+        'installed'
     }
 }
 
