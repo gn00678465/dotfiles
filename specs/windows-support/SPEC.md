@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
 - `spec_version`: v3
-- `status`: revised-pending-approval
+- `status`: approved
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
@@ -293,13 +293,20 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
 
-### v3 — 待核准
+### v3 — 2026-09-03
 
-- **approval: pending**
-- version bound: v3（見 §9 的變更清單）
-- 這一版尚未取得核准。契約規定核准綁定單一版本，v2 的核准不自動延伸到 v3。
-- 需要核准的實質變更只有一項：§3 的 L9 一列新增遠端模式。這是驗證程序的擴充，
-  不改變 §5 Must NOT、§6 失效模型或任何產品需求。
+- **approval: confirmed**
+- version bound: v3 — 核准當下 `specs/windows-support/SPEC.md` 的 sha256
+  （即本節被改寫成核准狀態**之前**、`status` 仍為 `revised-pending-approval` 的檔案內容）
+  = `25bfd94b62305152a5cbc15cdba7ad6f88ba6642214a89dbd8d133c89e3befe3`
+- date: 2026-09-03
+- approver: repo owner（Madao）
+- verbatim words（使用者原話，逐字）:
+
+  > 核准 SPEC v3
+
+- 範圍：v3 全文。實質變更只有一項 —— §3 的 L9 一列新增遠端模式（驗證程序擴充），
+  不動 §5 Must NOT、§6 失效模型或任何產品需求。完整清單見 §9。
 
 ### v2 — 2026-09-03
 
