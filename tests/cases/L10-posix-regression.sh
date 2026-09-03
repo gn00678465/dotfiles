@@ -5,10 +5,23 @@
 # 做法：把 base ref 的來源樹解到暫存目錄，兩邊各 apply 一次到各自的 destination
 # （--exclude=scripts,externals：不執行任何腳本、不下載任何 external），再整棵樹 diff。
 
-_BASE_REF=$(sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' "$REPO/specs/windows-support/SPEC.md" | head -1)
+# SPEC 在 CLOSE（spec-archive）之後會搬到 specs/archive/ 底下，兩個位置都要找。
+# 這一段原本只認一個路徑，而讀不到時是 skip —— 封存那一刻整層會靜靜消失，
+# 那正是這條分支一路在防的「沉默的降級」。所以：SPEC 完全找不到 = 失敗（repo 的
+# 不變量壞了），只有「SPEC 有、但那個 commit 不在這個 repo 裡」才 skip。
+_find_spec() {
+    for _s in "$REPO/specs/windows-support/SPEC.md" "$REPO/specs/archive/windows-support/SPEC.md"; do
+        [ -f "$_s" ] && { printf '%s' "$_s"; return 0; }
+    done
+    return 1
+}
+_SPEC_PATH=$(_find_spec || true)
+_BASE_REF=$(if [ -n "$_SPEC_PATH" ]; then sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' "$_SPEC_PATH" | head -1; fi)
 
-if [ -z "$_BASE_REF" ]; then
-    skip "POSIX 回歸" "SPEC 裡讀不到 base ref"
+if [ -z "$_SPEC_PATH" ]; then
+    _fail "找得到 SPEC（specs/ 或 specs/archive/）" "兩個位置都沒有 windows-support 的 SPEC"
+elif [ -z "$_BASE_REF" ]; then
+    _fail "SPEC 裡讀得到 base ref" "在 $_SPEC_PATH 裡找不到 base_ref 那一行"
 elif ! git -C "$REPO" cat-file -e "$_BASE_REF^{commit}" 2>/dev/null; then
     skip "POSIX 回歸" "base ref $_BASE_REF 不在這個 repo 裡"
 else
@@ -32,8 +45,39 @@ else
     if [ -n "$_base_out" ]; then _fail "base ref apply 無錯誤" "$_base_out"; else _pass "base ref apply 無錯誤"; fi
     if [ -n "$_new_out" ]; then _fail "目前來源 apply 無錯誤" "$_new_out"; else _pass "目前來源 apply 無錯誤"; fi
 
-    _diff=$(diff -r "$TMP/dest-base" "$TMP/dest-new-native" 2>&1) || true
-    assert_eq "本機 OS 上，套用結果與 base ref 逐位元組相同" "" "$_diff"
+    # SPEC v7 之前這裡要求「與 base 逐位元組相同」。base 改成 origin/main 之後，
+    # 本分支**刻意**帶著還沒併進 main 的 commit（目前是 443bfc0，把 Phase 6 的
+    # 封存時機改到合併前），而那個 commit 動到會部署出去的 agent 文件。
+    #
+    # 所以要求不再是「沒有差異」，而是「**每一個有差異的 target，都要有本分支
+    # 動過的來源檔可以解釋**」。反查用 chezmoi 自己的 source-path，不是猜檔名；
+    # 期望集合從 git 導出而不是寫死，所以 443bfc0 併進 main 之後這裡會自動變回
+    # 「沒有差異」，不需要有人回來改。
+    #
+    # 抓得到的仍然是真正該抓的：某個 target 變了、卻沒有對應的來源改動 ——
+    # 那就是算繪漂移或誤改，不是這次刻意帶的東西。
+    git -C "$REPO" diff --name-only "$_BASE_REF"..HEAD > "$TMP/branch-changed.txt"
+    _unexplained=''
+    for _f in $(diff -rq "$TMP/dest-base" "$TMP/dest-new-native" 2>/dev/null \
+                | sed -n 's|^Files .* and \(.*\) differ$|\1|p'); do
+        # 先 realpath：chezmoi 管的是 ~/.claude/skills/<name> 這個 symlink 本身，
+        # 不是穿過它看到的檔案。diff -r 會跟著 symlink 走，於是同一個檔案會以
+        # 兩個路徑各出現一次，而穿過 symlink 的那一個 source-path 反查不到。
+        _real=$(readlink -f "$_f" 2>/dev/null || printf '%s' "$_f")
+        _src=$(chezmoi --source "$REPO" --destination "$TMP/dest-new-native" \
+                 --persistent-state "$TMP/st-newnat.boltdb" --config "$FIXTURES/native.toml" \
+                 --no-tty source-path "$_real" 2>/dev/null | sed "s|^$REPO/||")
+        if [ -z "$_src" ] || ! grep -qxF "$_src" "$TMP/branch-changed.txt"; then
+            _unexplained="$_unexplained${_unexplained:+ }${_f#$TMP/dest-new-native/}"
+        fi
+    done
+    assert_eq "本機 OS 上，每一個與 base 有差異的 target 都由本分支改過的來源檔解釋" \
+        "" "$_unexplained"
+
+    # 只出現在其中一邊的檔案（新增或消失的 target）仍然一條都不准有 ——
+    # 那是 managed 集合的變化，由下面兩條斷言各自釘住，這裡先看整棵樹。
+    _onlyin=$(diff -rq "$TMP/dest-base" "$TMP/dest-new-native" 2>&1 | grep '^Only in ' || true)
+    assert_eq "本機 OS 上，沒有任何 target 只存在於其中一邊" "" "$_onlyin"
 
     # managed 清單：新舊之間只准多出四支 Windows 腳本，其他一律不准動。
     _base_mg=$(chezmoi --source "$_base_src" --destination "$TMP/dest-base" \
@@ -51,14 +95,11 @@ else
     # `.claude/agents`）才會爆。
     _added=$(LC_ALL=C comm -13 "$TMP/mg-base.txt" "$TMP/mg-new.txt")
     _removed=$(LC_ALL=C comm -23 "$TMP/mg-base.txt" "$TMP/mg-new.txt")
-    assert_eq "本機 OS 上，managed 只多出五支 Windows 腳本" \
-"$(printf '%s\n' \
-  '.chezmoiscripts/30-install-winget-packages.ps1' \
-  '.chezmoiscripts/35-install-ps-modules.ps1' \
-  '.chezmoiscripts/40-git-lfs.ps1' \
-  '.chezmoiscripts/50-neovim.ps1' \
-  '.chezmoiscripts/60-pwsh-profile.ps1' | LC_ALL=C sort)" \
-        "$_added"
+    # SPEC v7：base_ref 改為 origin/main，而 main 已經含有這份移植（#7），
+    # 所以那五支 Windows 腳本在基準裡本來就有，新增集合應該是**空的**。
+    # 這是降級的一部分——L10 不再重新驗證「移植只多出這五支」，那件事的證據留在
+    # 歷史裡（`777b122` 與更早的每一輪都對 `ccae9d8` 比對過）。
+    assert_eq "本機 OS 上，managed 相對 base 沒有多出任何 target" "" "$(printf '%s' "$_added")"
     assert_eq "本機 OS 上，managed 沒有任何 target 消失" "" "$(printf '%s' "$_removed")"
 
     # macOS 沒有實機，base ref 也沒有 osOverride 接縫，所以 darwin 只能間接釘：
@@ -80,12 +121,12 @@ else
     assert_eq "那兩個檔案的差異只有 brew prefix 一項" "" "$_substantive"
 fi
 
-unset _BASE_REF _base_src _base_out _new_out _diff _base_mg _new_mg _added _removed _dw_out _changed_files _substantive
+unset _base_src _base_out _new_out _diff _unexplained _onlyin _src _real _base_mg _new_mg _added _removed _dw_out _changed_files _substantive
 
 # external 也要釘回歸：L10 上面的 apply 帶 --exclude=externals，不會碰到它們。
 # 比對忽略空行與註解：兩者在 TOML 裡都沒有語意，而 {{ if }} 包裹會多出空行、
 # 註解這次也刻意改寫過（六個平台、多一種副檔名）。這裡要釘的是實際生效的定義。
-_BASE_REF2=$(sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' "$REPO/specs/windows-support/SPEC.md" | head -1)
+_BASE_REF2=$_BASE_REF
 if [ -n "$_BASE_REF2" ] && [ -d "$TMP/base-src" ]; then
     _base_ext=$(chezmoi --source "$TMP/base-src" --destination "$TMP/dest-base" \
         --persistent-state "$TMP/st-base.boltdb" --config "$FIXTURES/native.toml" --no-tty \
@@ -93,7 +134,7 @@ if [ -n "$_BASE_REF2" ] && [ -d "$TMP/base-src" ]; then
     _new_ext=$(render_file native .chezmoiexternal.toml.tmpl | sed -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d')
     assert_eq "本機 OS 上，external 的實際定義與 base ref 相同（忽略空行與註解）" "$_base_ext" "$_new_ext"
 fi
-unset _BASE_REF2 _base_ext _new_ext
+unset _BASE_REF _BASE_REF2 _SPEC_PATH _base_ext _new_ext
 
 # .chezmoi.toml.tmpl 產生的是 chezmoi 自己的設定，不是 target，所以上面那段整棵樹
 # 的 diff 看不到它。Windows 的直譯器修法動到這個檔案，而它同時決定 POSIX 機器

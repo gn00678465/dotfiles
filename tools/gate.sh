@@ -4,7 +4,9 @@
 #
 #   tools/gate.sh [--base <ref>]
 #
-# 預設 base 是 specs/windows-support/SPEC.md 裡記的那一個。
+# 預設 base 是 SPEC 裡記的那一個。SPEC 在 CLOSE（spec-archive）之後會從
+#   specs/<scope>/SPEC.md 搬到 specs/archive/<scope>/SPEC.md
+# 所以兩個位置都要找。找不到就是硬錯誤，不是預設值 —— 讀不到基準的 gate 沒有意義。
 #
 # 契約：
 #   * fail closed —— set -e，沒有 `|| true`，沒有 `2>/dev/null`，第一層壞掉就停。
@@ -29,7 +31,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 if [ -z "$BASE" ]; then
-    BASE=$(sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' specs/windows-support/SPEC.md | head -1)
+    for _spec in specs/windows-support/SPEC.md specs/archive/windows-support/SPEC.md; do
+        [ -f "$_spec" ] || continue
+        BASE=$(sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' "$_spec" | head -1)
+        [ -n "$BASE" ] && break
+    done
 fi
 [ -n "$BASE" ] || { echo "gate: 給不出 base ref" >&2; exit 2; }
 
