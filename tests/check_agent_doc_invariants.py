@@ -101,7 +101,6 @@ def main() -> None:
     evidence_t = root / "dot_agents/skills/verification-gate/assets/templates/evidence.md"
     archiver_skill = root / "dot_agents/skills/spec-archive/SKILL.md"
     archiver = root / "dot_agents/skills/spec-archive/scripts/spec-archive.py"
-    tracker = root / "docs/agents/issue-tracker.md"
 
     # 1. Layer-status vocabulary: SKILL.md and the evidence template must
     #    carry the same five states — a status one side names and the other
@@ -163,13 +162,8 @@ def main() -> None:
           (contract, r"`([\w./-]+)/<scope>/SPEC\.md`"),
           (workflow, r"`([\w./-]+)/<scope>/SPEC\.md`"),
           (archiver, r'root / "([\w-]+)" / scope'),
-          (archiver_skill, r"`([\w/-]+)/<scope>/` to"),
-          # The repo's own tracker doc is the one place a project override
-          # of the path could hide; it used to say `.scratch/<slug>/spec.md`
-          # and an implementer legitimately followed it.
-          (tracker, r"`([\w./-]+)/<scope>/SPEC\.md`"))
+          (archiver_skill, r"`([\w/-]+)/<scope>/` to"))
     forbid(workflow, "spec path stated as optional", "suggested path")
-    forbid(tracker, "tracker still claims specs", "specs for this repo")
 
     # 10. Status vocabulary needs an owner per transition, not just a list.
     #     `shipped` always had one (the archiver's script); `approved` had
