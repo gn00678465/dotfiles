@@ -18,7 +18,7 @@
   不在本分支改動。
 - `scope`: `windows-support`
 - `change_set`: `0d72b8e...HEAD`
-- `base`: `0d72b8e`
+- `base`: `ccae9d8`（原為 `0d72b8e`，見下方「合併 main 之後」）
 - `report_language`: zh-TW
 - `intent_status`: **confirmed**（v1–v6 各自取得核准，逐字記在 SPEC §8）
 - `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v6`。
@@ -62,13 +62,13 @@
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `10d3e5bcf884144bfbbbec3815871e46baad78bc`
+- `source_state`: `777b122bfc974975fd24bf95c61ebd6b455a2923`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只有一個 commit：把 v3 的核准逐字
   寫進 SPEC §8、並把本報告更新到這一輪數字的那一個。它只動 `.scratch/` 與
   `specs/windows-support/SPEC.md`，**不含任何產品、測試或 gate 檔案**
-  （可用 `git diff --stat 10d3e5b..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
+  （可用 `git diff --stat 777b122..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
   讀到（前者斷言它不得被裝進 `$HOME`，後者從中取 base ref），所以最終那棵樹
   另外跑了一次完整測試套件確認 **500/500**；mutation、property、supply-chain
   三層的結論不可能被一段 markdown 核准記錄影響，沒有重跑。**上一輪報告在這裡踩過一次坑**：
@@ -249,16 +249,17 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=10d3e5b…`, `worktree=clean` |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=777b122…`, `worktree=clean` |
 | Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **500 passed, 0 failed, 0 skipped** |
 | Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，500/500 |
 | Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 500 passed, 0 failed |
 | Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
 | Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **34/34 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 8137 行（**不含本報告為 7292 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 4454 / set3 3683 / 共 7292 行 |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 8068 行（**不含本報告為 7363 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 4383 / set3 3685 / 共 7363 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
-| Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
+| Agent doc invariants | `python3 tests/check_agent_doc_invariants.py` | 全部成立 | **48/48** |
+| Manifest audit | `sh tools/gate-manifest-audit.sh` | 11 層全部留下執行記號且無多餘 | **11/11** |
 
 Suite health 排在 property、mutation、行數會計**之前**，因為那三者的結論都是從這個
 suite 的行為推出來的。
@@ -575,6 +576,45 @@ SPEC 目前停在已核准的 v6，而更動已核准文件的內容要走自己
 **少證了什麼**：「其餘工具在使用者新開的終端機 PATH 上」**沒有任何自動化程序**，
 只有手動驗證 —— 使用者在第 3 次執行後於 Sandbox 內開新終端機確認 mise、nvim 可用，
 `zig version` 回報 0.16.0。已寫進 SPEC §7 的具名已知限制。
+
+---
+
+## 合併 main 之後（2026-09-04）
+
+main 的 #3（evidence-first 合約）合併進本分支（merge commit `cbbdafc`），
+接著 #7 把 Windows 支援合併進 main（`16282ff`）。合併本身沒有動任何產品或測試邏輯，
+但 main 自己前進了，於是有三件事要處理，**全部先看到 RED**：
+
+| # | 現象 | 處置 |
+|---|---|---|
+| 1 | L10「與 base ref 逐位元組相同」FAIL | `base_ref` `0d72b8e` → `ccae9d8`。判定為**非實質變更、未重新請求核准**，四條理由寫進 SPEC §9 |
+| 2 | L3 六條 managed golden FAIL | 依 main 現況更新，更新前逐項稽核來源 |
+| 3 | L10 整層中止（`comm: input is not in sorted order`）| 兩個 `comm` 補上 `LC_ALL=C` |
+
+**第 2 項的差異不只 `commit-message` 更名。** 逐項稽核之後，新增的還有
+`spec-archive` skill、`.agents/workflow/`、`.claude/agents/verifier.md`、
+`.codex/agents/verifier.toml`。每一項都用 `git cat-file` 確認**存在於 `origin/main`、
+且不存在於合併前的分支（`38bd088`）**，所以整個差異都是上游的，沒有本分支的變更
+藏在裡面。POSIX 與 Windows 兩份 golden 的差異集合相同。
+
+**第 3 項是潛伏缺陷，不是這次合併造成的。** 清單用 `LC_ALL=C sort` 排、`comm` 卻在
+本機語系下比對，定序不一致就中止整層 —— 而整層中止會讓 suite 連總結那一行都印不出來。
+它在合併之前不會出現：要等清單裡真的出現 C 與本機語系定序不同的項目
+（`.agents/workflow`、`.claude/agents`）才會爆。
+
+**`base_ref` 為什麼不再往前追**：Windows 支援已經在 main 裡了（`16282ff`），
+但 Must NOT #2 問的是「這次移植有沒有改變 POSIX 的既有行為」，比較對象必須是
+**還沒有這份移植的 main**。改成追 main 的頂端會變成拿它自己比它自己，
+這條不變量就等於沒有了。SPEC §9 有寫，免得下一次合併時有人「順手更新成 main」。
+
+**`tests/check_agent_doc_invariants.py` 已納入 gate**（新的一層
+`agent-doc-invariants`，manifest 從 10 層變 11 層）。「之後每次都要跑」如果只留在
+對話裡，下一次就會漏；已直接對 `gate-manifest-audit.sh` 做過負面控制
+（宣告了卻沒跑 → exit 1）。
+
+**已知的下一次紅燈**：main 的 #9 會把 `dot_agents/workflow/` 更名為
+`dot_agents/workflows/`。L3 的六條 managed golden 屆時會再紅一次 —— 那正是它的用途，
+一個悄悄改變 managed 集合的更名本來就該被擋下來。
 
 ---
 

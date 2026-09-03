@@ -4,7 +4,7 @@
 - `status`: approved
 - `tier`: 3
 - `scope`: windows-support
-- `base_ref`: `ccae9d8`（`origin/main`，本分支與 main 的 merge-base；原為分支起點 `0d72b8e`，更新理由見 §9）
+- `base_ref`: `ccae9d8`（**Windows 支援併進 main 之前的最後一個 main 狀態**；原為分支起點 `0d72b8e`，更新理由見 §9）
 - `contract`: `~/.claude/CLAUDE.md` 的 evidence-first 契約 **v0.6**，未被本 repo 覆寫
 
 Tier 3 的理由：會移動／改寫使用者既有的 nvim 設定、`~/.codex/config.toml`、
@@ -476,6 +476,13 @@ merge-base）。main 上的 #3（evidence-first 合約）已合併進本分支�
 
 如果你認為這仍算實質變更，那它就是一次 v7 修訂，需要重新核准 —— 這裡只記錄我的
 判定與理由，不代替你的判斷。
+
+**基準不會再往前追（2026-09-04 補記）。** Windows 支援已經併進 main（merge commit
+`cbbdafc`），所以 `ccae9d8` 已經不是 `origin/main` 的頂端了 —— 原本那句「`origin/main`，
+本分支與 main 的 merge-base」現在會誤導人，已改成「Windows 支援併進 main 之前的最後
+一個 main 狀態」。**SHA 不變，而且不該變**：Must NOT #2 問的是「這次 Windows 支援有
+沒有改變 POSIX 的既有行為」，比較對象必須是**還沒有這份移植的 main**。改成追 main
+的頂端會變成拿它自己比它自己，這條不變量就等於沒有了。
 
 ### v5 → v6
 
