@@ -1,33 +1,38 @@
 # Evidence Report — native Windows 支援 (Tier 3)
 
-- `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）**
+- `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）；
+  SPEC v2 待核准**
   · 獨立驗證跑了**六輪**，六輪都判 failed；共 47 條 findings 全部已處置，見 §獨立驗證。
   **最後兩輪在產品程式碼裡找不到任何缺陷**；第六輪明確建議不要再跑第七輪，
   把剩下的風險預算花在還沒跑過的 Windows Sandbox 上
 - `command`: `evidence`
-- `contract`: **overridden by `docs/agents/issue-tracker.md`**（路徑一項）。
-  契約要求已核准的 SPEC 提交在 `specs/<scope>/SPEC.md`；本 repo 自己的
-  `docs/agents/issue-tracker.md` 指定 `.scratch/<feature-slug>/spec.md`，
-  而契約明文說專案自己的約定優先。SPEC 因此在 `.scratch/windows-support/spec.md`。
-  **代價**：CLOSE 步驟的 `spec-archive` 工具只在契約指定的路徑找 SPEC，找不到這一份。
+- `contract`: **applied**（`~/.claude/CLAUDE.md` evidence-first v0.6，無覆寫）。
 
-  **SPEC 第 6 行寫「未被本 repo 覆寫」與這一行牴觸。** 兩者都不是筆誤：那句話在
-  核准當下為真 —— 當時的契約沒有指定 SPEC 路徑，那個條款是核准之後才加進契約的。
-  已核准的 SPEC 不會被回頭改（改了核准就失效），所以矛盾留在原地，由這一行解釋。
-  （第六輪指出兩份已提交的產物對「有沒有覆寫」說法不一致。）
+  先前這一欄記的是 `overridden by docs/agents/issue-tracker.md`。**該主張已撤回。**
+  使用者裁定：那份文件規範的是 **issue** 的位置，不是 spec；兩者不是同一種產物，
+  拿它來覆寫契約的 SPEC 路徑不成立。SPEC 已搬到契約指定的
+  `specs/windows-support/SPEC.md`，CLOSE 步驟的 `spec-archive` 因此讀得到。
+
+  該文件本身的用字在 `feat/evidence-first-contract` 的 `bfcdc9a` 已另行處理，
+  不在本分支改動。
 - `scope`: `windows-support`
 - `change_set`: `0d72b8e...HEAD`
 - `base`: `0d72b8e`
 - `report_language`: zh-TW
-- `intent_status`: **confirmed**
-- `intent_source`: 已提交的 SPEC `.scratch/windows-support/spec.md`（於 `e5089df`
-  進入版本歷史，**早於任何實作 commit**）。核准逐字記在該檔 §8：
+- `intent_status`: **unconfirmed**（v1 已核准；**v2 待核准**）
+- `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v2`。
+  v1 於 `e5089df` 進入版本歷史（當時路徑 `.scratch/windows-support/spec.md`），
+  **早於任何實作 commit**；核准逐字記在該檔 §8：
 
   > 核准 spec
 
+  v2 的實質變更只有一項（§7 新增「備份撞名（accepted risk）」），其餘為路徑與
+  標頭的形式變更 —— 完整清單在 SPEC §9 Revisions。契約規定核准綁定單一版本，
+  v1 的核准不延伸到 v2，因此本欄記為 unconfirmed 直到取得 v2 的核准。
+
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `1dffb0fa6eef669af37554537ce1a5be326cd1a1`
+- `source_state`: `61a86e1293171f309fa3f093e34e026961602a0b`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只會再多一個 commit —— 本報告本身 ——
@@ -207,14 +212,14 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=1dffb0f…`, `worktree=clean` |
-| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **461 passed, 0 failed, 0 skipped** |
-| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，461/461 |
-| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 461 passed, 0 failed |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=61a86e1…`, `worktree=clean` |
+| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **467 passed, 0 failed, 0 skipped** |
+| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，467/467 |
+| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 467 passed, 0 failed |
 | Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
 | Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **33/33 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 6669 行（**不含本報告為 5858 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 2453 / set3 3405 / 共 5858 行 |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 6686 行（**不含本報告為 6133 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 2768 / set3 3365 / 共 6133 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
 | Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
 
@@ -239,7 +244,7 @@ Tier 3 依契約派了一個獨立的 `verifier`，只給四項輸入（任務�
 | 6 | MEDIUM | L7 的 M10 斷言只數子字串，loader 改成 `profile.ps1.disabled` 可存活 | **已修**。改成整行比對（先去 CRLF）+ mutant `loader-line-content` |
 | 7 | MEDIUM | Must NOT #5 標 `pass`，但檢查器只覆蓋一種拼法：`Install-PSResource` 沒釘版本、`.oh-my-zsh` 無 checksum，兩項都沒揭露 | **已修 + 已揭露**。PSFzf 釘到 2.7.12（版本在 `versions.toml`），L5 新增「必須帶 -Version」；`.oh-my-zsh` 的豁免現在寫在 Must NOT #5 那一列 |
 | 8 | MEDIUM | 來源狀態漂移：報告寫完後又提交了一個產品檔，報告的自我描述當場過期 | **已修**。這次報告是最後一個 commit，且只動 `.scratch/`。事件記在 `source_state` 欄位 |
-| 9 | LOW | 備份時間戳只到秒，同一秒內第三次 bootstrap 會把上一份備份埋進新的裡（不遺失資料，但正是程式碼註解說要避免的那件事） | **已修**。兩個平台的備份函式都加唯一化迴圈；L7 加跑第四次；mutant `backup-timestamp-collision` |
+| 9 | LOW | 備份時間戳只到秒，同一秒內第三次 bootstrap 會把上一份備份埋進新的裡（不遺失資料，但正是程式碼註解說要避免的那件事） | **accepted risk**（使用者決定，v2）。曾修過（唯一化迴圈），但那是對 Must NOT #2 的偏離，代價大於收益，已還原 —— 理由與現況見下面「已宣告的 Must NOT #2 偏離」一節 |
 | 10 | LOW | M9 沒有自動檢查；`twpayne.chezmoi` 不在 SPEC F12 的 11 個 ID 表裡 | **已修**。supply-chain 新增第四項，逐一解析 12 個 ID（含 `twpayne.chezmoi`），抽取規則對不上程式碼就失敗 |
 | 11 | LOW | SPEC §2.4 說備份四個目錄、實作備份三個（實作是對的，SPEC 自己前後不一致）但沒揭露；核准綁定的 sha256 無法從 git 驗證 | **已揭露**，見 Honest notes 4 與 9。程式碼不改：SPEC F6 自己記載 Windows 的 state 與 data 是同一個路徑 |
 
@@ -323,7 +328,7 @@ Tier 3 依契約派了一個獨立的 `verifier`，只給四項輸入（任務�
 
 | # | 嚴重度 | Finding | 處置 |
 |---|---|---|---|
-| V1 | HIGH | **gate 是不決定性的**。Windows 撞名 mutant 的 kill 需要第三、第四次執行落在同一個 wall-clock 秒內，而跨 WSL→pwsh.exe 大約要一秒 —— 等於擲硬幣。驗證者的**第一次** gate 執行就紅了（16/17，後續四層 NOT REACHED），7 次獨立重複裡存活 2 次。報告的「17/17、逐一檢查、沒有一個是碰巧」描述的是一次幸運抽樣 | **已修**。改成強制撞名：先把接下來幾秒的時間戳目錄全部建好，唯一化迴圈必然被走到。帶 mutant 連跑 5 次，每次都紅 3 條 |
+| V1 | HIGH | **gate 是不決定性的**。Windows 撞名 mutant 的 kill 需要第三、第四次執行落在同一個 wall-clock 秒內，而跨 WSL→pwsh.exe 大約要一秒 —— 等於擲硬幣。驗證者的**第一次** gate 執行就紅了（16/17，後續四層 NOT REACHED），7 次獨立重複裡存活 2 次。報告的「17/17、逐一檢查、沒有一個是碰巧」描述的是一次幸運抽樣 | **已修**。改成強制撞名：先把接下來幾秒的時間戳目錄全部建好，唯一化迴圈必然被走到。帶 mutant 連跑 5 次，每次都紅 3 條。**v2 後續**：使用者決定還原唯一化迴圈，這兩個 mutant 隨之退場（換成 `backup-timestamp-fallback{,-windows}`）；強制撞名的做法保留下來，改去釘 accepted risk 的行為，因此決定性這一點沒有回退 |
 | V2 | HIGH | **Must NOT #2 對應到 L10，但 L10 的 apply 帶 `--exclude=scripts`** —— 四支被改寫的既有 POSIX 腳本，內容從來沒有跟 base 比對過。把 `tree-sitter` 從 brew 清單拿掉（AGENTS.md 明文禁止修剪的那一項）能存活整套 387 個測試 | **已修**。L10 現在逐支比對渲染結果。**這同時暴露出一件我沒宣告的事**，見下方「已宣告的 Must NOT #2 偏離」 |
 | V3 | MEDIUM-HIGH | 哪個平台拿哪一個 cc-statusline asset **沒有被任何東西釘住**。supply-chain 天生看不到：sum 是按 asset 名稱查的，把 darwin 的 arm64/x64 對調之後 URL 與 pin 仍然一致、雜湊也仍然相符。實際後果是 Intel Mac 拿到 arm64 執行檔 | **已修**。L5 補上逐平台的預期 asset；mutation 新增 `cc-statusline-arch-swap` |
 | V4 | MEDIUM | PowerShell profile 的**內容完全沒被釘住**。把主題檔名改掉 → external 裝的與 profile 讀的不一致 → profile 的 `Test-Path` 守衛**靜靜跳過** oh-my-posh 初始化，使用者只看到沒有主題的提示字元、沒有任何錯誤 | **已修**。L2 補上「profile 讀的主題檔名要與 external 裝的一致」加四條關鍵行；mutation 新增 `pwsh-profile-theme-name` |
@@ -333,16 +338,33 @@ Tier 3 依契約派了一個獨立的 `verifier`，只給四項輸入（任務�
 | V8 | LOW | 第一輪 Finding 4 的隔離正面控制只有 POSIX 有；Windows 的 stub 不留記號，沒有任何斷言證明跑到的是 stub 而不是主機上的真工具 | **已修**。Windows stub 也留記號，補上對稱的斷言 |
 | V9 | LOW/INFO | L8 的十一條「逐位元組」裡有五條是 0 bytes 比 0 bytes | **不需處置**。驗證者自己的結論：另外六條非空的比對是正面控制，`_cm_win` 壞掉會讓它們變紅，所以攻不破 |
 
-### 已宣告的 Must NOT #2 偏離
+### 已宣告的 Must NOT #2 偏離 —— **已還原（v2）**
 
 修第一輪 Finding 9（備份時間戳撞名）時，我在 **POSIX** 腳本裡也加了唯一化迴圈。
 那**改變了 POSIX 端的渲染輸出**，而 SPEC 的 Must NOT #2 要求逐位元組不變。
-當時我沒有宣告它 —— 是第三輪 V2 補上腳本內容比對之後才顯現出來的。
+當時我沒有宣告它 —— 是第三輪 V2 補上腳本內容比對之後才顯現出來的。曾經的處置是把它
+留成 `tests/cases/L10` 裡的**具名例外**，形狀釘死，並把去留交給使用者決定。
 
-現況：它是 `tests/cases/L10` 裡的**具名例外**，形狀被釘死（那個迴圈以外的任何差異
-仍然會失敗）。行為上它只在「原本會把舊備份埋掉」的情形下有差別，也就是嚴格的
-資料安全改善。**但它確實是對已核准 SPEC 的偏離，需要你決定**：保留（資料安全）
-還是還原（嚴守 Must NOT #2，POSIX 維持既有的埋備份行為）。
+**使用者的決定是還原。** 理由（使用者原話的重點）：那個迴圈要在**同一秒內完成兩次含
+`git clone` 的 bootstrap** 才會被走到，實務上到不了；為此讓 POSIX 腳本多六行、L10 多
+一段寫死的預期 diff，不划算。
+
+現況：
+
+- `run_onchange_before_50-neovim.sh.tmpl` 的 `backup_dir` 與 base ref `0d72b8e`
+  **逐位元組相同**（本輪以 `diff` 直接比對函式本體確認）。
+- Windows 端 `Backup-NvimDirectory` 的迴圈一併拿掉，維持兩邊對稱。Windows 不受
+  Must NOT #2 約束，這一項純粹是對稱性的決定：同一份 SPEC 不該在兩個平台上
+  代表不同的行為。
+- L10 移除唯一的具名例外，**POSIX 腳本全部回到嚴格逐位元組比對**。
+- 這條路徑沒有被藏起來：它記進 SPEC §7 成為具名的 accepted risk，並由 L7 的第四次
+  執行釘成 characterization test —— 強制撞名，斷言「來源被搬進既有備份裡、內容仍在、
+  沒有產生序號備份」。有人改動備份命名的形狀，這三條會紅。
+- mutation：`backup-timestamp-collision{,-windows}` 換成
+  `backup-timestamp-fallback{,-windows}`（刪掉時間戳退路 → 第二份備份被埋掉）。
+
+**因此 Must NOT #2 現在無偏離。** 這項變更本身是對已核准 SPEC 的實質修改，
+已依契約記入 SPEC §9 Revisions，並重新請求核准（見 `intent_status`）。
 
 ### 第二輪
 
@@ -495,7 +517,7 @@ macOS 的盲點更大：連唯讀的實機比對都沒有。
 
 四次都不是為了讓失敗的實作變綠。
 
-### 3. gate 自己踩到的三個洞（都已修，各留 negative control）
+### 3. gate 自己踩到的四個洞（都已修，各留 negative control）
 
 - `tools/gate.sh` 第一版每一層寫成 `cmd | tee file`；管線的退出碼是 `tee` 的，
   **任何一層失敗都會被靜靜吞掉**。改成 fail-closed 的 `run_layer`。
@@ -503,6 +525,15 @@ macOS 的盲點更大：連唯讀的實機比對都沒有。
   工作樹變髒 —— **source-state 那一層正確地擋下了它**。已加入 `.gitignore`。
 - gate 的機密掃描咬到**本報告自己**：它記錄 negative control 時逐字寫了那個範例 AWS
   key。掃描器沒有錯，改的是文件。
+- **（本輪新增）** `tools/gate-mutants.py` 的 `run()` 用嚴格 UTF-8 解碼子行程輸出。
+  L7 的 Windows 半邊用 `pwsh.exe` 跑腳本，而 `pwsh.exe` 的工作目錄是 UNC 路徑
+  （`\\wsl.localhost\...`，mutant 的 worktree 就在那裡）時，`cmd.exe` 會先吐一行
+  「不支援 UNC 路徑」的警告，用主機的 ANSI 代碼頁編碼（這台是 CP950）。那一行**只在
+  斷言失敗、`_fail` 把 pwsh 的輸出印進診斷時**出現 —— 也就是**只在 mutant 被殺掉的
+  那一刻**。於是 `windows-nvim-marker` 被正確殺死的同時 runner 拋 `UnicodeDecodeError`，
+  mutation 層中止，後面四層 NOT REACHED。本輪 gate 實際這樣壞過一次（那次中斷就是
+  這條的 negative control：修好之前必然壞、修好之後 33/33），已改成 `errors="replace"`。
+  這是**只在成功偵測的路徑上才會爆**的一類缺陷，單看綠燈永遠看不到。
 
 ### 4. 對 SPEC 的兩項偏離
 
