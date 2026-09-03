@@ -80,7 +80,7 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory(prefix="spec-archive-test-") as tmp:
         repo = Path(tmp)
-        git(repo, "init", "-q")
+        git(repo, "init", "-q", "-b", "main")
         git(repo, "config", "user.email", "test@test")
         git(repo, "config", "user.name", "test")
 
@@ -98,8 +98,11 @@ def main() -> None:
         git(repo, "add", "-A")
         git(repo, "commit", "-qm", "approve")
         expect("missing spec cannot be evaluated", repo, ["bar"], 2)
-        expect("--check lists the approved candidate", repo, ["--check"], 0,
-               stdout_has="candidate")
+        expect("--check on the default branch fails on an approved candidate",
+               repo, ["--check"], 1, stdout_has="VIOLATION")
+        git(repo, "checkout", "-q", "-b", "feat")
+        expect("--check on a feature branch lists the candidate and passes",
+               repo, ["--check"], 0, stdout_has="candidate")
 
         # Happy path: one atomic commit, status flipped, spec moved.
         expect("approved spec on a clean tree archives", repo, ["foo"], 0,
