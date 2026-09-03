@@ -273,10 +273,26 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
   **zig 確實在 PATH 上**：使用者在同一個終端機跑 `zig version` 得到 `0.16.0`。
   所以這不是 A 那一類的觀察誤差 —— zig 裝好了、找得到，nvim-treesitter `main` 的
   需求檢查就是不接受它。這條假設的推翻是確定的，不需要再測一次 PATH。
+
+  **處置（使用者選 (a)，見 §8 的決議記錄）**：winget 清單把 `zig.zig` 換成
+  `BrechtSanders.WinLibs.POSIX.UCRT`（WinLibs 的 gcc / MinGW-w64）。
+  `zig.zig` 一併移除 —— 它進清單的唯一理由就是當 treesitter 的 C compiler，
+  那個理由已經不成立，留著只是體積。
+  **這一項在 L9 再跑一次之前仍然沒有被證明**：換掉編譯器是依據 nvim-treesitter
+  自己的建議，不是依據一次成功的 parser 編譯。M12 的狀態是「假設已被推翻、
+  處置已選定、修法未證實」。
 - **macOS 沒有實機**。macOS 的證據全部來自 `osOverride=darwin` 的渲染矩陣（L1–L6, L10），
   沒有任何一次真實 apply。這是明確的 downgrade，會寫進 evidence report。
 - **Windows Sandbox 沒有 App Installer**，`_probe.ps1` 需要先自舉 winget；
   這段自舉程式碼只服務測試，不會進到 `init.ps1`。
+- **既有的 CRLF 設定檔（具名已知限制，M14 選 (c) 的殘留風險）**：`.gitattributes`
+  管得到的是**來源樹**。使用者機器上**已經存在**的 `~/.codex/config.toml` 若本身是
+  CRLF（Windows 上的程式寫出來的常態），`modify_` 改寫器是逐行比對的，行尾的 `\r`
+  會讓它把 `key = value\r` 看成與 `key = value` 不同的東西，可能重複寫入或漏改。
+  **不修**：改寫器被 `gate-properties.py` 的 P0 釘在「與移植前的 awk 逐位元組相同」，
+  而 awk 原版不處理 CR；動它就是刻意脫離那個 parity，並且會改變 POSIX 端在含 CR
+  輸入上的輸出。這與 §「`modify_` 的一行一個 key 前提」屬同一類：沿用自原實作、
+  已揭露、未修。
 - ~~`core.autocrlf = input` 維持不變（Windows 上 checkout 為 LF）。這是刻意不動，不是遺漏。~~
   **v5 更正：這一條的推論是錯的。** `core.autocrlf = input` 是**這台機器上使用者自己的
   git 設定**，不是 repo 的性質。Git for Windows 的預設是 `core.autocrlf=true`，而這個
@@ -312,6 +328,30 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
+
+### v5 的兩項選擇 — 2026-09-03
+
+v5 本文把兩件事明寫成「待你決定」並列出選項。以下是那兩題的答案，逐字記錄。
+**不另起版本**：這不是對 SPEC 要求的修改，而是 v5 自己委派出去的選擇被填回來；
+被填回的內容（§7 的 M12 處置與新增的 CRLF 具名已知限制）正是 v5 所要求的產物。
+
+- **decision: confirmed**
+- bound to: v5（sha256 `051a98b1a4302bb6f4e95af647c394637b32975edd8a502dda0109526bb9da8a`）
+- date: 2026-09-03
+- decider: repo owner（Madao）
+- verbatim words（使用者原話，逐字）:
+
+  > M14 選 c，M12 選 a
+
+- 解讀：**M14 → (c)**：加 `.gitattributes` 強制 LF，改寫器**不動**（保住與 awk 的
+  逐位元組 parity），既有 CRLF 設定檔的殘留風險寫成具名的已知限制。
+  **M12 → (a)**：winget 清單把 `zig.zig` 換成 WinLibs 的 gcc。
+- **實作時發現的一項偏差，據實記在這裡而不是默默選掉**：nvim-treesitter 建議的
+  `BrechtSanders.WinLibs.POSIX` **不是一個存在的 winget ID**（`winget show --exact`
+  找不到），實際存在的是四個變體。選定
+  **`BrechtSanders.WinLibs.POSIX.UCRT`**（16.1.0-14.0.0-r4）：POSIX threads 對應
+  建議的那一支，UCRT 是 Windows 10/11 的現行 C runtime（MSVCRT 是舊的），
+  不取 `.LLVM` 變體 —— 需要的是 gcc，多帶一套 LLVM 只是體積。仍在 (a) 的範圍內。
 
 ### v5 — 2026-09-03
 
@@ -391,6 +431,10 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 | 2 | §3 的 L9 一列新增「PATH 判定以重讀 registry 為準」 | 實質（正確性） | 探針 |
 | 3 | §6 新增 **M14**：Git for Windows 預設 `core.autocrlf=true` 把來源樹 checkout 成 CRLF；§7 更正原本「autocrlf 刻意不動」的推論 | 實質（失效模型缺口） | 產品 |
 | 4 | §7 的 **M12 從「未證實」改為「假設已被推翻」**，處置待你決定 | 實質（需要決定） | 產品 |
+
+**第 3、4 項的選擇已於 2026-09-03 決定**（`M14 選 c，M12 選 a`，逐字記在 §8）：
+M14 → (c) 只加 `.gitattributes`、改寫器不動、殘留寫成具名已知限制；
+M12 → (a) `zig.zig` 換成 `BrechtSanders.WinLibs.POSIX.UCRT`。
 
 ---
 
