@@ -1,6 +1,16 @@
 # Evidence Report — <task name> (Tier <1|2|3>)
 
+- `headline`: <!-- one line, derived mechanically — never composed. In order:
+  `BLOCKED at <layer>` when any Gate row failed (everything behind it is NOT
+  REACHED); `NOT PRESENTABLE AS PASSED — <not reproducible | SUBSTITUTED
+  layer presented in its place>` when either applies; otherwise `GATE PASSED`
+  plus one qualifier per degraded status (reproducibility degraded, git_facts
+  partial, intent unconfirmed/absent, any DEPENDENCY UNMET row). The weakest
+  link names the headline; a reader who reads nothing else reads this -->
 - `command`: `evidence`
+- `contract`: <!-- applied | overridden by <path> | n-a (routine change) —
+  whether an evidence-first contract governed this change; an override is
+  never silent -->
 - `scope`: <!-- artifact subfolder name -->
 - `change_set`: <!-- working tree | <base>...HEAD | commit range | PR -->
 - `base`: <!-- comparison ref -->
@@ -8,6 +18,10 @@
 - `intent_status`: <!-- confirmed | unconfirmed | absent -->
 - `intent_source`: <!-- human reply (verbatim) | spec file path | issue/PR ref |
   commit messages only -->
+- `ordering`: <!-- tests-first | implementation-first | mixed | unknown —
+  whether each new test file was committed before the implementation it
+  covers. One of the three facts the report leans on hardest, beside Baseline
+  and RED; `unknown` is a declared downgrade, never a pass -->
 - `git_facts`: <!-- complete | partial | unavailable — when partial, list each
   fact the repository could not supply (baseline / ordering / reachable base)
   and say what it cost. Fetch first: a fetchable fact is not a missing one -->
