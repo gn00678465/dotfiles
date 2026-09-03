@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
 - `spec_version`: v4
-- `status`: revised-pending-approval
+- `status`: approved
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
@@ -297,14 +297,20 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
 
-### v4 — 待核准
+### v4 — 2026-09-03
 
-- **approval: pending**
-- version bound: v4（見 §9 的變更清單）
-- 這一版尚未取得核准。契約規定核准綁定單一版本，v3 的核准不自動延伸到 v4。
-- 需要核准的實質變更：§6 新增失效模式 **M13**（ExecutionPolicy 擋掉所有 `.ps1`），
-  以及 §7 更新 M12 的狀態。這是失效模型的擴充 —— 一種 Tier 3 失效模型原本
-  **整個漏掉**、而且會擊中每一台全新 Windows 的模式。
+- **approval: confirmed**
+- version bound: v4 — 核准當下 `specs/windows-support/SPEC.md` 的 sha256
+  （即本節被改寫成核准狀態**之前**、`status` 仍為 `revised-pending-approval` 的檔案內容）
+  = `77649099c92b9d50c16fa2351caffc248a6e058874e969e28c7648b978c77c49`
+- date: 2026-09-03
+- approver: repo owner（Madao）
+- verbatim words（使用者原話，逐字）:
+
+  > 核准 SPEC v4
+
+- 範圍：v4 全文。實質變更為 §6 新增失效模式 M13（ExecutionPolicy 擋掉所有 `.ps1`）
+  與 §7 更正 M12 的狀態。完整清單見 §9。
 
 ### v3 — 2026-09-03
 

@@ -20,7 +20,7 @@
 - `change_set`: `0d72b8e...HEAD`
 - `base`: `0d72b8e`
 - `report_language`: zh-TW
-- `intent_status`: **unconfirmed**（v1–v3 已核准；**v4 待核准**）
+- `intent_status`: **confirmed**（v1–v4 各自取得核准，逐字記在 SPEC §8）
 - `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v4`。
   v1 於 `e5089df` 進入版本歷史（當時路徑 `.scratch/windows-support/spec.md`），
   **早於任何實作 commit**；核准逐字記在該檔 §8：
@@ -38,20 +38,22 @@
 
   > 核准 SPEC v3
 
-  v4 待核准：§6 新增失效模式 **M13**（ExecutionPolicy 擋掉所有 `.ps1`），§7 更正
-  M12 的狀態。M13 是 L9 第一次真實執行找出來的，是原本整個漏掉的一種失效模式。
+  v4 同理另行核准（§6 新增失效模式 **M13**，§7 更正 M12 的狀態；M13 是 L9 第一次
+  真實執行找出來的，是原本整個漏掉的一種失效模式）：
+
+  > 核准 SPEC v4
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `f6231b9a6f093d4f5cc2475b9637477f4bfe540e`
+- `source_state`: `1e94ff8e091fdf22ec4d2fd5f673f67808c16ac4`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只有一個 commit：把 v3 的核准逐字
   寫進 SPEC §8、並把本報告更新到這一輪數字的那一個。它只動 `.scratch/` 與
   `specs/windows-support/SPEC.md`，**不含任何產品、測試或 gate 檔案**
-  （可用 `git diff --stat f6231b9..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
+  （可用 `git diff --stat 1e94ff8..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
   讀到（前者斷言它不得被裝進 `$HOME`，後者從中取 base ref），所以最終那棵樹
-  另外跑了一次完整測試套件確認 **474/474**；mutation、property、supply-chain
+  另外跑了一次完整測試套件確認 **489/489**；mutation、property、supply-chain
   三層的結論不可能被一段 markdown 核准記錄影響，沒有重跑。**上一輪報告在這裡踩過一次坑**：
   寫完報告後又提交了一個產品檔（`tests/sandbox/prepare.sh`），使得報告的自我描述
   在下一秒就過期。這次改成「報告是最後一個 commit」。
@@ -228,14 +230,14 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=f6231b9…`, `worktree=clean` |
-| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **474 passed, 0 failed, 0 skipped** |
-| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，474/474 |
-| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 474 passed, 0 failed |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=1e94ff8…`, `worktree=clean` |
+| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **489 passed, 0 failed, 0 skipped** |
+| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，489/489 |
+| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 489 passed, 0 failed |
 | Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
-| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **33/33 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 6925 行（**不含本報告為 6332 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 3481 / set3 3444 / 共 6332 行 |
+| Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **34/34 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 7321 行（**不含本報告為 6643 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 3781 / set3 3540 / 共 6643 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
 | Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
 
