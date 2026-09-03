@@ -28,11 +28,11 @@
 .agents/skills/verification-gate/references/entry-point.md
 .agents/skills/verification-gate/references/layers.md
 .agents/skills/verification-gate/references/mutation.md
-.agents/workflow
-.agents/workflow/evidence-first.md
-.agents/workflow/templates
-.agents/workflow/templates/spec.md
-.agents/workflow/templates/verification.md
+.agents/workflows
+.agents/workflows/evidence-first.md
+.agents/workflows/templates
+.agents/workflows/templates/spec.md
+.agents/workflows/templates/verification.md
 .chezmoiscripts/10-install-packages.sh
 .chezmoiscripts/20-install-homebrew.sh
 .chezmoiscripts/30-install-brew-packages.sh
