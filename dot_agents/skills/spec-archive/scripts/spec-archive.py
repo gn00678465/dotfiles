@@ -5,8 +5,9 @@
                               specs/<scope>/ to specs/archive/<scope>/,
                               commit — one atomic act
     spec-archive.py --check   list approved specs still in the active
-                              directory (a CLOSE that was forgotten);
-                              fail on a shipped spec that never moved
+                              directory (a CLOSE not done yet); fail on a
+                              shipped spec that never moved, and on the
+                              default branch on any approved spec
 
 Fail closed. Exit codes: 0 done / nothing pending; 1 refused (not
 approved, dirty tree, already archived, shipped-but-not-moved); 2 the
@@ -90,6 +91,15 @@ def archive(root: Path, scope: str) -> None:
     print(f"archived: specs/archive/{scope}/ (status: shipped)")
 
 
+def on_default_branch(root: Path) -> bool:
+    # origin/HEAD names the default branch once a remote exists; a local-only
+    # repo has none, and `main` is the convention this contract assumes.
+    head = run(["git", "symbolic-ref", "--short", "-q", "refs/remotes/origin/HEAD"], cwd=root)
+    default = head.stdout.strip().split("/", 1)[-1] if head.returncode == 0 else "main"
+    cur = run(["git", "branch", "--show-current"], cwd=root)
+    return cur.returncode == 0 and cur.stdout.strip() == default
+
+
 def check(root: Path) -> None:
     specs_dir = root / "specs"
     violations = 0
@@ -105,7 +115,12 @@ def check(root: Path) -> None:
         elif status == "approved":
             pending.append(spec)
     for p in pending:
-        print(f"candidate: {p.relative_to(root)} (approved — archive once merged)")
+        print(f"candidate: {p.relative_to(root)} (approved — archive before merging)")
+    if pending and on_default_branch(root):
+        # The close belongs to the branch that shipped the change; an approved
+        # spec that reached the default branch skipped it.
+        print("VIOLATION: approved spec on the default branch — close was skipped")
+        violations += len(pending)
     if not pending and violations == 0:
         print("check: nothing pending")
     sys.exit(1 if violations else 0)
