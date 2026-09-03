@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
 - `spec_version`: v7
-- `status`: revised-pending-approval
+- `status`: approved
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `ccae9d8`（**Windows 支援併進 main 之前的最後一個 main 狀態**；原為分支起點 `0d72b8e`，更新理由見 §9）
@@ -341,14 +341,24 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
 
-### v7 — 待核准
+### v7 — 2026-09-04
 
-- **approval: pending**
-- version bound: v7（見 §9 的變更清單）
-- 這一版尚未取得核准。契約規定核准綁定單一版本，v6 的核准不自動延伸到 v7。
-- 需要核准的實質變更：**Must NOT #2 的驗證方式降級**。詳見 §9 的 v6 → v7；
-  這一項與上一次的 `base_ref` 更新**不同性質**，上一次不縮小覆蓋範圍，這一次會。
-  **核准之前不實作。**
+- **approval: confirmed**
+- version bound: v7 — 核准當下 `specs/windows-support/SPEC.md` 的 sha256
+  （即本節被改寫成核准狀態**之前**、`status` 仍為 `revised-pending-approval` 的檔案內容）
+  = `ec4c30fb6170af56d0f9d671fc8eeeba9dad87dd28011bfabe86681abfea6ae4`
+- date: 2026-09-04
+- approver: repo owner（Madao）
+- verbatim words（使用者原話，逐字）:
+
+  > 將 v7 核准
+
+- 範圍：v7 全文。實質變更為 **Must NOT #2 的驗證方式降級**，處置採 §9 v6 → v7
+  所列的 **(b)**：`base_ref` 改為 `origin/main`。
+- **這是降級，不是維護。** main 已經含有這份移植，L10 因此變成拿它自己比它自己，
+  **Must NOT #2 不再被 L10 重新驗證**，只剩下「本分支相對 main 的剩餘差異沒有改變
+  POSIX」。對移植本身的驗證已經完成且留在 git 歷史裡（`777b122` 與更早的每一輪都
+  對 `ccae9d8` 逐位元組比對過）；結束的是「每一次執行都能重新證明」。
 
 ### v6 — 2026-09-03
 
