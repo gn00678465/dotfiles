@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
 - `spec_version`: v2
-- `status`: revised-pending-approval
+- `status`: approved
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
@@ -293,13 +293,21 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
 
-### v2 — 待核准
+### v2 — 2026-09-03
 
-- **approval: pending**
-- version bound: v2（見 §9 的變更清單）
-- 這一版尚未取得核准。契約規定核准綁定單一版本，v1 的核准不自動延伸到 v2。
-- 需要核准的實質變更只有一項：§7 新增「備份撞名（accepted risk）」。
-  路徑搬遷、標頭格式、override 撤回都是形式變更，不改變 §0–§6 的任何要求。
+- **approval: confirmed**
+- version bound: v2 — 核准當下 `specs/windows-support/SPEC.md` 的 sha256
+  （即本節被改寫成核准狀態**之前**、`status` 仍為 `revised-pending-approval` 的檔案內容）
+  = `7e47539c186d5bc97eee19aa89e9001fdc4f9e3394dabbdc4d46cf981405d2e3`
+- date: 2026-09-03
+- approver: repo owner（Madao）
+- verbatim words（使用者原話，逐字）:
+
+  > 核准 SPEC v2
+
+- 範圍：v2 全文。實質變更只有一項 —— §7 新增「備份撞名（accepted risk）」；
+  路徑搬遷、標頭格式、override 撤回為形式變更，不改變 §0–§6 的任何要求。
+  完整清單見 §9。
 
 ---
 

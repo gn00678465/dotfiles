@@ -1,7 +1,6 @@
 # Evidence Report — native Windows 支援 (Tier 3)
 
-- `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）；
-  SPEC v2 待核准**
+- `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）**
   · 獨立驗證跑了**六輪**，六輪都判 failed；共 47 條 findings 全部已處置，見 §獨立驗證。
   **最後兩輪在產品程式碼裡找不到任何缺陷**；第六輪明確建議不要再跑第七輪，
   把剩下的風險預算花在還沒跑過的 Windows Sandbox 上
@@ -19,7 +18,7 @@
 - `change_set`: `0d72b8e...HEAD`
 - `base`: `0d72b8e`
 - `report_language`: zh-TW
-- `intent_status`: **unconfirmed**（v1 已核准；**v2 待核准**）
+- `intent_status`: **confirmed**（v1、v2 各自取得核准，逐字記在 SPEC §8）
 - `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v2`。
   v1 於 `e5089df` 進入版本歷史（當時路徑 `.scratch/windows-support/spec.md`），
   **早於任何實作 commit**；核准逐字記在該檔 §8：
@@ -28,15 +27,22 @@
 
   v2 的實質變更只有一項（§7 新增「備份撞名（accepted risk）」），其餘為路徑與
   標頭的形式變更 —— 完整清單在 SPEC §9 Revisions。契約規定核准綁定單一版本，
-  v1 的核准不延伸到 v2，因此本欄記為 unconfirmed 直到取得 v2 的核准。
+  v1 的核准不延伸到 v2，因此 v2 另行取得核准，同樣逐字記在 SPEC §8：
+
+  > 核准 SPEC v2
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
 - `source_state`: `61a86e1293171f309fa3f093e34e026961602a0b`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
-  這個 SHA 是 gate 實際量測的那棵樹。在它之後只會再多一個 commit —— 本報告本身 ——
-  那個 commit 只動 `.scratch/`，不含任何產品變更。**上一輪報告在這裡踩過一次坑**：
+  這個 SHA 是 gate 實際量測的那棵樹。在它之後只有兩個 commit：本報告本身，
+  以及把 v2 的核准逐字寫進 SPEC §8 的那一個。兩者只動 `.scratch/` 與
+  `specs/windows-support/SPEC.md`，**不含任何產品、測試或 gate 檔案**
+  （可用 `git diff --stat 61a86e1..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
+  讀到（前者斷言它不得被裝進 `$HOME`，後者從中取 base ref），所以最終那棵樹
+  另外跑了一次完整測試套件確認 **467/467**；mutation、property、supply-chain
+  三層的結論不可能被一段 markdown 核准記錄影響，沒有重跑。**上一輪報告在這裡踩過一次坑**：
   寫完報告後又提交了一個產品檔（`tests/sandbox/prepare.sh`），使得報告的自我描述
   在下一秒就過期。這次改成「報告是最後一個 commit」。
 - `source_state_exclusions`: `.gate/`（gate 自己的產出目錄，已加入 `.gitignore`）。
