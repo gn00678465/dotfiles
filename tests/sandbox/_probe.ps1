@@ -2,7 +2,7 @@
     End-to-end check inside Windows Sandbox (test layer L9).
 
     The sandbox is the only place a real install is allowed to run: the host is
-    off limits (see .scratch/windows-support/spec.md, Must NOT #1). Everything
+    off limits (see specs/windows-support/SPEC.md, Must NOT #1). Everything
     here runs against a throwaway machine.
 
     Launched by chezmoi-sandbox\sandbox.wsb as the LogonCommand, under Windows

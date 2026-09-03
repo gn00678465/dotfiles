@@ -7,12 +7,13 @@
 # 一切都在重導向的環境裡跑：假的 HOME / LOCALAPPDATA / TEMP / ProgramFiles，
 # 加上 mise 與 git 的 stub。SPEC Must NOT #1 禁止碰真實主機。
 
-# 「同一秒內再備份一次」不能靠兩次執行剛好落在同一秒 —— 跨 WSL→pwsh.exe 的呼叫
-# 大約要一秒，等於擲硬幣。獨立驗證實測：Windows 那個 mutant 在 7 次獨立重複裡存活了
-# 2 次，於是整個 gate 是不決定性的。
+# 時間戳只到秒，所以「.bak 與 .bak.<秒> 同時已存在」這個形狀是有可能的，而它會走到
+# 一條 accepted risk 的路徑：mv/Move-Item 把來源搬「進」那份既有備份裡。要觸發它得在
+# 同一秒內跑完兩次含 git clone 的 bootstrap，實務上到不了，所以程式碼不處理它。
 #
-# 改成強制撞名：先把接下來幾秒的時間戳目錄全部建好，腳本算出來的那個名字必然已被
-# 佔用，唯一化迴圈就一定會被走到。
+# 這裡把那條路徑釘成 characterization test：先把接下來幾秒的時間戳目錄全部建好，
+# 腳本算出來的名字必然已被佔用。這樣做不是宣告它是對的行為，而是讓「有人改了備份
+# 命名的形狀」不會無聲通過 —— 資料仍然沒有被刪，只是位置被埋深了一層。
 _seed_stamp_collisions() { # base-path
     _i=0
     while [ "$_i" -le 6 ]; do
@@ -125,19 +126,20 @@ assert_eq "POSIX: 舊的 .bak 沒有被埋掉" "USER-CONTENT" \
 assert_eq "POSIX: 第二份備份用時間戳另存" "2" \
     "$(ls -d "$_a"/home/.config/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
 
-# 隔離是否真的生效，用可觀察的事實釘住：stub 的 mise 會留下記號，真的 mise 不會。
-# 第四次：強制撞名，逼出唯一化迴圈。
+# 第四次：強制撞名，走到 accepted risk 那條路徑（見本檔開頭）。
 rm -f "$_a/home/.config/nvim/.chezmoi-lazyvim-starter"
 printf 'GEN4\n' > "$_a/home/.config/nvim/gen-marker.txt"
 _seed_stamp_collisions "$_a/home/.config/nvim"
 if _out=$(_run_a); then _pass "POSIX 50-neovim 第四次執行成功"
 else _fail "POSIX 50-neovim 第四次執行成功" "$_out"; fi
-assert_eq "POSIX: 撞名時改用序號另存，而不是塞進既有備份裡" "1" \
+assert_eq "POSIX: 撞名時來源被搬進既有備份裡（accepted risk，位置變深一層）" "1" \
+    "$(find "$_a/home/.config" -mindepth 2 -maxdepth 2 -name nvim -type d 2>/dev/null | wc -l | tr -d ' ')"
+assert_eq "POSIX: 即使撞名，使用者的內容仍然存在、沒有被刪" "GEN4" \
+    "$(cat "$_a"/home/.config/nvim.bak.*/nvim/gen-marker.txt 2>&1)"
+assert_eq "POSIX: 沒有產生序號備份（那個迴圈已依使用者決定還原掉）" "0" \
     "$(ls -d "$_a"/home/.config/nvim.bak.*.[0-9]* 2>/dev/null | wc -l | tr -d ' ')"
-assert_eq "POSIX: 這一次被搬走的內容確實進了序號備份" "GEN4" \
-    "$(cat "$_a"/home/.config/nvim.bak.*.[0-9]*/gen-marker.txt 2>&1)"
-assert_eq "POSIX: 沒有任何備份被塞進另一份備份裡" "" \
-    "$(find "$_a/home/.config" -mindepth 2 -maxdepth 2 -name nvim -type d 2>/dev/null)"
+
+# 隔離是否真的生效，用可觀察的事實釘住：stub 的 mise 會留下記號，真的 mise 不會。
 
 assert_eq "POSIX: 跑到的是 stub 的 mise 而不是真實的 mise（隔離生效）" "4" \
     "$(wc -l < "$_a/mise-calls.log" 2>/dev/null | tr -d ' ')"
@@ -220,21 +222,20 @@ PSEOF
     assert_eq "Windows: 第二份備份用時間戳另存" "2" \
         "$(ls -d "$_bw"/local/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
 
-    # 第四次。時間戳只到秒，同一秒內再備份一次必須另外命名而不是塞進上一份備份裡。
-    # POSIX 那半本來就有這一段；Windows 這半原本沒有，於是鏡像的 mutant 可以存活 ——
-    # 程式碼修好了、能證偽它的程序卻只落在一個平台上。
+    # 第四次：與 POSIX 那半對稱地釘住撞名時的 accepted risk 行為。兩邊的備份命名
+    # 形狀必須一致，否則同一份 SPEC 在兩個平台上代表不同的事。
     rm -f "$_bw/local/nvim/.chezmoi-lazyvim-starter"
     printf 'GEN4\n' > "$_bw/local/nvim/gen-marker.txt"
     _seed_stamp_collisions "$_bw/local/nvim"
     if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_bn\\run.ps1" 2>&1); then
         _pass "Windows 50-neovim 第四次執行成功"
     else _fail "Windows 50-neovim 第四次執行成功" "$(printf '%s' "$_out" | tr -d '\r')"; fi
-    assert_eq "Windows: 撞名時改用序號另存，而不是塞進既有備份裡" "1" \
+    assert_eq "Windows: 撞名時來源被搬進既有備份裡（accepted risk，位置變深一層）" "1" \
+        "$(find "$_bw/local" -mindepth 2 -maxdepth 2 -name nvim -type d 2>/dev/null | wc -l | tr -d ' ')"
+    assert_eq "Windows: 即使撞名，使用者的內容仍然存在、沒有被刪" "GEN4" \
+        "$(cat "$_bw"/local/nvim.bak.*/nvim/gen-marker.txt 2>&1 | tr -d '\r')"
+    assert_eq "Windows: 沒有產生序號備份（與 POSIX 對稱）" "0" \
         "$(ls -d "$_bw"/local/nvim.bak.*.[0-9]* 2>/dev/null | wc -l | tr -d ' ')"
-    assert_eq "Windows: 這一次被搬走的內容確實進了序號備份" "GEN4" \
-        "$(cat "$_bw"/local/nvim.bak.*.[0-9]*/gen-marker.txt 2>&1 | tr -d '\r')"
-    assert_eq "Windows: 沒有任何備份被塞進另一份備份裡" "" \
-        "$(find "$_bw/local" -mindepth 2 -maxdepth 2 -name nvim -type d 2>/dev/null)"
 
     assert_eq "Windows: 跑到的是 stub 的 mise 而不是主機上的 mise（隔離生效）" "4" \
         "$(wc -l < "$_bw/mise-calls.log" 2>/dev/null | tr -d ' ')"

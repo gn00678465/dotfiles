@@ -55,15 +55,7 @@ backup_dir() {
   [[ -e $1 ]] || return 0
   local dest="$1.bak"
   if [[ -e $dest ]]; then
-    # 時間戳只到秒。同一秒內連續兩次 bootstrap 會撞名，而撞名的後果正是這個
-    # 函式要避免的那件事：mv 會把來源搬「進」既有的備份裡。所以再加一個序號。
-    local stamp="$(date +%Y%m%d%H%M%S)"
-    dest="$1.bak.$stamp"
-    local n=1
-    while [[ -e $dest ]]; do
-      dest="$1.bak.$stamp.$n"
-      n=$((n + 1))
-    done
+    dest="$1.bak.$(date +%Y%m%d%H%M%S)"
   fi
   echo "chezmoi: backing up $1 -> $dest"
   mv "$1" "$dest"

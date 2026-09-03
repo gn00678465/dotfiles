@@ -1,10 +1,14 @@
-# SPEC: native Windows 支援
+# SPEC — native Windows 支援
 
-Status: `approved`
-Tier: **3**（高風險：會移動／改寫使用者既有的 nvim 設定、`~/.codex/config.toml`、
-`~/.claude/settings.json`，任一步寫錯就是使用者資料遺失）
-Contract: `~/.claude/CLAUDE.md` 的 evidence-first 契約，未被本 repo 覆寫
-Base ref: `0d72b8e`（`feat/windows-support` 分支起點）
+- `spec_version`: v2
+- `status`: revised-pending-approval
+- `tier`: 3
+- `scope`: windows-support
+- `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
+- `contract`: `~/.claude/CLAUDE.md` 的 evidence-first 契約 **v0.6**，未被本 repo 覆寫
+
+Tier 3 的理由：會移動／改寫使用者既有的 nvim 設定、`~/.codex/config.toml`、
+`~/.claude/settings.json`，任一步寫錯就是使用者資料遺失。
 
 ---
 
@@ -258,22 +262,66 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - **Windows Sandbox 沒有 App Installer**，`_probe.ps1` 需要先自舉 winget；
   這段自舉程式碼只服務測試，不會進到 `init.ps1`。
 - `core.autocrlf = input` 維持不變（Windows 上 checkout 為 LF）。這是刻意不動，不是遺漏。
+- **備份撞名（accepted risk，v2 決定）**：`backup_dir` /
+  `Backup-NvimDirectory` 的時間戳只到秒。若 `dir.bak` 與 `dir.bak.<當秒>` 同時已存在，
+  `mv` / `Move-Item` 會把來源搬「進」那份既有備份裡（`dir.bak.<秒>/nvim`）。
+  資料不會被刪也不會被覆蓋，只是位置深了一層，Must NOT #3 仍然成立。
+  觸發條件是同一秒內跑完兩次含 `git clone` 的 bootstrap，實務上到不了。
+  v1 曾為此加序號迴圈，但那會改變 POSIX 端的渲染輸出（Must NOT #2），
+  代價是六行程式碼加一段寫死的預期 diff，不划算，v2 還原。
+  這條路徑由 L7 的第四次執行釘成 characterization test：形狀被改動不會無聲通過。
 
 ---
 
 ## 8. Approval record
 
-核准是綁定在**這一版 SPEC** 上的結構化行為，不是對話裡的一句話。以下逐字記錄。
+核准是綁定在**某一版 SPEC** 上的結構化行為，不是對話裡的一句話。這一節只增不改：
+每一版各留一筆，逐字記錄。
+
+### v1 — 2026-09-02
 
 - **approval: confirmed**
-- version bound: v1 — 核准當下 `.scratch/windows-support/spec.md` 的 sha256
-  （即本節被改寫成核准狀態**之前**的檔案內容）= `ea20ea21f78b5eac5118270bb9f17775965da8da36ffe04ae21138b4499555ae`
+- version bound: v1 — 核准當下 SPEC（當時路徑為 `.scratch/windows-support/spec.md`）
+  的 sha256（即本節被改寫成核准狀態**之前**的檔案內容）
+  = `ea20ea21f78b5eac5118270bb9f17775965da8da36ffe04ae21138b4499555ae`
 - date: 2026-09-02
 - approver: repo owner（Madao）
 - verbatim words（使用者原話，逐字）:
 
   > 核准 spec
 
-- 範圍：本 SPEC §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
-  §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。SPEC 內容若有實質變更，
-  這筆核准即失效，必須重新取得。
+- 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
+  §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
+
+### v2 — 待核准
+
+- **approval: pending**
+- version bound: v2（見 §9 的變更清單）
+- 這一版尚未取得核准。契約規定核准綁定單一版本，v1 的核准不自動延伸到 v2。
+- 需要核准的實質變更只有一項：§7 新增「備份撞名（accepted risk）」。
+  路徑搬遷、標頭格式、override 撤回都是形式變更，不改變 §0–§6 的任何要求。
+
+---
+
+## 9. Revisions
+
+### v1 → v2
+
+| # | 變更 | 性質 |
+|---|---|---|
+| 1 | SPEC 從 `.scratch/windows-support/spec.md` 搬到 `specs/windows-support/SPEC.md` | 形式。契約 v0.6 第 1 條明定此路徑，理由是 CLOSE 步驟的 `spec-archive` 只讀那裡 |
+| 2 | 標頭改成 `spec_version` / `status` / `tier` / `scope` / `base_ref` / `contract` 的清單形式 | 形式。`spec-archive` 的 `STATUS_RE` 需要能解析 `status`，已實測可解析 |
+| 3 | **撤回**先前宣告的契約 override | 形式，但更正了一項錯誤主張。原本引用 `docs/agents/issue-tracker.md` 作為「本 repo 覆寫契約」的依據；使用者指出該文件規範的是 **issue** 的位置，不是 spec，兩者不是同一種產物，override 不成立。標頭的 `contract` 欄位因此改記為「未被本 repo 覆寫」。該文件本身的用字在 `feat/evidence-first-contract` 的 `bfcdc9a` 另行處理，不在本分支改動 |
+| 4 | §7 新增「備份撞名（accepted risk）」；v1 為此加的序號迴圈在兩個平台上都還原 | **實質**。這是唯一需要重新核准的一項 |
+
+第 4 項的連帶改動（都在測試與工具側，不改變產品行為）：
+
+- `.chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl` 的 `backup_dir`
+  與 base ref `0d72b8e` 逐位元組相同。
+- `.chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl` 的
+  `Backup-NvimDirectory` 同步還原，維持兩邊對稱（Windows 端不受 Must NOT #2
+  約束，這是對稱性的決定）。
+- L10 移除唯一的具名例外，POSIX 腳本全部回到嚴格逐位元組比對。
+- L7 第四次執行改成釘 accepted risk 的行為（資料仍在、只是深一層），兩個平台對稱。
+- mutation：`backup-timestamp-collision{,-windows}` 換成
+  `backup-timestamp-fallback{,-windows}`（刪掉時間戳退路 → 第二份備份被埋）。

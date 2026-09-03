@@ -4,7 +4,7 @@
 #
 #   tools/gate.sh [--base <ref>]
 #
-# 預設 base 是 .scratch/windows-support/spec.md 裡記的那一個。
+# 預設 base 是 specs/windows-support/SPEC.md 裡記的那一個。
 #
 # 契約：
 #   * fail closed —— set -e，沒有 `|| true`，沒有 `2>/dev/null`，第一層壞掉就停。
@@ -29,7 +29,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 if [ -z "$BASE" ]; then
-    BASE=$(sed -n 's/^Base ref: `\([0-9a-f]*\)`.*/\1/p' .scratch/windows-support/spec.md | head -1)
+    BASE=$(sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' specs/windows-support/SPEC.md | head -1)
 fi
 [ -n "$BASE" ] || { echo "gate: 給不出 base ref" >&2; exit 2; }
 

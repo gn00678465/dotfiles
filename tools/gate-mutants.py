@@ -168,39 +168,31 @@ MUTANTS: list[Mutant] = [
         rationale="loader 指向不存在的檔案：每次開 shell 報錯，設定永遠載不到",
     ),
     Mutant(
-        name="backup-timestamp-collision",
+        name="backup-timestamp-fallback",
         path=".chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl",
         old=(
-            '    local stamp="$(date +%Y%m%d%H%M%S)"\n'
-            '    dest="$1.bak.$stamp"\n'
-            "    local n=1\n"
-            "    while [[ -e $dest ]]; do\n"
-            '      dest="$1.bak.$stamp.$n"\n'
-            "      n=$((n + 1))\n"
-            "    done"
+            "  if [[ -e $dest ]]; then\n"
+            '    dest="$1.bak.$(date +%Y%m%d%H%M%S)"\n'
+            "  fi\n"
         ),
-        new='    dest="$1.bak.$(date +%Y%m%d%H%M%S)"',
+        new="",
         layer="L7",
-        rationale="同一秒內連續備份會撞名，把上一份備份埋進新的備份裡",
+        rationale="第二次 bootstrap 直接沿用 dir.bak，把上一份備份埋進新的備份裡",
     ),
     Mutant(
-        name="backup-timestamp-collision-windows",
+        name="backup-timestamp-fallback-windows",
         path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
         old=(
-            "        $stamp = Get-Date -Format 'yyyyMMddHHmmss'\n"
-            '        $dest = "$Path.bak.$stamp"\n'
-            "        $n = 1\n"
-            "        while (Test-Path -LiteralPath $dest) {\n"
-            '            $dest = "$Path.bak.$stamp.$n"\n'
-            "            $n++\n"
-            "        }"
+            "    if (Test-Path -LiteralPath $dest) {\n"
+            "        $dest = \"$Path.bak.$(Get-Date -Format 'yyyyMMddHHmmss')\"\n"
+            "    }\n"
         ),
-        new="        $dest = \"$Path.bak.$(Get-Date -Format 'yyyyMMddHHmmss')\"",
+        new="",
         layer="L7",
         rationale=(
-            "Windows 端同一秒內連續備份會撞名，把上一份備份埋進新的裡。"
-            "這個 mutant 的鏡像（POSIX 版）本來就有，Windows 版沒有，"
-            "所以它一度可以存活整個套件"
+            "Windows 端第二次 bootstrap 直接沿用 dir.bak，把上一份備份埋掉。"
+            "POSIX 那半有 L10 逐位元組比對兜底，Windows 這半沒有 base 可比，"
+            "只有 L7 能證偽它"
         ),
     ),
     Mutant(

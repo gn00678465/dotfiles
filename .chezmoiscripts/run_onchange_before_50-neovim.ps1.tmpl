@@ -50,15 +50,7 @@ function Backup-NvimDirectory {
     # 埋掉。跟 POSIX 的 `mv dir dir.bak` 同一個陷阱，處理方式也一樣：改用時間戳。
     $dest = "$Path.bak"
     if (Test-Path -LiteralPath $dest) {
-        # 時間戳只到秒。同一秒內連續兩次 bootstrap 會撞名，而撞名的後果正是這個
-        # 函式要避免的那件事：Move-Item 會把來源搬「進」既有的備份裡。所以再加序號。
-        $stamp = Get-Date -Format 'yyyyMMddHHmmss'
-        $dest = "$Path.bak.$stamp"
-        $n = 1
-        while (Test-Path -LiteralPath $dest) {
-            $dest = "$Path.bak.$stamp.$n"
-            $n++
-        }
+        $dest = "$Path.bak.$(Get-Date -Format 'yyyyMMddHHmmss')"
     }
     Write-Output "chezmoi: backing up $Path -> $dest"
     Move-Item -LiteralPath $Path -Destination $dest

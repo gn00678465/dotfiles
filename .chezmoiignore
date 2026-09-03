@@ -9,6 +9,7 @@ CONTEXT.md
 docs/
 tests/
 tools/
+specs/
 
 {{ if $p.isWindows }}
 # zsh 那一套在 Windows 上沒有對應物。Windows 讀的是 AppData\ 底下的 nvim/uv 路徑，

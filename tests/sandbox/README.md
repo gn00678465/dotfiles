@@ -1,7 +1,7 @@
 # L9：Windows Sandbox 的 end-to-end 執行
 
 這是唯一允許真的跑 `winget install` 的地方。主機不行
-（見 `.scratch/windows-support/spec.md` 的 Must NOT #1）。
+（見 `specs/windows-support/SPEC.md` 的 Must NOT #1）。
 
 ## 怎麼跑
 
