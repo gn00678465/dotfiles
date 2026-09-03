@@ -390,6 +390,19 @@ MUTANTS: list[Mutant] = [
         ),
     ),
     Mutant(
+        name="interpreter-execution-policy-dropped",
+        path=".chezmoi.toml.tmpl",
+        old='    args = ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]',
+        new='    args = ["-NoLogo", "-NoProfile", "-File"]',
+        layer="L2",
+        rationale=(
+            "拿掉 -ExecutionPolicy Bypass。全新 Windows 的預設是 Restricted，"
+            "chezmoi 寫到 %TEMP% 的第一支 .ps1 就會拒載，整個 apply 在任何檔案"
+            "落地前中止（M13，L9 第一次真實執行的根因）。L10 抓不到這一條 —— "
+            "整個區段包在 isWindows 裡，POSIX 的渲染完全不受影響"
+        ),
+    ),
+    Mutant(
         name="codex-empty-tui-crash",
         path="dot_codex/modify_private_config.toml",
         old="{{-       if ge $last 0 -}}{{- $head = slice $buf 0 (add $last 1) -}}{{- end -}}",

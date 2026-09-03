@@ -528,6 +528,22 @@ pwsh 7 **一樣**受 ExecutionPolicy 管；`-ExecutionPolicy Bypass` 能解；
 - **symlink 權限**那條 FAIL 是預期的（乾淨機器沒開開發人員模式），但在這次執行裡它
   和其他 17 條一樣是 apply 中止的下游，不算獨立證據。
 
+### 這個修法本身被什麼看著
+
+- **L2**：Windows 的設定必須有 `[interpreters.ps1]`、`command = "pwsh"`、
+  `"-ExecutionPolicy", "Bypass"`、`"-NoProfile"`、以 `"-File"]` 收尾（5 條）；
+  四個 POSIX 組合都不得出現 `interpreters`（4 條）。
+- **L10**：`.chezmoi.toml.tmpl` 的 POSIX 渲染與 base ref 逐位元組相同（`sourceDir`
+  那一行必然不同，濾掉，再單獨斷言那一行仍然存在）。**這個檔案在此之前完全沒有任何
+  程序在看** —— 它產生的是 chezmoi 自己的設定、不是 target，整棵樹的 diff 看不到它，
+  而 Must NOT #2 明明管得到。
+- **negative control（實跑）**：把平台守衛換成 `{{ if true }}` → L2 的四條 POSIX
+  斷言與 L10 那條同時變紅；還原後全綠。
+- **mutant `interpreter-execution-policy-dropped`**：拿掉 `-ExecutionPolicy Bypass`
+  這兩個參數。加它的理由是這個 repo 自己的教訓 —— 子字串斷言抓不到註解掉、改序、
+  之後再覆寫，而上面那 9 條全是子字串斷言；L10 也救不了，因為整段包在 `isWindows`
+  裡，POSIX 的渲染一個位元組都沒變。這是唯一能機械證明「L2 那條真的會紅」的東西。
+
 ### 誠實的結論
 
 修好的是**已知的那一個**根因。M13 之後還有沒有第二個、第三個障礙，只有再跑一次 L9
