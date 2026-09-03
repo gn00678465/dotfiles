@@ -1,10 +1,29 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
 # repo-only files that must never land in $HOME
 README.md
 init.sh
+init.ps1
 AGENTS.md
 CLAUDE.md
 docs/
 tests/
+tools/
+specs/
+
+{{ if $p.isWindows }}
+# zsh 那一套在 Windows 上沒有對應物。Windows 讀的是 AppData\ 底下的 nvim/uv 路徑，
+# ~/.config 底下那兩份是 POSIX 專用的。
+.zshrc
+.zprofile
+.p10k.zsh
+.config/nvim
+.config/uv
+{{ else }}
+# Windows 專用的 target。~/.config/powershell 是 pwsh profile 的本體
+# （見 .chezmoiscripts/run_after_60-pwsh-profile.ps1）。
+AppData
+.config/powershell
+{{ end }}
 
 # Oh My Zsh runtime state, so `exact = true` on .oh-my-zsh does not delete it.
 # `dir/**` matches the directory itself as well as everything beneath it.

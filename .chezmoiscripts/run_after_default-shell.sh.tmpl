@@ -1,4 +1,5 @@
-{{ if eq .chezmoi.os "linux" -}}
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if eq $p.os "linux" -}}
 #!/bin/sh
 set -eu
 

@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+"""Supply-chain and secrets layer for the verification gate.
+
+This repo's "dependencies" are chezmoi externals (pinned URL + sha256) and
+package-manager IDs. Three checks:
+
+  1. Every external URL this change ADDED or CHANGED is downloaded and its
+     sha256 compared with the pin. A pin nobody ever verified is decoration.
+     Externals untouched by this change are not re-downloaded every gate run.
+  2. The diff is scanned for credentials.
+  3. Capability diff: which outbound hosts and which external commands the
+     source declares now, versus at the base ref. Declared surface only --
+     import/URL/command literals -- no judgement about how they are used.
+  4. Every winget package ID the source installs is resolved with
+     `winget show --exact` (read-only). Covers SPEC M9: a typo'd ID otherwise
+     surfaces only as a silent missing tool on a real machine. Skipped, and
+     said so, when winget.exe is not reachable.
+
+Fails closed: a download error, a hash mismatch, a secret hit, or an unreadable
+input is a hard failure. There is no offline mode; a network the gate cannot
+reach means the pins were not verified, which is not a pass.
+
+Usage: tools/gate-supply-chain.py --base <ref>
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import re
+import shutil
+import subprocess
+import sys
+import urllib.request
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+FIXTURES = REPO / "tests" / "fixtures"
+# 六個組合，不是四個：每個平台的渲染只吐出屬於它自己的那一個 cc-statusline asset，
+# 少一個組合就等於那個 asset 的 pin 從來沒有被下載驗證過。
+OS_CONFIGS = [
+    "os-linux.toml", "os-linux-arm64.toml",
+    "os-darwin-arm64.toml", "os-darwin-amd64.toml",
+    "os-windows.toml", "os-windows-arm64.toml",
+]
+
+SECRET_PATTERNS = [
+    (r"AKIA[0-9A-Z]{16}", "AWS access key id"),
+    (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "private key block"),
+    (r"gh[pousr]_[A-Za-z0-9]{20,}", "GitHub token"),
+    (r"xox[baprs]-[A-Za-z0-9-]{10,}", "Slack token"),
+    (r"(?i)\b(password|passwd|secret|api[_-]?key)\s*[:=]\s*['\"][^'\"]{8,}['\"]", "inline credential"),
+]
+
+# 這些 host 是這個 repo 本來就在用的下載來源。新出現的 host 會被列出來，
+# 讓 evidence report 的讀者知道這次改動讓來源樹多對外聯絡了誰。
+COMMAND_LITERALS = [
+    "winget", "brew", "apt-get", "mise", "git", "chsh", "dpkg-query",
+    "Install-PSResource", "Add-AppxPackage", "Invoke-WebRequest", "Invoke-RestMethod",
+    "oh-my-posh", "git-lfs", "sudo", "curl",
+]
+
+
+def sh(cmd: list[str], cwd: Path = REPO) -> str:
+    p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    if p.returncode != 0:
+        raise RuntimeError(f"{' '.join(cmd)} -> {p.returncode}\n{p.stderr}")
+    return p.stdout
+
+
+def render_externals(source: Path, config: str) -> str:
+    src = (source / ".chezmoiexternal.toml.tmpl").read_text(encoding="utf-8")
+    p = subprocess.run(
+        ["chezmoi", "--source", str(source), "--config", str(FIXTURES / config),
+         "--destination", "/tmp/gate-sc-dest", "--no-tty", "execute-template"],
+        input=src, capture_output=True, text=True,
+    )
+    if p.returncode != 0:
+        raise RuntimeError(f"render {config}: {p.stderr}")
+    return p.stdout
+
+
+def externals(source: Path) -> dict[str, str]:
+    """url -> sha256, across all four platform renders."""
+    found: dict[str, str] = {}
+    for cfg in OS_CONFIGS:
+        url = None
+        for line in render_externals(source, cfg).splitlines():
+            line = line.strip()
+            if line.startswith("url ="):
+                url = line.split("=", 1)[1].strip().strip('"')
+            elif line.startswith("checksum.sha256 =") and url:
+                # 空字串的 pin 會讓 chezmoi「不驗證就安裝」（實測），比錯的 pin
+                # 更危險，所以這裡把它記成空值讓下面的比對必然失敗，而不是略過。
+                found[url] = line.split("=", 1)[1].strip().strip('"')
+    return found
+
+
+def winget_ids() -> dict[str, list[str]]:
+    """來源樹裡實際會被安裝的 winget ID，連同它出現的位置。
+
+    抽取規則寫死成兩個明確的位置而不是掃全樹：掃全樹的正則會把研究筆記與註解裡
+    提到的 ID 也撈進來，那些不是「會被安裝的東西」。
+    """
+    found: dict[str, list[str]] = {}
+
+    pkg = REPO / ".chezmoiscripts" / "run_onchange_before_30-install-winget-packages.ps1.tmpl"
+    text = pkg.read_text(encoding="utf-8")
+    block = re.search(r"\$packages = @\((.*?)\n\)", text, re.S)
+    if not block:
+        raise SystemExit(f"gate-supply-chain: 在 {pkg.name} 裡找不到 $packages 區塊"
+                         " —— 抽取規則跟程式碼脫節了，這是失敗不是略過")
+    for m in re.finditer(r"'([A-Za-z0-9][\w.\-]*\.[\w.\-]+)'", block.group(1)):
+        found.setdefault(m.group(1), []).append(pkg.name)
+
+    boot = REPO / "init.ps1"
+    btext = boot.read_text(encoding="utf-8")
+    hits = re.findall(r"Install-IfMissing\s+-Id\s+'([^']+)'", btext)
+    if not hits:
+        raise SystemExit("gate-supply-chain: 在 init.ps1 裡找不到 Install-IfMissing -Id"
+                         " —— 抽取規則跟程式碼脫節了")
+    for i in hits:
+        found.setdefault(i, []).append(boot.name)
+
+    return found
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--base", required=True)
+    args = ap.parse_args()
+
+    failures: list[str] = []
+
+    # ---------------------------------------------------------- 1. pins
+    head_ext = externals(REPO)
+
+    base_dir = Path("/tmp/gate-sc-base")
+    subprocess.run(["rm", "-rf", str(base_dir)], check=True)
+    base_dir.mkdir(parents=True)
+    subprocess.run(f"git -C {REPO} archive {args.base} | tar -x -C {base_dir}",
+                   shell=True, check=True)
+    try:
+        base_ext = externals(base_dir)
+    except RuntimeError as e:
+        raise SystemExit(f"gate-supply-chain: 讀不到 base ref 的 external：{e}")
+
+    new_or_changed = {u: s for u, s in head_ext.items() if base_ext.get(u) != s}
+    print(f"externals: {len(head_ext)} 個帶 checksum 的釘住下載，"
+          f"其中 {len(new_or_changed)} 個是這次新增或變更的")
+
+    for url, want in sorted(new_or_changed.items()):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as r:
+                data = r.read()
+        except Exception as e:  # noqa: BLE001 - 任何取不到都算失敗
+            failures.append(f"下載失敗（pin 因此未經驗證）: {url}: {e}")
+            continue
+        got = hashlib.sha256(data).hexdigest()
+        if len(want) != 64:
+            failures.append(f"pin 不是一個 sha256（空值會讓 chezmoi 不驗證就安裝）: {url} pin={want!r}")
+            continue
+        if got != want:
+            failures.append(f"sha256 不符: {url}\n  pinned={want}\n  actual={got}")
+        else:
+            print(f"  OK  {got[:16]}...  {url}")
+
+    # ---------------------------------------------------------- 2. secrets
+    diff = sh(["git", "diff", f"{args.base}...HEAD"])
+    added = [l[1:] for l in diff.splitlines() if l.startswith("+") and not l.startswith("+++")]
+    for pat, label in SECRET_PATTERNS:
+        rx = re.compile(pat)
+        for line in added:
+            if rx.search(line):
+                failures.append(f"疑似機密（{label}）出現在新增的行: {line[:120]}")
+    # 這個 diff 也含 evidence report 自己，所以總數會隨報告變動；另外算一份
+    # 不含 .scratch/ 的，讓報告能引用一個穩定的數字。掃描本身仍然涵蓋全部。
+    prod_added = 0
+    cur = ""
+    for line in diff.splitlines():
+        if line.startswith("+++ b/"):
+            cur = line[6:]
+        elif line.startswith("+") and not line.startswith("+++") and not cur.startswith(".scratch/"):
+            prod_added += 1
+    print(f"secrets: 掃過 {len(added)} 行新增內容（其中不含 .scratch/ 的為 {prod_added} 行）")
+
+    # ---------------------------------------------------------- 3. capabilities
+    def surface(text: str) -> tuple[set[str], set[str]]:
+        hosts = set(re.findall(r"https?://([A-Za-z0-9.\-]+)", text))
+        cmds = {c for c in COMMAND_LITERALS if re.search(rf"(?<![\w-]){re.escape(c)}(?![\w-])", text)}
+        return hosts, cmds
+
+    def tree_text(ref_dir: Path) -> str:
+        out = []
+        for p in sorted(ref_dir.rglob("*")):
+            if p.is_file() and ".git/" not in str(p):
+                try:
+                    out.append(p.read_text(encoding="utf-8"))
+                except (UnicodeDecodeError, OSError):
+                    pass
+        return "\n".join(out)
+
+    h_hosts, h_cmds = surface(tree_text(REPO))
+    b_hosts, b_cmds = surface(tree_text(base_dir))
+    print("capability diff (declared surface only):")
+    print(f"  新增的外部 host: {sorted(h_hosts - b_hosts) or '（無）'}")
+    print(f"  移除的外部 host: {sorted(b_hosts - h_hosts) or '（無）'}")
+    print(f"  新增的外部命令: {sorted(h_cmds - b_cmds) or '（無）'}")
+    print(f"  移除的外部命令: {sorted(b_cmds - h_cmds) or '（無）'}")
+
+    # ---------------------------------------------------------- 4. winget IDs
+    ids = winget_ids()
+    winget = shutil.which("winget.exe") or shutil.which("winget")
+    if not winget:
+        print(f"winget ids: {len(ids)} 個 ID 抽取成功，但 winget.exe 不可達，"
+              "**沒有驗證它們存在**（evidence report 記為 SUBSTITUTED）")
+        for i in sorted(ids):
+            print(f"  ?   {i}  ({', '.join(sorted(set(ids[i])))})")
+    else:
+        print(f"winget ids: 逐一以 winget show --exact 解析 {len(ids)} 個 ID")
+        for i in sorted(ids):
+            r = subprocess.run(
+                [winget, "show", "--id", i, "--exact", "--accept-source-agreements"],
+                capture_output=True, text=True,
+            )
+            if r.returncode != 0:
+                failures.append(f"winget 解析不到套件 ID: {i} "
+                                f"（出現在 {', '.join(sorted(set(ids[i])))}）")
+            else:
+                print(f"  OK  {i}")
+
+    if failures:
+        print("\ngate-supply-chain: 失敗", file=sys.stderr)
+        for f in failures:
+            print(f"  - {f}", file=sys.stderr)
+        return 1
+    print("\ngate-supply-chain: 通過")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

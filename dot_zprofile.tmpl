@@ -1,3 +1,4 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
 # mise shims for non-interactive login shells (see mise docs: shims for
 # non-interactive, `mise activate` for interactive).
 # ~/.local/bin is NOT on the default login PATH, so prepend it before probing.
@@ -6,10 +7,8 @@ export PATH="$HOME/.local/bin:$PATH"
 # mise is installed by brew, so brew has to come first. `typeset -U path` keeps
 # the entries unique when .zshrc runs shellenv again for interactive shells.
 typeset -U path
-{{ if eq .chezmoi.os "darwin" -}}
-eval "$({{ if eq .chezmoi.arch "arm64" }}/opt/homebrew{{ else }}/usr/local{{ end }}/bin/brew shellenv)"
-{{ else if eq .chezmoi.os "linux" -}}
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+{{ if $p.isPosix -}}
+eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
 {{ end -}}
 
 if (( $+commands[mise] )); then

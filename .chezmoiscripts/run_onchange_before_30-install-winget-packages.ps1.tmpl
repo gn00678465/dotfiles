@@ -1,0 +1,51 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if $p.isWindows -}}
+#Requires -Version 7
+# Windows 的工具清單。對應 POSIX 端的 30-install-brew-packages：新工具加在這裡，
+# 兩邊要一起加，不然 Windows 會少東西。
+#
+# Microsoft.PowerShell 與 Git.Git 刻意不在這張清單裡：chezmoi 要有 git 才能 clone
+# 這個 repo，要有 pwsh 7 才能執行本檔（chezmoi 對 .ps1 的預設 interpreter 就是
+# `pwsh -NoLogo -File`）。它們是 init.ps1 的自舉責任，跑到這裡時必然已經在了。
+$ErrorActionPreference = 'Stop'
+
+{{ includeTemplate "windows-path.ps1" . }}
+
+# WinLibs 的 gcc（MinGW-w64）是給 nvim-treesitter 用的 C compiler。nvim-treesitter
+# 的 main 分支用 `tree-sitter build` 編每一個 parser，在 Windows 上預設找 MSVC 的
+# cl.exe。對應 Debian 那邊的 build-essential。
+#
+# 這裡原本放的是 zig.zig，理由是「社群做法是改用 zig」。L9 第二次執行之後實測推翻：
+# nvim-treesitter main 回報 `Unmet requirements: C compiler ❌`，而同一個終端機裡
+# `zig version` 是 0.16.0 —— zig 裝好了也找得到，是它的需求檢查不接受 zig，
+# 並且自己建議 WinLibs。zig 一併移除：它進這張清單的唯一理由就是這件事。
+# 變體選 POSIX.UCRT：UCRT 是 Windows 10/11 的現行 C runtime（MSVCRT 是舊的），
+# 不取 .LLVM 變體因為需要的是 gcc。細節見 docs/research/windows-native-support.md 10。
+$packages = @(
+    'jdx.mise'
+    'junegunn.fzf'
+    'GitHub.GitLFS'
+    'BurntSushi.ripgrep.MSVC'
+    'sharkdp.fd'
+    'JesseDuffield.lazygit'
+    'tree-sitter.tree-sitter-cli'
+    'JanDeDobbeleer.OhMyPosh'
+    'BrechtSanders.WinLibs.POSIX.UCRT'
+)
+
+foreach ($id in $packages) {
+    # winget list 找不到套件時退出碼非零。--exact 關掉前綴比對，否則
+    # 'jdx.mise' 之類的 ID 會被別的套件名撞到。
+    winget list --exact --id $id --accept-source-agreements *> $null
+    if ($LASTEXITCODE -eq 0) { continue }
+
+    Write-Output "chezmoi: winget install $id"
+    # --source winget 把來源釘在社群 repo，避免同名套件在 msstore 那邊造成
+    # 「需要選擇來源」的互動提示 —— chezmoi 是無人值守跑這支腳本的。
+    winget install --exact --id $id --source winget --silent `
+        --accept-package-agreements --accept-source-agreements --disable-interactivity
+    if ($LASTEXITCODE -ne 0) {
+        throw "winget install $id failed with exit code $LASTEXITCODE"
+    }
+}
+{{ end -}}

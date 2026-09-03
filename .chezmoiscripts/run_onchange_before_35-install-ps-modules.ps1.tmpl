@@ -1,0 +1,28 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $v := includeTemplate "versions.toml" . | fromToml -}}
+{{ if $p.isWindows -}}
+#Requires -Version 7
+# PowerShell Gallery 的模組。winget 沒有這些東西，所以它們不能放在 30 那支腳本裡。
+#
+# 目前只有 PSFzf，對應 zsh 那邊的 fzf-tab（zsh-autosuggestions 與
+# zsh-syntax-highlighting 的功能由 pwsh 7 內建的 PSReadLine 提供，不需要安裝）。
+$ErrorActionPreference = 'Stop'
+
+# Install-PSResource 是 PSResourceGet 的 cmdlet，PowerShell 7.4 以後隨附
+# （本機實測 pwsh 7.6.5 / PSResourceGet 1.2.0 有）。-TrustRepository 是必要的：
+# PSGallery 預設是 Trusted = False，沒有這個旗標會停在確認提示上，而 chezmoi
+# 是無人值守跑這支腳本的。
+# 版本釘在 versions.toml。Install-PSResource 不帶 -Version 就是每次抓當下最新，
+# 那等於在安裝腳本裡放一個浮動的可執行相依。
+$modules = @(
+    @{ Name = 'PSFzf'; Version = '{{ $v.psfzf }}' }
+)
+
+foreach ($m in $modules) {
+    $have = Get-Module -ListAvailable -Name $m.Name |
+            Where-Object { $_.Version.ToString() -eq $m.Version }
+    if ($have) { continue }
+    Write-Output "chezmoi: installing PowerShell module $($m.Name) $($m.Version)"
+    Install-PSResource -Name $m.Name -Version $m.Version -Scope CurrentUser -TrustRepository -Quiet
+}
+{{ end -}}

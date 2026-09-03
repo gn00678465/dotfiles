@@ -1,0 +1,12 @@
+# my codex config
+model = "gpt-5"
+
+[mcp_servers.foo]
+command = "uvx"
+args = ["mcp-server-foo"]
+
+[tui]
+# 這行註解必須留著
+status_line = ["OLD-VALUE"]
+some_other_key = 42
+status_line_use_colors = false

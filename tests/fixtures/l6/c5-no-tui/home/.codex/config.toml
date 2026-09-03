@@ -1,0 +1,5 @@
+# 完全沒有 [tui]
+model = "gpt-5"
+
+[mcp_servers.bar]
+command = "npx"

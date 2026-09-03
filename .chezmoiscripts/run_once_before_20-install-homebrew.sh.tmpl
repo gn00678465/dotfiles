@@ -1,16 +1,11 @@
-{{- $brewPrefix := "/home/linuxbrew/.linuxbrew" -}}
-{{- if eq .chezmoi.os "darwin" -}}
-{{-   $brewPrefix = "/opt/homebrew" -}}
-{{-   if ne .chezmoi.arch "arm64" -}}
-{{-     $brewPrefix = "/usr/local" -}}
-{{-   end -}}
-{{- end -}}
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if $p.isPosix -}}
 #!/bin/zsh
 # Runs after 10-install-packages, which installs zsh itself plus Homebrew's
 # Linux build requirements.
 set -euo pipefail
 
-if [[ -x {{ $brewPrefix }}/bin/brew ]]; then
+if [[ -x {{ $p.brewPrefix }}/bin/brew ]]; then
   exit 0
 fi
 
@@ -20,5 +15,6 @@ fi
 echo "chezmoi: installing Homebrew"
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-eval "$({{ $brewPrefix }}/bin/brew shellenv)"
+eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
 brew analytics off
+{{ end -}}

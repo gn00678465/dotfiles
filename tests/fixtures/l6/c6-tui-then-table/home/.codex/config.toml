@@ -1,0 +1,5 @@
+[tui]
+status_line = ["OLD"]
+
+[other]
+x = 1

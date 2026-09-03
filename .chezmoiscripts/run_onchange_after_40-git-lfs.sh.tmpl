@@ -1,10 +1,5 @@
-{{- $brewPrefix := "/home/linuxbrew/.linuxbrew" -}}
-{{- if eq .chezmoi.os "darwin" -}}
-{{-   $brewPrefix = "/opt/homebrew" -}}
-{{-   if ne .chezmoi.arch "arm64" -}}
-{{-     $brewPrefix = "/usr/local" -}}
-{{-   end -}}
-{{- end -}}
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if $p.isPosix -}}
 #!/bin/zsh
 # `git lfs install` is a `git config --global` write. It must run AFTER files
 # are applied: create_empty_dot_gitconfig guarantees ~/.gitconfig exists by
@@ -12,7 +7,7 @@
 # That is also why [filter "lfs"] is deliberately absent from that file.
 set -euo pipefail
 
-eval "$({{ $brewPrefix }}/bin/brew shellenv)"
+eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
 
 if ! command -v git-lfs &>/dev/null; then
   exit 0
@@ -20,3 +15,4 @@ fi
 
 # --skip-repo: only write the global filter config, never touch the cwd repo.
 git lfs install --skip-repo >/dev/null
+{{ end -}}

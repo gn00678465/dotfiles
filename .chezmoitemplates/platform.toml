@@ -1,0 +1,35 @@
+{{- /*
+  平台判斷的唯一來源。呼叫端一律：
+
+      {{- $p := includeTemplate "platform.toml" . | fromToml -}}
+
+  然後讀 $p.os / $p.arch / $p.isWindows / $p.isPosix / $p.brewPrefix。
+  不要在別的地方寫 `eq .chezmoi.os "..."` 或自己拼 brew prefix —— 這個 repo 現在有
+  三個目標平台，平台知識散開就會出現「某一支腳本忘了跟上」的那種錯。
+
+  osOverride / archOverride 是刻意留的測試接縫，只有這個檔案認得它們。正式環境的
+  chezmoi config 沒有這兩個 key，所以永遠退回 .chezmoi.os / .chezmoi.arch。
+  存在的理由：這個 repo 沒有 macOS 實機，也不允許在 Windows 主機上真的 apply
+  （SPEC Must NOT #1），三個平台的渲染證據只能在單一台機器上取得。
+  接縫本身由 tests/cases/L1 與 L8 驗證：L1 證明沒有 override 時會退回真實值，
+  L8 證明 osOverride=windows 的渲染結果與 Windows 主機上真跑一次逐字相同。
+*/ -}}
+{{- /* chezmoi 用 missingkey=error 算繪模板，缺 key 會直接報錯，
+       所以這裡不能靠 `default` 兜，一定要先 hasKey。 */ -}}
+{{- $os := .chezmoi.os -}}
+{{- $arch := .chezmoi.arch -}}
+{{- if hasKey . "osOverride" -}}{{- $os = .osOverride -}}{{- end -}}
+{{- if hasKey . "archOverride" -}}{{- $arch = .archOverride -}}{{- end -}}
+{{- /* Windows 沒有 brew。這裡留空字串而不是任何路徑，好讓忘了守 isWindows 的
+       呼叫端拼出明顯壞掉的字串，而不是一條看似合理、實際不存在的路徑。 */ -}}
+{{- $brewPrefix := "" -}}
+{{- if eq $os "linux" -}}
+{{-   $brewPrefix = "/home/linuxbrew/.linuxbrew" -}}
+{{- else if eq $os "darwin" -}}
+{{-   $brewPrefix = (eq $arch "arm64") | ternary "/opt/homebrew" "/usr/local" -}}
+{{- end -}}
+os = {{ $os | quote }}
+arch = {{ $arch | quote }}
+isWindows = {{ eq $os "windows" }}
+isPosix = {{ ne $os "windows" }}
+brewPrefix = {{ $brewPrefix | quote }}

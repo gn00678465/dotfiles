@@ -1,3 +1,5 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if $p.isPosix -}}
 # Oh My Zsh itself. `exact` means chezmoi deletes anything in ~/.oh-my-zsh that
 # is not in this tarball -- which is why every plugin/theme below must also be an
 # external, and why cache/ and log/ are in .chezmoiignore.
@@ -41,31 +43,50 @@
     exact = true
     stripComponents = 1
     checksum.sha256 = "d8187d44b697b3a37a8c4896678b4380e717cbf2850179529358348780a2d3d7"
-
+{{ end }}
+{{ if $p.isWindows }}
+# oh-my-posh 的 powerlevel10k_rainbow 主題。刻意不靠 $env:POSH_THEMES_PATH：
+# Store 版的 oh-my-posh 會把那個變數指向一個不存在的目錄（實測），主題就找不到。
+# 這裡改成釘 tag + sha256 抓下來，跟這個 repo 對 zsh 每一個 plugin/theme 的做法一致。
+# 升級：改 tag，再重算 sha256（檔案就是 repo 裡 themes/ 底下那一份）。
+[".config/oh-my-posh/powerlevel10k_rainbow.omp.json"]
+    type = "file"
+    url = "https://github.com/JanDeDobbeleer/oh-my-posh/raw/v31.1.2/themes/powerlevel10k_rainbow.omp.json"
+    checksum.sha256 = "d55074433400c2a532ab883986f4e2ebd2b35d9f5d61f355f27eeb1243a78713"
+{{ end }}
 {{- $ccStatuslineVersion := "v2.0.1" -}}
 {{- $ccStatuslineAsset := "" -}}
-{{- if eq .chezmoi.os "linux" -}}
-{{-   $ccStatuslineAsset = (eq .chezmoi.arch "arm64") | ternary "linux-arm64-musl" "linux-x64-musl" -}}
-{{- else if eq .chezmoi.os "darwin" -}}
-{{-   $ccStatuslineAsset = (eq .chezmoi.arch "arm64") | ternary "darwin-arm64" "darwin-x64" -}}
+{{- /* Windows 的 release 是 .zip 且內含 .exe；POSIX 是 .tar.gz 內含無副檔名的檔案。 */ -}}
+{{- $ccStatuslineExt := "tar.gz" -}}
+{{- $ccStatuslineBin := "cc-statusline" -}}
+{{- if eq $p.os "linux" -}}
+{{-   $ccStatuslineAsset = (eq $p.arch "arm64") | ternary "linux-arm64-musl" "linux-x64-musl" -}}
+{{- else if eq $p.os "darwin" -}}
+{{-   $ccStatuslineAsset = (eq $p.arch "arm64") | ternary "darwin-arm64" "darwin-x64" -}}
+{{- else if eq $p.os "windows" -}}
+{{-   $ccStatuslineAsset = (eq $p.arch "arm64") | ternary "win32-arm64" "win32-x64" -}}
+{{-   $ccStatuslineExt = "zip" -}}
+{{-   $ccStatuslineBin = "cc-statusline.exe" -}}
 {{- end -}}
 {{- $ccStatuslineSums := dict
       "linux-x64-musl"   "d98c4d9db5af6bb3c89bf2cab3be6bc1a2a9b43037b33b13e82d5a5b926c5404"
       "linux-arm64-musl" "dd2820521503c023e9f9764a1487347fe7735f6f50ba13eab861329434dff7e5"
       "darwin-x64"       "73ff2d45ce710dfa8ddcab7a9630f2f3d8a3c7f33a3752deaffc97564fd7d9ab"
-      "darwin-arm64"     "afb2cbeaa1034f0c0de1f03a5d5a1bdb98eed5f31ff3c00d8dd5731b31c51d4f" -}}
+      "darwin-arm64"     "afb2cbeaa1034f0c0de1f03a5d5a1bdb98eed5f31ff3c00d8dd5731b31c51d4f"
+      "win32-x64"        "d55e2baee3dd6378ee7256574b5104737cfcffbe15228c9a3f50ee32f2ee8bd6"
+      "win32-arm64"      "dd4fd5ea2811f91031953f806e0a65855c1d623fae4732d554f6489db33f7abd" -}}
 {{ if $ccStatuslineAsset }}
 # cc-statusline -- Claude Code 的 statusLine 程式，來源 https://github.com/gn00678465/StatusLine
 # 目標路徑要和 dot_claude/modify_settings.json 寫進 settings.json 的
-# statusLine.command 一致：~/.claude/cc-statusline/cc-statusline
+# statusLine.command 一致（Windows 上多一個 .exe，那邊也是依平台產生的）。
 #
-# 升級：改上面的 $ccStatuslineVersion，再把四個平台的 sha256 從
-#   https://github.com/gn00678465/StatusLine/releases/download/<tag>/cc-statusline-<asset>.tar.gz.sha256
-# 抓下來更新 $ccStatuslineSums。平台不在清單內（例如 windows）就整段不輸出。
-[".claude/cc-statusline/cc-statusline"]
+# 升級：改上面的 $ccStatuslineVersion，再把六個平台的 sha256 從
+#   https://github.com/gn00678465/StatusLine/releases/download/<tag>/cc-statusline-<asset>.<ext>.sha256
+# 抓下來更新 $ccStatuslineSums。平台不在清單內就整段不輸出。
+[".claude/cc-statusline/{{ $ccStatuslineBin }}"]
     type = "archive-file"
-    url = "https://github.com/gn00678465/StatusLine/releases/download/{{ $ccStatuslineVersion }}/cc-statusline-{{ $ccStatuslineAsset }}.tar.gz"
-    path = "cc-statusline"
+    url = "https://github.com/gn00678465/StatusLine/releases/download/{{ $ccStatuslineVersion }}/cc-statusline-{{ $ccStatuslineAsset }}.{{ $ccStatuslineExt }}"
+    path = "{{ $ccStatuslineBin }}"
     executable = true
     checksum.sha256 = "{{ index $ccStatuslineSums $ccStatuslineAsset }}"
 {{ end -}}

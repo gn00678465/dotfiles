@@ -1,8 +1,19 @@
 # dotfiles
 
-用 chezmoi 管理 zsh 環境（Oh My Zsh + zsh-autosuggestions + zsh-syntax-highlighting + fzf-tab + Powerlevel10k + mise）。
+用 chezmoi 管理開發環境，Linux / macOS / native Windows 三個平台。
+
+| | Linux / macOS | Windows |
+|---|---|---|
+| Shell | zsh + Oh My Zsh | PowerShell 7 |
+| Prompt | Powerlevel10k | oh-my-posh（powerlevel10k_rainbow） |
+| 補全／建議 | zsh-autosuggestions + zsh-syntax-highlighting | PSReadLine（內建） |
+| 模糊搜尋 | fzf + fzf-tab | fzf + PSFzf |
+| 套件 | apt（前置）+ Homebrew | winget |
+| 版本管理 | mise | mise |
 
 ---
+
+## Linux / macOS
 
 ### 1. 確認 curl
 
@@ -36,6 +47,42 @@ sh -c "$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/<branc
 branch 合併刪除後要回 main：`chezmoi cd && git checkout main`。
 
 已經裝過的機器重跑 `init.sh` 不會重新 clone，`--branch` 會被忽略；要換 branch 用下面的方式。
+
+---
+
+## Windows
+
+前置條件只有一個：**winget**（Windows 11 內建的「應用程式安裝程式」就有）。
+其餘的 PowerShell 7、Git、chezmoi 都由 `init.ps1` 自己裝起來。
+
+```powershell
+irm https://raw.githubusercontent.com/gn00678465/dotfiles/main/init.ps1 | iex
+```
+
+指定 branch（測試用）：
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/gn00678465/dotfiles/<branch>/init.ps1))) -Branch <branch>
+```
+
+**先開「開發人員模式」**（設定 > 系統 > 開發人員專用）。chezmoi 會在
+`~/.claude/skills` 底下建 symlink，Windows 上一般帳號沒有這個權限，apply 會失敗。
+`init.ps1` 會先探測並提醒，但它不會自己去改這個設定。
+
+裝完之後**開一個新的 PowerShell 7 視窗**：profile 是在這次 apply 才寫進去的。
+
+Windows 上的檔案落點與 POSIX 不同，這是各工具自己的規定，不是這個 repo 選的：
+
+| | 路徑 |
+|---|---|
+| PowerShell 設定（chezmoi 管的本體） | `~\.config\powershell\profile.ps1` |
+| pwsh 真正載入的 profile | `$PROFILE.CurrentUserAllHosts`，只有一行 loader |
+| Neovim 設定 | `%LOCALAPPDATA%\nvim` |
+| Neovim 資料／狀態 | `%LOCALAPPDATA%\nvim-data` |
+| uv | `%APPDATA%\uv\uv.toml` |
+| mise（全域） | `~\.config\mise\config.toml`（與 POSIX 相同） |
+
+細節與各條的依據見 `docs/research/windows-native-support.md`。
 
 ---
 

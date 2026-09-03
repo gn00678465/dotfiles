@@ -1,16 +1,11 @@
-{{- $brewPrefix := "/home/linuxbrew/.linuxbrew" -}}
-{{- if eq .chezmoi.os "darwin" -}}
-{{-   $brewPrefix = "/opt/homebrew" -}}
-{{-   if ne .chezmoi.arch "arm64" -}}
-{{-     $brewPrefix = "/usr/local" -}}
-{{-   end -}}
-{{- end -}}
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if $p.isPosix -}}
 #!/bin/zsh
 # brew packages shared by Linux and macOS. Add new tools here, not to
 # 10-install-packages (apt, Linux only).
 set -euo pipefail
 
-eval "$({{ $brewPrefix }}/bin/brew shellenv)"
+eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
 
 # Homebrew 6 made ask mode the default, so a bare `brew install` stops at
 # "Do you want to proceed with the installation? [y/n]". chezmoi runs this
@@ -21,3 +16,4 @@ export HOMEBREW_NO_ASK=1
 for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter; do
   brew list --formula "$formula" &>/dev/null || brew install "$formula"
 done
+{{ end -}}

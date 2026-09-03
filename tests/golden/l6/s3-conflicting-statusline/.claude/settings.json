@@ -1,0 +1,10 @@
+{
+  "authDreamEnabled": false,
+  "autoMemoryEnabled": false,
+  "keepThis": "yes",
+  "statusLine": {
+    "command": "STATUSLINE_USAGE_STYLE=dots ~/.claude/cc-statusline/cc-statusline",
+    "padding": 2,
+    "type": "command"
+  }
+}

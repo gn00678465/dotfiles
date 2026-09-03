@@ -1,0 +1,9 @@
+{
+  "authDreamEnabled": false,
+  "autoMemoryEnabled": false,
+  "statusLine": {
+    "command": "~/.claude/cc-statusline/cc-statusline.exe",
+    "padding": 2,
+    "type": "command"
+  }
+}

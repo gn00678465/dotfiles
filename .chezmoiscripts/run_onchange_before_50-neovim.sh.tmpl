@@ -1,10 +1,6 @@
-{{- $brewPrefix := "/home/linuxbrew/.linuxbrew" -}}
-{{- if eq .chezmoi.os "darwin" -}}
-{{-   $brewPrefix = "/opt/homebrew" -}}
-{{-   if ne .chezmoi.arch "arm64" -}}
-{{-     $brewPrefix = "/usr/local" -}}
-{{-   end -}}
-{{- end -}}
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $v := includeTemplate "versions.toml" . | fromToml -}}
+{{ if $p.isPosix -}}
 #!/bin/zsh
 # Neovim (via mise) + the LazyVim starter config.
 # `before`, because `git clone` refuses a non-empty target and chezmoi owns
@@ -12,7 +8,7 @@
 # to land first; chezmoi then writes our overrides on top of it.
 set -euo pipefail
 
-eval "$({{ $brewPrefix }}/bin/brew shellenv)"
+eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
 
 if ! command -v mise &>/dev/null; then
   echo "chezmoi: mise not found, skipping neovim" >&2
@@ -35,7 +31,7 @@ export MISE_YES=1
 # So bumping this is a deliberate act: re-read the Requirements sections of
 # nvim-treesitter `main` and LazyVim first.
 # Background: docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md
-mise use --global neovim@0.12.5
+mise use --global neovim@{{ $v.neovim }}
 
 # The LazyVim starter is a template, not a tracked dependency: clone it once and
 # drop its .git. Whatever chezmoi does not explicitly own under
@@ -51,7 +47,7 @@ nvim_cache="${XDG_CACHE_HOME:-$HOME/.cache}/nvim"
 # the script re-runs it) an existing ~/.config/nvim is the user's own config,
 # not a foreign one, and must not be backed up and re-cloned over. Delete this
 # file to deliberately force a clean re-bootstrap on the next apply.
-marker="$nvim_config/.chezmoi-lazyvim-starter"
+marker="$nvim_config/{{ $v.lazyvimMarker }}"
 
 # `mv dir dir.bak` moves dir *inside* dir.bak when dir.bak already exists, which
 # silently buries the older backup. Fall back to a timestamp instead.
@@ -74,7 +70,8 @@ if [[ ! -e $marker ]]; then
   backup_dir "$nvim_cache"
 
   echo "chezmoi: cloning the LazyVim starter into $nvim_config"
-  git clone --depth 1 https://github.com/LazyVim/starter "$nvim_config"
+  git clone --depth 1 {{ $v.lazyvimStarter }} "$nvim_config"
   rm -rf "$nvim_config/.git"
   touch "$marker"
 fi
+{{ end -}}
