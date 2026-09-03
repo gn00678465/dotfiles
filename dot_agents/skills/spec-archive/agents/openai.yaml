@@ -1,0 +1,7 @@
+interface:
+  display_name: "Spec Archive"
+  short_description: "Mechanically archive a shipped evidence-first spec (Phase 6 CLOSE)"
+  default_prompt: "Use $spec-archive to archive the shipped spec for this change."
+
+policy:
+  allow_implicit_invocation: true

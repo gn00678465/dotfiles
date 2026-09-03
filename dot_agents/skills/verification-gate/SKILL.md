@@ -75,8 +75,10 @@ Resolve or ask for these before doing work:
 - `entry_point`: the single command that reruns every layer. Default: discover
   it in the repo, otherwise `scaffold` one.
 - `artifact_root`: default `.gate/`.
-- `scope`: subfolder name under `artifact_root`. Infer from branch name, PR
-  title, or a short sanitized summary of the change.
+- `scope`: subfolder name under `artifact_root`. When the change has a
+  committed spec at `specs/<scope>/SPEC.md`, use that `<scope>` verbatim —
+  the report and the spec must file under one name. Only without a spec:
+  infer from branch name, PR title, or a short sanitized summary.
 - `report_language`: default `auto`, meaning follow the user's prompt language.
 
 ## Acquisition
@@ -435,53 +437,38 @@ Caveats, recorded when they apply:
 ## Entry Point
 
 Persist one command that runs every layer in sequence and fails on the first
-broken one (e.g. `tools/gate.sh`: tests+coverage → types → lint → mutation →
-real execution). Start the script by deleting stale artifacts from previous
-runs (old coverage data, report files) so no layer can accidentally read a
-prior run's output — freshness by mechanism, not discipline. (Keep tool
-databases that accumulate value, e.g. hypothesis's example store.) The "final
-fresh run" IS this command; EVIDENCE cites it, and the human can rerun the
-whole report with it. Pin dev-tool versions (requirements-dev.txt, package.json
-devDependencies with exact versions, etc.) so the rerun uses the same gate.
+broken one (e.g. `tools/gate.sh`). The "final fresh run" IS this command;
+EVIDENCE cites it, and the human can rerun the whole report with it. The
+contract — specified in full, with the manifest pattern and fail-closed shell
+idioms, in `references/entry-point.md`:
 
-Gate code itself must fail closed (see the checker note above): `set -e` at the
-top, no `|| true`, no `2>/dev/null`, and spell out the exit-code cases of any
-command whose codes are ambiguous.
+- **Fresh by mechanism, not discipline**: the script starts by deleting stale
+  artifacts from previous runs (keep tool databases that accumulate value);
+  dev-tool versions are pinned so the rerun uses the same gate.
+- **Fail closed**: `set -e`, no `|| true`, no `2>/dev/null`, ambiguous exit
+  codes spelled out; execution bound to completion by a fixed expected-layer
+  manifest audited before printing success — a heading is not evidence that a
+  layer ran, and `set -e` through `&&` is not status handling.
+- **Assurance boundary kept explicit**: application coverage and mutation
+  target the subject under test, not every orchestration script by default.
+- **The gate's own files must not fail the gate's own provenance check**: the
+  source-state script excuses untracked verifier paths only through an
+  enumerated whitelist (entry-point directory, `artifact_root` — never a
+  product path, never a blanket "ignore untracked"), and EVIDENCE prints that
+  whitelist verbatim next to `source_state`, because an excusal a reader
+  cannot see is an excusal they cannot price. Committing the verifier first
+  is the other acceptable resolution.
+- **No droppings during the run**: tool output (profiles, caches,
+  intermediate reports) points into `artifact_root`, and the source state is
+  checked again **after** the final run — a provenance check that runs only
+  at the start certifies a tree that no longer exists by the time the report
+  is written.
 
-Keep the assurance boundary explicit: application coverage and mutation target
-the subject under test; do not widen them across every orchestration script by
-default. For the entry point itself, bind execution to completion: maintain a
-fixed expected-layer manifest, record each layer only after its commands
-succeed, and audit the manifest before printing success. Do not use a heading
-as evidence that a layer ran, and do not rely on `set -e` through `&&` or
-another conditional context; handle the command status explicitly.
-
-The entry point and its helpers live in **product paths** (`tools/`), not under
-`artifact_root`. This is the one place this skill writes outside its own
-artifact folder, and it is deliberate: a report citing a script that lives only
-in a scratch directory or in the conversation is not reproducible. Confirm
-these writes with the user.
-
-**The gate's own files must not fail the gate's own provenance check.** The
-first run necessarily creates untracked files — the entry point, its helpers,
-and `artifact_root` — while the source-state computation is required to refuse
-a tree with non-ignored untracked content. Resolve it explicitly, never by
-loosening the check: the source-state script carries a **fixed, enumerated
-whitelist of verifier paths** (the entry-point directory and `artifact_root`,
-by exact prefix), and everything outside it still fails. The whitelist is part
-of the gate's contract, so EVIDENCE prints it verbatim next to `source_state`;
-a reader who cannot see which paths were excused cannot price the claim. Never
-widen it to a product path, and never substitute a blanket "ignore untracked".
-Committing the verifier first is the other acceptable resolution.
-
-Verifier tooling must also not leave droppings in product paths *during* the
-run — point tool output (profiles, caches, intermediate reports) into
-`artifact_root`, and check the source state again **after** the final run, not
-only before it. A provenance check that runs only at the start certifies a tree
-that no longer exists by the time the report is written.
-
-Contract details, the manifest pattern, and fail-closed shell idioms are in
-`references/entry-point.md`.
+The entry point and its helpers live in **product paths** (`tools/`), not
+under `artifact_root` — a report citing a script that lives only in a scratch
+directory or in the conversation is not reproducible. This is the one place
+this skill writes outside its own artifact folder; confirm these writes with
+the user.
 
 ## EVIDENCE — the only thing the human reads after code
 
@@ -581,12 +568,17 @@ Split by status, because they mean different things to a reader:
 - **UNAVAILABLE (tool missing, nothing run in its place)**
 - **SUBSTITUTED (something else ran — and what it cannot detect)**
 - **NOT REACHED (the entry point stopped at an earlier failing layer)**
+- **DEPENDENCY UNMET (ran, but the layer it rests on did not pass — which
+  prerequisite was `SUBSTITUTED`/`UNAVAILABLE`/failed, and what that leaves
+  unproven about this layer's number)**
 
-One "skipped" list collapses four states a reader has to tell apart: there is
+One "skipped" list collapses five states a reader has to tell apart: there is
 no such surface in this project, versus the surface exists but the tool was
 missing and nothing ran, versus something else ran and here is what it cannot
 detect, versus the layer was configured and available and the gate simply never
-got to it. Those are very different confidence claims and they read identically
+got to it, versus the layer ran but rests on a prerequisite that was never
+demonstrated (the layer-dependencies rule made concrete). Those are very
+different confidence claims and they read identically
 as "skipped". The dangerous one is the third: **`SUBSTITUTED` may never be
 written as a pass.** Two repeat runs in place of randomized order is not "suite health:
 stable" — it is `SUBSTITUTED (2 repeat runs — cannot detect whole-suite order
@@ -689,7 +681,7 @@ values stay English even inside a localized report.
 A verification gate run is complete only when:
 
 - every applicable layer ran, or is recorded as `N-A` / `UNAVAILABLE` /
-  `SUBSTITUTED` / `NOT REACHED` with a reason;
+  `SUBSTITUTED` / `NOT REACHED` / `DEPENDENCY UNMET` with a reason;
 - every number came from one fresh run of a persisted entry point;
 - intent status, git facts status, and reproducibility status are each recorded
   and none was silently promoted;

@@ -2,19 +2,15 @@
 
 Chezmoi dotfiles source repository.
 
-## Agent skills
+## Contract invariants
 
-### Issue tracker
-
-Issues live as markdown files under `.scratch/<feature-slug>/` in this repo. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-The five canonical roles, with label strings equal to their names. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+`tests/check_agent_doc_invariants.py` guards the cross-file promises between
+the evidence-first contract, the workflow reference (`dot_agents/workflow/`),
+and the `verification-gate` / `spec-archive` skills (status vocabularies,
+report fields, shared tier and anti-gaming definitions). Run it after editing
+any of those files; rc 1 = invariant broken, rc 2 = the check itself broke.
+`tests/spec_archive_test.py` holds the spec-archive script's persisted
+negative controls — run it after touching that script.
 
 ## Install scripts (`.chezmoiscripts/`)
 
