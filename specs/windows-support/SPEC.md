@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
 - `spec_version`: v6
-- `status`: revised-pending-approval
+- `status`: approved
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
@@ -341,14 +341,21 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
 
-### v6 — 待核准
+### v6 — 2026-09-03
 
-- **approval: pending**
-- version bound: v6（見 §9 的變更清單）
-- 這一版尚未取得核准。契約規定核准綁定單一版本，v5 的核准不自動延伸到 v6。
-- 需要核准的實質變更：§3 的 L9 移除十條 `tool on PATH` 檢查，改為九條
-  `winget list --exact --id`；§7 新增一條具名已知限制，明寫「工具在新終端機
-  PATH 上」改由手動驗證、L9 不再宣稱。**核准之前不實作。**
+- **approval: confirmed**
+- version bound: v6 — 核准當下 `specs/windows-support/SPEC.md` 的 sha256
+  （即本節被改寫成核准狀態**之前**、`status` 仍為 `revised-pending-approval` 的檔案內容）
+  = `bc63af9a27287cff32c40fb6eebfe5d949925bdaa7d106b313a6af9d84f93940`
+- date: 2026-09-03
+- approver: repo owner（Madao）
+- verbatim words（使用者原話，逐字）:
+
+  > Approval V6
+
+- 範圍：v6 全文。實質變更為 §3 的 L9 移除十條 `tool on PATH` 檢查、改為九條
+  `winget list --exact --id`，以及 §7 新增具名已知限制（「工具在新終端機 PATH 上」
+  改由手動驗證，L9 不再宣稱）。完整清單見 §9 的 v5 → v6。
 
 ### v5 的兩項選擇 — 2026-09-03
 
