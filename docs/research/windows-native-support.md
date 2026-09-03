@@ -32,7 +32,7 @@
 | 10 | oh-my-posh 主題定位 | `$env:POSH_THEMES_PATH` **不可靠**（Store 版會指向一個不存在的目錄，實測）。主題應該自己釘版本抓下來。 |
 | 11 | Windows PowerShell 5.1 的編碼 | 用 **ANSI 代碼頁**解無 BOM 的 `.ps1`。非 ASCII 註解會被解壞成**語法錯誤**。 |
 | 12 | Windows 建 symlink | 需要 `SeCreateSymbolicLinkPrivilege`，一般帳號要開「開發人員模式」才有。 |
-| 13 | nvim-treesitter 的 C compiler | `main` 分支用 `tree-sitter build` 編 parser，Windows 上預設找 MSVC 的 `cl.exe`。zig 是社群在用的替代路徑，**本 repo 未證實**。 |
+| 13 | nvim-treesitter 的 C compiler | `main` 分支用 `tree-sitter build` 編 parser，Windows 上預設找 MSVC 的 `cl.exe`。**zig 這條路已實測推翻**：nvim-treesitter 的需求檢查不認 zig。改用 WinLibs 的 gcc，見 §10。 |
 
 ---
 
@@ -288,7 +288,7 @@ winget install --exact --id <ID> --source winget --silent
 | `JesseDuffield.lazygit` | lazygit | 0.64.1 | lazygit |
 | `tree-sitter.tree-sitter-cli` | tree-sitter-cli | 0.26.12 | tree-sitter |
 | `JanDeDobbeleer.OhMyPosh` | Oh My Posh | 31.1.2 | powerlevel10k |
-| `zig.zig` | Zig | 0.16.0 | build-essential |
+| `BrechtSanders.WinLibs.POSIX.UCRT` | WinLibs（gcc / MinGW-w64） | 16.1.0-14.0.0-r4 | build-essential（原本放 `zig.zig`，見 §10.1） |
 
 `tree-sitter-cli` 0.26.12 滿足 nvim-treesitter `main` 分支要求的 ≥ 0.26.1
 （見 `nvim-treesitter-mise-lazyvim-debian-errors.md` §6）。
@@ -442,7 +442,7 @@ chezmoi 會在 `~/.claude/skills/` 底下建兩個 symlink（`symlink_commit-mes
 
 ---
 
-## 10. nvim-treesitter 在 Windows 的 C compiler（**未證實**）
+## 10. nvim-treesitter 在 Windows 的 C compiler（**zig 已實測推翻**）
 
 nvim-treesitter 的 `main` 分支（LazyVim 現在追的那一支）用 `tree-sitter build` 編每一個
 parser，而 `tree-sitter` CLI 底層走 Rust 的 `cc` crate，在 Windows 上預設找 MSVC 的
@@ -453,12 +453,47 @@ parser，而 `tree-sitter` CLI 底層走 Rust 的 `cc` crate，在 Windows 上�
 [Windows support wiki](https://github.com/nvim-treesitter/nvim-treesitter/wiki/Windows-support)、
 [tree-sitter#5610](https://github.com/tree-sitter/tree-sitter/issues/5610)）
 
-本 repo 因此把 `zig.zig` 放進 winget 清單，位置對應 Debian 那邊的 `build-essential`。
-**但這條沒有被證實**：驗證需要真的裝 zig、真的開一次 Neovim 讓 LazyVim 去編 parser，
-而本次的操作限制不允許在主機上安裝任何東西。唯一能證實它的地方是 Windows Sandbox 的
-end-to-end 執行（`tests/sandbox/`）。
+本 repo 因此**曾經**把 `zig.zig` 放進 winget 清單，位置對應 Debian 那邊的
+`build-essential`。當時這條沒有被證實：驗證需要真的裝 zig、真的開一次 Neovim 讓
+LazyVim 去編 parser，而操作限制不允許在主機上安裝任何東西。
 
-若證明不行，備案是 `Microsoft.VisualStudio.2022.BuildTools`（權威但體積大得多）。
+### 10.1 L9 第二次執行之後：zig 這條路被推翻（**實測**）
+
+使用者在 Windows Sandbox 裡跑完 L9、再開一個新終端機實跑 nvim，nvim-treesitter `main`
+回報：
+
+```
+Unmet requirements:
+  C compiler  ❌
+  curl        ✅
+  tar         ✅
+  tree-sitter ✅
+建議：winget install BrechtSanders.WinLibs.POSIX
+```
+
+**而 zig 就在 PATH 上**：同一個終端機 `zig version` → `0.16.0`。所以這不是
+「zig 沒裝到」或「zig 不在 PATH」那一類的觀察誤差（那一類在同一輪也發生過，見
+evidence 的問題 A），是 **nvim-treesitter 的需求檢查本身不接受 zig**。
+
+處置（SPEC v5，使用者選 (a)）：winget 清單改放 WinLibs 的 gcc，`zig.zig` 移除
+（它進清單的唯一理由就是當 treesitter 的 C compiler）。
+
+**建議的那個 ID 不存在。** `winget show --exact --id BrechtSanders.WinLibs.POSIX`
+找不到套件；`winget search WinLibs` 顯示實際有四個變體：
+
+| ID | 版本 | 說明 |
+|---|---|---|
+| `BrechtSanders.WinLibs.POSIX.UCRT` | 16.1.0-14.0.0-r4 | POSIX threads + UCRT runtime ← **選這個** |
+| `BrechtSanders.WinLibs.POSIX.MSVCRT` | 16.1.0-14.0.0-r4 | MSVCRT 是舊的 runtime |
+| `BrechtSanders.WinLibs.POSIX.UCRT.LLVM` | 14.2.0-19.1.1-12.0.0-r2 | 多帶一整套 LLVM |
+| `BrechtSanders.WinLibs.MCF.UCRT` | 16.1.0-14.0.0-r1 | MCF threads，不是建議的那一支 |
+
+選 `POSIX.UCRT`：POSIX threads 對應 nvim-treesitter 建議的那一支，UCRT 是 Windows
+10/11 的現行 C runtime，不取 `.LLVM` 變體因為需要的是 gcc。
+
+**這個修法本身仍然未證實。** 它依據的是 nvim-treesitter 自己的建議，不是一次成功的
+parser 編譯；要證實一樣只有 L9（`tests/sandbox/`）。原本記的備案
+`Microsoft.VisualStudio.2022.BuildTools` 仍然是備案，但 WinLibs 更小也更直接。
 
 ---
 

@@ -166,3 +166,13 @@ for _os in linux linux-arm64 darwin-arm64 darwin-amd64; do
         "$(render_file "$_os" .chezmoi.toml.tmpl)" 'interpreters'
 done
 unset _cfg_win _os
+
+# ---------- M12 的處置（SPEC v5，使用者選 (a)）----------
+# zig 進 winget 清單的唯一理由是「當 nvim-treesitter 的 C compiler」。實測推翻：
+# nvim-treesitter main 回報 C compiler ❌，而 zig version 在同一個終端機是 0.16.0
+# ——zig 裝好了也找得到，是它的需求檢查不認 zig。所以換成 WinLibs 的 gcc。
+_winget=$(render_file windows .chezmoiscripts/run_onchange_before_30-install-winget-packages.ps1.tmpl)
+assert_contains "winget 清單有 WinLibs 的 gcc（nvim-treesitter 認得的 C compiler）" \
+    "$_winget" "'BrechtSanders.WinLibs.POSIX.UCRT'"
+assert_not_contains "zig 已從 winget 清單移除（它的唯一理由已不成立）" "$_winget" "'zig.zig'"
+unset _winget

@@ -44,3 +44,19 @@ for _os in $ALL_OSES; do
 done
 
 unset _os _t _win _lin _m
+
+# ---------- .gitattributes：強制 LF checkout（SPEC v5 M14，使用者選 (c)）----------
+# Git for Windows 預設 core.autocrlf=true，全新 Windows 會把來源樹 checkout 成 CRLF，
+# 算繪結果就把 \r 帶進受管的設定檔（L9 第二次執行實際抓到）。這是 repo 端的性質，
+# 不能靠使用者的 git 設定。
+#
+# 用 `git check-attr` 問 git 自己的判定，而不是比對 .gitattributes 的字串 ——
+# 後者只證明檔案裡有那行字，不證明它對任何一個路徑真的生效。
+for _f in dot_codex/modify_private_config.toml \
+          .chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl \
+          tests/sandbox/_probe.ps1 \
+          init.ps1; do
+    assert_eq "git 對 $_f 的 eol 判定是 lf" "lf" \
+        "$(git -C "$REPO" check-attr eol -- "$_f" | sed 's/.*: //')"
+done
+unset _f

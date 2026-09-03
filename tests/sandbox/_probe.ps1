@@ -87,6 +87,24 @@ function Check {
     }
 }
 
+function Invoke-Streamed {
+    # Print each line as it arrives AND keep it. The probe used to collect a
+    # subprocess's whole output into a variable and print it when the command
+    # finished, so the console sat silent for the minutes winget and
+    # `chezmoi apply` take. From the outside that is indistinguishable from a
+    # hang, and in remote mode killing the sandbox costs the whole 20-30 minute
+    # run. What the caller gets back is unchanged -- only the timing of the
+    # printing moves.
+    param([scriptblock] $Command)
+    $lines = New-Object System.Collections.ArrayList
+    & $Command 2>&1 | ForEach-Object {
+        $line = "$_"
+        Write-Host $line
+        [void]$lines.Add($line)
+    }
+    return ($lines -join "`n")
+}
+
 function Get-OutputTail {
     # A failure's detail is the only thing that survives remote mode: the
     # transcript dies with the sandbox. Carry the end of the command's output,
@@ -99,17 +117,45 @@ function Get-OutputTail {
 }
 
 function Update-ProbePath {
-    $dirs = @(
-        (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links'),
-        (Join-Path $env:LOCALAPPDATA 'mise\shims'),
-        (Join-Path $env:ProgramFiles 'PowerShell\7'),
-        (Join-Path $env:ProgramFiles 'Git\cmd')
-    )
-    foreach ($d in $dirs) {
-        if ((Test-Path -LiteralPath $d) -and (($env:PATH -split ';') -notcontains $d)) {
-            $env:PATH = "$d;$env:PATH"
+    # Windows PATH is a snapshot taken when the process starts. This probe starts
+    # before anything is installed, so nothing winget or an installer adds to the
+    # real PATH is ever visible to it. The previous version prepended four
+    # hard-coded directories, and the second real L9 run reported all ten tools as
+    # "not found" while they were in fact installed and working -- the tools were
+    # simply not in those four places. Which directory the list is missing today
+    # is not the point; keeping a list is the bug. Re-read the authoritative
+    # source instead: the Machine and User PATH values in the registry, which is
+    # what a newly started process would get.
+    $fromRegistry = @()
+    foreach ($key in @(
+        'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
+        'HKCU:\Environment'
+    )) {
+        try {
+            # Get-ItemProperty expands REG_EXPAND_SZ, which is what a process
+            # would see; the raw value contains %SystemRoot% and friends.
+            $value = (Get-ItemProperty -Path $key -Name 'Path' -ErrorAction Stop).Path
+            if ($value) { $fromRegistry += ($value -split ';') }
+        } catch {
+            Write-Host "probe: could not read PATH from ${key}: $($_.Exception.Message)"
         }
     }
+
+    # One deliberate addition on top of the registry: mise's shim directory is not
+    # on the real PATH by design -- `mise activate` puts it there from the shell
+    # profile, and this probe does not load a profile. nvim is a mise shim, so
+    # without this the probe would report it missing for a reason that has nothing
+    # to do with whether the install worked.
+    $extra = @((Join-Path $env:LOCALAPPDATA 'mise\shims'))
+
+    $seen = New-Object System.Collections.Generic.HashSet[string]
+    $merged = New-Object System.Collections.ArrayList
+    foreach ($d in (@($env:PATH -split ';') + $fromRegistry + $extra)) {
+        $t = $d.Trim()
+        if (-not $t) { continue }
+        if ($seen.Add($t.TrimEnd('\').ToLowerInvariant())) { [void]$merged.Add($t) }
+    }
+    $env:PATH = ($merged -join ';')
 }
 
 # ---------------------------------------------------------------- winget
@@ -163,6 +209,9 @@ if (-not $remote) {
     }
 }
 
+Write-Host ''
+Write-Host 'probe: installing pwsh 7, git and chezmoi with winget'
+Write-Host 'probe: this usually takes 2-5 minutes; output follows as it arrives'
 Check 'init.ps1 installs pwsh 7, git and chezmoi' {
     # Reuse init.ps1's package list without its `chezmoi init <github user>` tail:
     # the init call below is the one under test, and it differs per mode.
@@ -170,14 +219,18 @@ Check 'init.ps1 installs pwsh 7, git and chezmoi' {
         Update-ProbePath
         $cmd = @{ 'Microsoft.PowerShell' = 'pwsh'; 'Git.Git' = 'git'; 'twpayne.chezmoi' = 'chezmoi' }[$id]
         if (Get-Command $cmd -ErrorAction SilentlyContinue) { continue }
-        winget install --exact --id $id --source winget --silent `
-            --accept-package-agreements --accept-source-agreements --disable-interactivity
+        Write-Host "probe: winget install $id"
+        [void](Invoke-Streamed { winget install --exact --id $id --source winget --silent `
+            --accept-package-agreements --accept-source-agreements --disable-interactivity })
         if ($LASTEXITCODE -ne 0) { throw "winget install $id -> $LASTEXITCODE" }
     }
     Update-ProbePath
     'installed'
 }
 
+Write-Host ''
+Write-Host 'probe: running chezmoi init --apply -- this is the whole install'
+Write-Host 'probe: this usually takes 5-15 minutes (winget packages, externals, LazyVim clone)'
 Check 'chezmoi init --apply completes' {
     Update-ProbePath
     # Not $args: that is an automatic variable, and shadowing it inside a
@@ -190,13 +243,11 @@ Check 'chezmoi init --apply completes' {
         $cmArgs = @('init', '--apply', '--source', $repo)
     }
     Write-Host "probe: chezmoi $($cmArgs -join ' ')"
-    # "$_" instead of piping ErrorRecords straight through: under 5.1 a native
-    # command's stderr arrives as ErrorRecords, and formatting those adds a
-    # CategoryInfo/FullyQualifiedErrorId block around every line -- git's
-    # progress output turns into pages of fake-looking errors. "$_" is the
-    # message alone.
-    $out = (& chezmoi @cmArgs 2>&1 | ForEach-Object { "$_" }) -join "`n"
-    Write-Host $out
+    # Invoke-Streamed also does the "$_" conversion: under 5.1 a native command's
+    # stderr arrives as ErrorRecords, and formatting those wraps every line in a
+    # CategoryInfo/FullyQualifiedErrorId block -- git's progress output turns into
+    # pages of fake-looking errors. "$_" is the message alone.
+    $out = Invoke-Streamed { & chezmoi @cmArgs }
     if ($LASTEXITCODE -ne 0) {
         throw ("chezmoi init --apply -> $LASTEXITCODE" + "`n" + (Get-OutputTail $out 30))
     }
@@ -218,7 +269,7 @@ if ($remote) {
 }
 
 # ---------------------------------------------------------------- tools
-foreach ($t in @('mise', 'fzf', 'rg', 'fd', 'lazygit', 'git-lfs', 'tree-sitter', 'oh-my-posh', 'zig', 'nvim')) {
+foreach ($t in @('mise', 'fzf', 'rg', 'fd', 'lazygit', 'git-lfs', 'tree-sitter', 'oh-my-posh', 'gcc', 'nvim')) {
     $name = $t
     Check "tool on PATH: $name" {
         $c = Get-Command $name -ErrorAction SilentlyContinue
@@ -305,12 +356,24 @@ Check 'claude skills symlinks' {
 # The open question from the spec: can nvim-treesitter actually build a parser
 # on Windows with zig as the C compiler? This is the only place it can be
 # answered. Bounded, and a failure here is a finding, not a crash.
+Write-Host ''
+Write-Host 'probe: running nvim Lazy! sync + TSInstall lua (SPEC M12)'
+Write-Host 'probe: this usually takes 5-15 minutes and is capped at 15; progress is reported every 30s'
 Check 'nvim-treesitter builds a parser (SPEC M12)' {
     $job = Start-Job -ScriptBlock {
         & nvim --headless '+Lazy! sync' '+qa' 2>&1 | Out-String
         & nvim --headless '+TSInstall! lua' '+qa' 2>&1 | Out-String
     }
-    if (-not (Wait-Job $job -Timeout 900)) {
+    # A job's output only arrives when it finishes, so this step cannot stream.
+    # A heartbeat is the next best thing: without it this is 15 minutes of silence
+    # and the operator cannot tell it from a hang. The timeout and the verdict
+    # below are unchanged.
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    while (($job.State -eq 'Running') -and ($sw.Elapsed.TotalSeconds -lt 900)) {
+        Start-Sleep -Seconds 30
+        Write-Host ("probe: still building the treesitter parser, {0:n0}s elapsed" -f $sw.Elapsed.TotalSeconds)
+    }
+    if (-not (Wait-Job $job -Timeout 1)) {
         Stop-Job $job; throw 'timed out after 15 minutes'
     }
     Receive-Job $job | Out-File $treesitterLog

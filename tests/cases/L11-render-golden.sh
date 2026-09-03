@@ -116,7 +116,7 @@ _probe=$(cat "$REPO/tests/sandbox/_probe.ps1")
 assert_contains "sandbox 探針會問 M12（treesitter parser 編不編得出來）" "$_probe" "SPEC M12"
 assert_contains "sandbox 探針會檢查 symlink" "$_probe" "claude skills symlinks"
 assert_contains "sandbox 探針會檢查 zsh 專屬檔案沒有落地" "$_probe" "zsh-only files did NOT land"
-for _t in mise fzf rg fd lazygit git-lfs tree-sitter oh-my-posh zig nvim; do
+for _t in mise fzf rg fd lazygit git-lfs tree-sitter oh-my-posh gcc nvim; do
     assert_contains "sandbox 探針會檢查 $_t 在 PATH 上" "$_probe" "'$_t'"
 done
 
@@ -148,6 +148,19 @@ assert_contains "chezmoi 失敗時，FAIL 的 detail 要帶 chezmoi 輸出的尾
 assert_contains "結尾要印出 treesitter.log（遠端模式關掉就沒了）" "$_probe" 'treesitter.log (tail'
 assert_contains "主控台編碼統一成 UTF-8（winget 的輸出是 UTF-8，5.1 預設用 ANSI 代碼頁解）" \
     "$_probe" '[Console]::OutputEncoding'
+
+# SPEC v5 第 1、2 項：L9 執行期間必須是可觀察的，PATH 判定必須讀 registry。
+# 兩者都來自遠端模式的實際操作 —— 前者讓操作者分不出「還在跑」與「卡死」，
+# 後者讓十個裝好的工具全部被誤報成 not found。
+assert_contains "子程序輸出邊收邊印，不是整段收完才印" "$_probe" 'Invoke-Streamed'
+assert_contains "長步驟開始前先報「正在做什麼、預期多久」" "$_probe" 'probe: this usually takes'
+assert_contains "treesitter 那段等待中要有心跳，不能整段靜止" "$_probe" 'still building'
+assert_contains "PATH 判定重讀 registry 的 Machine PATH" "$_probe" 'Session Manager\Environment'
+assert_contains "PATH 判定重讀 registry 的 User PATH" "$_probe" 'HKCU:\Environment'
+# 固定目錄清單就是上一輪誤報的機制本身。唯一保留的例外是 mise 的 shim 目錄，
+# 它不在 registry PATH 上（是 profile 的 mise activate 加的），必須單獨補、單獨說明。
+_probe_fixed=$(grep -c "Join-Path \$env:ProgramFiles" "$REPO/tests/sandbox/_probe.ps1" || true)
+assert_eq "探針不再靠寫死的 ProgramFiles 目錄清單判定 PATH" "0" "$_probe_fixed"
 # 上面那 22 條是 assert_contains —— 子字串在不在，跟那一行會不會執行是兩回事。
 # 獨立驗證用四個變異證明了差別：把 Git 的自舉整行**註解掉**、把三行搬到 chezmoi
 # 呼叫**之後**、在正確的那行**之後再賦值一次**別的帳號、把 M12 檢查的**內容**換掉 ——
@@ -174,4 +187,4 @@ assert_eq "測試層的檔案集合" \
         L6-file-golden.sh L7-behavior.sh L8-windows-seam.sh | LC_ALL=C sort)" \
     "$(ls "$REPO/tests/cases" | LC_ALL=C sort)"
 
-unset _init _probe _probe_unguarded _pair _id _cmd _t _name _path
+unset _init _probe _probe_unguarded _probe_fixed _pair _id _cmd _t _name _path

@@ -96,6 +96,8 @@ Keep the POSIX and Windows halves in sync:
   The same applies to `tests/sandbox/_probe.ps1`. Scripts under `.chezmoiscripts/`
   are not affected: pwsh 7 reads them as UTF-8.
 - `tree-sitter` in `30-install-brew-packages` is not a standalone tool: nvim-treesitter's `main` branch shells out to it to build every parser, so it is a LazyVim dependency. Do not prune it.
+- **A C compiler is part of that dependency too**, and on Windows the choice is not free: `BrechtSanders.WinLibs.POSIX.UCRT` (gcc) is in `30-install-winget-packages` because nvim-treesitter's requirement check **rejects zig** -- measured, with `zig version` returning 0.16.0 on PATH at the time, so this is not a PATH-visibility problem. `zig.zig` was removed; it was only ever there to be that compiler. See `docs/research/windows-native-support.md` 10.1.
+- **`.gitattributes` forces LF checkout, and that is load-bearing.** Git for Windows defaults to `core.autocrlf=true`, so without it a fresh Windows clones the source tree as CRLF and chezmoi renders those `\r` straight into managed config files -- measured, via a stray `\r` on one key of `~/.codex/config.toml`. The `modify_` rewriters compare lines literally and do not strip CR, so this is not cosmetic. Pinned by `git check-attr eol` assertions in `tests/cases/L3`, not by grepping the file.
 - Anything needing a brew binary inside a script must `eval "$(<prefix>/bin/brew shellenv)"` first; chezmoi runs scripts without the interactive shell PATH.
 
 ## `modify_` files

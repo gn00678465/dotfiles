@@ -23,10 +23,16 @@ foreach ($dir in @(
 }
 
 
-# zig 是給 nvim-treesitter 用的 C compiler。nvim-treesitter 的 main 分支用
-# `tree-sitter build` 編每一個 parser，在 Windows 上預設找 MSVC 的 cl.exe；
-# zig 是不必裝整套 Visual Studio Build Tools 的替代路徑。對應 Debian 那邊的
-# build-essential。細節見 docs/research/windows-native-support.md。
+# WinLibs 的 gcc（MinGW-w64）是給 nvim-treesitter 用的 C compiler。nvim-treesitter
+# 的 main 分支用 `tree-sitter build` 編每一個 parser，在 Windows 上預設找 MSVC 的
+# cl.exe。對應 Debian 那邊的 build-essential。
+#
+# 這裡原本放的是 zig.zig，理由是「社群做法是改用 zig」。L9 第二次執行之後實測推翻：
+# nvim-treesitter main 回報 `Unmet requirements: C compiler ❌`，而同一個終端機裡
+# `zig version` 是 0.16.0 —— zig 裝好了也找得到，是它的需求檢查不接受 zig，
+# 並且自己建議 WinLibs。zig 一併移除：它進這張清單的唯一理由就是這件事。
+# 變體選 POSIX.UCRT：UCRT 是 Windows 10/11 的現行 C runtime（MSVCRT 是舊的），
+# 不取 .LLVM 變體因為需要的是 gcc。細節見 docs/research/windows-native-support.md 10。
 $packages = @(
     'jdx.mise'
     'junegunn.fzf'
@@ -36,7 +42,7 @@ $packages = @(
     'JesseDuffield.lazygit'
     'tree-sitter.tree-sitter-cli'
     'JanDeDobbeleer.OhMyPosh'
-    'zig.zig'
+    'BrechtSanders.WinLibs.POSIX.UCRT'
 )
 
 foreach ($id in $packages) {

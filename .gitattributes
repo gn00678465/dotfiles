@@ -1,0 +1,10 @@
+# 全部以 LF checkout，不管使用者的 core.autocrlf 是什麼。
+#
+# Git for Windows 的預設是 core.autocrlf=true，所以沒有這個檔案的話，全新 Windows
+# 會把整棵來源樹 checkout 成 CRLF。chezmoi 算繪的時候那些 \r 就跟著進到受管的設定
+# 檔裡：L9 第二次執行實際抓到 ~/.codex/config.toml 的 status_line_use_colors 這一行
+# 帶著 \r，而檢查那條 $ 錨定的正則因此不 match（SPEC §6 的 M14）。
+#
+# 這是 repo 端的性質。SPEC 原本寫「core.autocrlf = input 刻意不動」，但那講的是這台
+# 機器上使用者自己的 git 設定，管不到別人的機器。
+* text=auto eol=lf
