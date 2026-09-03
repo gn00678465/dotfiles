@@ -155,8 +155,19 @@ assert_contains "主控台編碼統一成 UTF-8（winget 的輸出是 UTF-8，5.
 assert_contains "子程序輸出邊收邊印，不是整段收完才印" "$_probe" 'Invoke-Streamed'
 assert_contains "長步驟開始前先報「正在做什麼、預期多久」" "$_probe" 'probe: this usually takes'
 assert_contains "treesitter 那段等待中要有心跳，不能整段靜止" "$_probe" 'still building'
-assert_contains "PATH 判定重讀 registry 的 Machine PATH" "$_probe" 'Session Manager\Environment'
-assert_contains "PATH 判定重讀 registry 的 User PATH" "$_probe" 'HKCU:\Environment'
+assert_contains "PATH 判定用有 scope 的 GetEnvironmentVariable，不經 registry provider" \
+    "$_probe" "[Environment]::GetEnvironmentVariable('Path', \$scope)"
+assert_contains "Machine 與 User 兩個範圍都讀" "$_probe" "@('Machine', 'User')"
+
+# L9 第三次執行：十個工具仍然全部 not found，但 M12 那條檢查必須真的跑起 nvim、
+# tree-sitter 與 gcc 才會過 —— 它 PASS 了，所以工具都在、都能跑。也就是 PATH 重建
+# 這段沒有生效，而**探針對此完全沉默**：detail 只有 'not found'，沒有說它搜了什麼，
+# 也沒有說重建有沒有成功。沉默正是上一輪讓這件事讀不懂的原因。
+assert_contains "PATH 重建的結果要記進 results，不能只留在主控台" "$_probe" 'ProbePathReport'
+assert_contains "PATH 重建本身是一條可以 FAIL 的檢查（靜靜失敗就是這次的問題）" \
+    "$_probe" "Check 'PATH rebuilt from Machine+User environment'"
+assert_contains "工具找不到時要說出搜了幾條 PATH、有哪些相關目錄" "$_probe" 'searched'
+assert_contains "工具找得到時要記下實際找到的路徑（SPEC v5 第 2 項明文要求）" "$_probe" '$c.Source'
 # 固定目錄清單就是上一輪誤報的機制本身。唯一保留的例外是 mise 的 shim 目錄，
 # 它不在 registry PATH 上（是 profile 的 mise activate 加的），必須單獨補、單獨說明。
 _probe_fixed=$(grep -c "Join-Path \$env:ProgramFiles" "$REPO/tests/sandbox/_probe.ps1" || true)

@@ -118,44 +118,58 @@ function Get-OutputTail {
 
 function Update-ProbePath {
     # Windows PATH is a snapshot taken when the process starts. This probe starts
-    # before anything is installed, so nothing winget or an installer adds to the
-    # real PATH is ever visible to it. The previous version prepended four
-    # hard-coded directories, and the second real L9 run reported all ten tools as
-    # "not found" while they were in fact installed and working -- the tools were
-    # simply not in those four places. Which directory the list is missing today
-    # is not the point; keeping a list is the bug. Re-read the authoritative
-    # source instead: the Machine and User PATH values in the registry, which is
-    # what a newly started process would get.
-    $fromRegistry = @()
-    foreach ($key in @(
-        'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
-        'HKCU:\Environment'
-    )) {
+    # before anything is installed, so nothing winget adds to the real PATH is
+    # visible to it. Re-read the authoritative values instead.
+    #
+    # [Environment]::GetEnvironmentVariable with a scope, rather than reading the
+    # registry through the provider: it is the documented API for exactly this,
+    # it expands REG_EXPAND_SZ, and it takes the provider's own semantics out of
+    # a path that has already been wrong once.
+    #
+    # Everything here is reported, not just done. The third real L9 run rebuilt
+    # the PATH, reported all ten tools as "not found", and said nothing at all
+    # about why -- while the M12 check, which has to actually run nvim,
+    # tree-sitter and gcc, passed. Whatever went wrong, silence is what made it
+    # unreadable, so the outcome of this function is now a result line and a
+    # check that can fail.
+    $report = @()
+    $collected = @()
+    foreach ($scope in @('Machine', 'User')) {
         try {
-            # Get-ItemProperty expands REG_EXPAND_SZ, which is what a process
-            # would see; the raw value contains %SystemRoot% and friends.
-            $value = (Get-ItemProperty -Path $key -Name 'Path' -ErrorAction Stop).Path
-            if ($value) { $fromRegistry += ($value -split ';') }
+            $value = [Environment]::GetEnvironmentVariable('Path', $scope)
+            $entries = @()
+            if ($value) { $entries = @($value -split ';' | Where-Object { $_.Trim() }) }
+            $collected += $entries
+            $report += ("{0}={1}" -f $scope.ToLowerInvariant(), $entries.Count)
         } catch {
-            Write-Host "probe: could not read PATH from ${key}: $($_.Exception.Message)"
+            $report += ("{0}=ERROR({1})" -f $scope.ToLowerInvariant(), $_.Exception.Message)
         }
     }
 
-    # One deliberate addition on top of the registry: mise's shim directory is not
-    # on the real PATH by design -- `mise activate` puts it there from the shell
-    # profile, and this probe does not load a profile. nvim is a mise shim, so
-    # without this the probe would report it missing for a reason that has nothing
-    # to do with whether the install worked.
-    $extra = @((Join-Path $env:LOCALAPPDATA 'mise\shims'))
+    # One deliberate addition on top of the two scopes: mise's shim directory is
+    # not on the real PATH by design -- `mise activate` puts it there from the
+    # shell profile, and this probe loads no profile. nvim is a mise shim, so
+    # without this the probe would report it missing for a reason that has
+    # nothing to do with whether the install worked.
+    $shims = Join-Path $env:LOCALAPPDATA 'mise\shims'
+    $collected += $shims
 
-    $seen = New-Object System.Collections.Generic.HashSet[string]
+    $before = @($env:PATH -split ';' | Where-Object { $_.Trim() }).Count
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]'
     $merged = New-Object System.Collections.ArrayList
-    foreach ($d in (@($env:PATH -split ';') + $fromRegistry + $extra)) {
-        $t = $d.Trim()
+    foreach ($d in (@($env:PATH -split ';') + $collected)) {
+        $t = "$d".Trim()
         if (-not $t) { continue }
         if ($seen.Add($t.TrimEnd('\').ToLowerInvariant())) { [void]$merged.Add($t) }
     }
     $env:PATH = ($merged -join ';')
+    $report += ("before={0} after={1}" -f $before, $merged.Count)
+    $report += ("shims={0}" -f (Test-Path -LiteralPath $shims))
+
+    # Set-Variable -Scope Global rather than $script:: this file is also run as a
+    # scriptblock built by [scriptblock]::Create() from irm, and $script: does not
+    # mean the same thing in both cases.
+    Set-Variable -Name ProbePathReport -Scope Global -Value ($report -join ' ')
 }
 
 # ---------------------------------------------------------------- winget
@@ -256,6 +270,12 @@ Check 'chezmoi init --apply completes' {
 
 Update-ProbePath
 
+Check 'PATH rebuilt from Machine+User environment' {
+    if (-not $global:ProbePathReport) { throw 'Update-ProbePath produced no report' }
+    if ($global:ProbePathReport -match 'ERROR') { throw $global:ProbePathReport }
+    $global:ProbePathReport
+}
+
 # In remote mode there is no C:\src to read expected values from; the clone
 # chezmoi just made is the source tree, and only chezmoi knows where it put it.
 if ($remote) {
@@ -273,7 +293,14 @@ foreach ($t in @('mise', 'fzf', 'rg', 'fd', 'lazygit', 'git-lfs', 'tree-sitter',
     $name = $t
     Check "tool on PATH: $name" {
         $c = Get-Command $name -ErrorAction SilentlyContinue
-        if (-not $c) { throw 'not found' }
+        if (-not $c) {
+            # SPEC v5 item 2 asks for the paths actually searched. "not found" on
+            # its own cost a whole sandbox run to interpret.
+            $all = @($env:PATH -split ';' | Where-Object { $_.Trim() })
+            $likely = @($all | Where-Object { $_ -match 'WinGet|mise|WindowsApps|mingw' })
+            throw ("not found; searched {0} PATH entries; likely dirs: {1}" -f `
+                $all.Count, (($likely | Select-Object -First 6) -join ' '))
+        }
         $c.Source
     }
 }
