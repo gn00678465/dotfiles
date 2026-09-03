@@ -91,6 +91,24 @@ if [ -n "$_BASE_REF2" ] && [ -d "$TMP/base-src" ]; then
 fi
 unset _BASE_REF2 _base_ext _new_ext
 
+# .chezmoi.toml.tmpl 產生的是 chezmoi 自己的設定，不是 target，所以上面那段整棵樹
+# 的 diff 看不到它。Windows 的直譯器修法動到這個檔案，而它同時決定 POSIX 機器
+# 產生什麼設定 —— Must NOT #2 管得到，卻沒有任何程序在看。
+if [ -d "$TMP/base-src" ]; then
+    # sourceDir 那一行必然不同：兩次渲染用的 --source 就是不同的目錄。把它濾掉，
+    # 再單獨斷言兩邊都還有那一行 —— 否則「整個功能被拿掉」也會通過這個比對。
+    chezmoi --source "$TMP/base-src" --destination "$TMP/dest-base" \
+        --persistent-state "$TMP/st-base.boltdb" --config "$FIXTURES/native.toml" --no-tty \
+        execute-template < "$TMP/base-src/.chezmoi.toml.tmpl" > "$TMP/base-cfg-raw" 2>&1
+    render_file native .chezmoi.toml.tmpl > "$TMP/new-cfg-raw" 2>&1
+    grep -v '^sourceDir = ' "$TMP/base-cfg-raw" > "$TMP/base-cfg"
+    grep -v '^sourceDir = ' "$TMP/new-cfg-raw" > "$TMP/new-cfg"
+    assert_bytes_eq "本機 OS 上，.chezmoi.toml.tmpl 的渲染與 base ref 逐位元組相同（sourceDir 除外）" \
+        "$TMP/base-cfg" "$TMP/new-cfg"
+    assert_contains "sourceDir 仍然有被寫出來（濾掉它不等於可以拿掉它）" \
+        "$(cat "$TMP/new-cfg-raw")" 'sourceDir = '
+fi
+
 # isWSL = true 的那一種渲染也要釘。dot_zshrc.tmpl 有一段只在 WSL 上輸出的 alias，
 # 而上面的 apply 全部走 isWSL = false 的 fixture。
 if [ -d "$TMP/base-src" ]; then

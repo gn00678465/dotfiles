@@ -37,6 +37,18 @@ param([string] $Branch)
 $ErrorActionPreference = 'Continue'
 $ProgressPreference = 'SilentlyContinue'
 
+# winget and chezmoi emit UTF-8. Windows PowerShell 5.1 decodes a native
+# command's stdout using [Console]::OutputEncoding, which on a zh-TW machine is
+# CP950 -- the first real L9 run recorded winget's output as mojibake in
+# results.tsv, which made it unreadable. The try/catch is not defensive padding:
+# in local mode this runs as a LogonCommand, which may have no console attached,
+# and setting the property throws there. Say so rather than swallowing it.
+try {
+    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
+} catch {
+    Write-Host "probe: could not switch the console to UTF-8: $($_.Exception.Message)"
+}
+
 $remote = -not [string]::IsNullOrWhiteSpace($Branch)
 
 # Probe existence *before* creating anything: C:\ is writable inside the sandbox,
@@ -73,6 +85,17 @@ function Check {
     } catch {
         Add-Result $Name 'FAIL' $_.Exception.Message
     }
+}
+
+function Get-OutputTail {
+    # A failure's detail is the only thing that survives remote mode: the
+    # transcript dies with the sandbox. Carry the end of the command's output,
+    # which is where the reason is.
+    param([string] $Text, [int] $Lines = 30)
+    if (-not $Text) { return '(no output)' }
+    $all = @($Text -split "`r?`n" | Where-Object { $_.Trim() -ne '' })
+    if ($all.Count -le $Lines) { return ($all -join "`n") }
+    return (($all[($all.Count - $Lines)..($all.Count - 1)]) -join "`n")
 }
 
 function Update-ProbePath {
@@ -167,8 +190,16 @@ Check 'chezmoi init --apply completes' {
         $cmArgs = @('init', '--apply', '--source', $repo)
     }
     Write-Host "probe: chezmoi $($cmArgs -join ' ')"
-    & chezmoi @cmArgs 2>&1 | Out-String | Write-Host
-    if ($LASTEXITCODE -ne 0) { throw "chezmoi init --apply -> $LASTEXITCODE" }
+    # "$_" instead of piping ErrorRecords straight through: under 5.1 a native
+    # command's stderr arrives as ErrorRecords, and formatting those adds a
+    # CategoryInfo/FullyQualifiedErrorId block around every line -- git's
+    # progress output turns into pages of fake-looking errors. "$_" is the
+    # message alone.
+    $out = (& chezmoi @cmArgs 2>&1 | ForEach-Object { "$_" }) -join "`n"
+    Write-Host $out
+    if ($LASTEXITCODE -ne 0) {
+        throw ("chezmoi init --apply -> $LASTEXITCODE" + "`n" + (Get-OutputTail $out 30))
+    }
     'applied'
 }
 
@@ -206,7 +237,7 @@ Check 'managed pwsh profile exists' {
 Check 'real $PROFILE has exactly one loader line' {
     $target = (& pwsh -NoProfile -NoLogo -Command '$PROFILE.CurrentUserAllHosts') | Select-Object -First 1
     if (-not (Test-Path -LiteralPath $target)) { throw "missing $target" }
-    $n = @(Get-Content -LiteralPath $target | Where-Object { $_ -match 'config/powershell/profile\.ps1' }).Count
+    $n = @(Get-Content -LiteralPath $target -ErrorAction Stop | Where-Object { $_ -match 'config/powershell/profile\.ps1' }).Count
     if ($n -ne 1) { throw "loader line count = $n in $target" }
     $target
 }
@@ -225,14 +256,21 @@ Check 'cc-statusline.exe downloaded' {
 
 Check 'settings.json points at cc-statusline.exe' {
     $p = Join-Path $HOME '.claude\settings.json'
-    $j = Get-Content -Raw -LiteralPath $p | ConvertFrom-Json
+    if (-not (Test-Path -LiteralPath $p)) { throw "missing $p" }
+    $j = Get-Content -Raw -LiteralPath $p -ErrorAction Stop | ConvertFrom-Json
     if ($j.statusLine.command -notlike '*cc-statusline.exe') { throw $j.statusLine.command }
     $j.statusLine.command
 }
 
 Check 'codex config.toml has the managed [tui] keys' {
     $p = Join-Path $HOME '.codex\config.toml'
-    $c = Get-Content -Raw -LiteralPath $p
+    # Without this guard the check reports PASS for a file that is not there.
+    # $ErrorActionPreference is 'Continue', so a missing file leaves $c as $null,
+    # and PowerShell's $null -match and $null -notmatch BOTH return $false --
+    # so neither `throw` fires. The first real L9 run passed this check while
+    # the apply had aborted before writing a single file.
+    if (-not (Test-Path -LiteralPath $p)) { throw "missing $p" }
+    $c = Get-Content -Raw -LiteralPath $p -ErrorAction Stop
     if ($c -notmatch '(?m)^status_line_use_colors = true$') { throw 'status_line_use_colors missing' }
     if ($c -notmatch '(?m)^status_line = \[') { throw 'status_line missing' }
     'ok'
@@ -294,6 +332,19 @@ Write-Host "probe: results in $resultsPath, transcript in $transcriptPath"
 
 # Closing the sandbox destroys the files. Echo the whole table so the console --
 # which the operator can still scroll and copy -- carries the same information.
+# treesitter.log is the only record of what nvim actually did, and in remote mode
+# it dies with the sandbox. Tail rather than full: a Lazy sync can run to
+# thousands of lines and would push the results table out of the console buffer,
+# which is the one thing that must stay readable.
+if (Test-Path -LiteralPath $treesitterLog) {
+    Write-Host ''
+    Write-Host '--- treesitter.log (tail 200) ---'
+    foreach ($line in (Get-Content -LiteralPath $treesitterLog -Tail 200 -ErrorAction Stop)) {
+        Write-Host $line
+    }
+    Write-Host '--- end treesitter.log ---'
+}
+
 Write-Host ''
 Write-Host '--- results.tsv (full) ---'
 foreach ($line in $results) { Write-Host $line }

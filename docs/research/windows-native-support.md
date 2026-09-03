@@ -102,6 +102,53 @@ chezmoi --source '\\wsl.localhost\agent\home\madao\...\windows-support' execute-
 `.chezmoi.sourceDir` 會變成 `//WSL.LOCALHOST/AGENT/home/...`。這讓「在 WSL 裡改、在
 Windows 上驗」不需要任何同步步驟，本 repo 的 L8 測試層就是靠這個做的。
 
+### 1.6 ExecutionPolicy 會擋掉 chezmoi 的每一支 `.ps1`（**實測**）
+
+這一條是 L9 第一次真實執行的根因，而它擋的是**每一台全新 Windows**，不是只有 Sandbox。
+
+chezmoi 不是「就地執行」來源樹裡的腳本：它把算繪結果寫成
+`%TEMP%\<數字>.<腳本名>.ps1`，再交給 §1.1 那個直譯器。Windows 用戶端的預設
+ExecutionPolicy 是 `Restricted`，於是：
+
+```
+File C:\Users\<user>\AppData\Local\Temp\4051484889.30-install-winget-packages.ps1
+cannot be loaded because running scripts is disabled on this system.
+chezmoi: .chezmoiscripts/30-install-winget-packages.ps1: exit status 1
+```
+
+第一支 `run_onchange_before_` 腳本就死在這裡，而 chezmoi 的 before 腳本跑在所有檔案
+目標之前 —— **整個 apply 在任何一個檔案落地前中止**。
+
+三項實測（本機 pwsh 7.6.5，用 `-ExecutionPolicy` 開關逐一驗證，不動機器的原則）：
+
+| 問題 | 結果 |
+|---|---|
+| pwsh 7 是否受 ExecutionPolicy 管？ | **是**。`pwsh -NoLogo -ExecutionPolicy Restricted -File x.ps1` → `SecurityError: ... running scripts is disabled` |
+| `-ExecutionPolicy Bypass` 能不能解？ | **能**。同一支腳本正常執行 |
+| `.chezmoi.toml.tmpl` 裡的 `[interpreters.ps1]` 在**同一次** `chezmoi init --apply` 就生效嗎？ | **會**。把直譯器換成一支會留下記號的指令，`init --apply` 跑完記號就在 —— init 先寫設定、再套用 |
+
+第三項是修法可不可行的關鍵：如果設定要下一次 apply 才生效，那對「第一次安裝」這個
+唯一重要的情境就沒有用。
+
+因此修法放在 `.chezmoi.toml.tmpl`（僅 Windows 分支）：
+
+```toml
+[interpreters.ps1]
+    command = "pwsh"
+    args = ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]
+```
+
+不採用「在 `init.ps1` 裡 `Set-ExecutionPolicy -Scope CurrentUser`」：那會**改變使用者
+機器的安全設定**且留在機器上，而且對沒有經由 `init.ps1`（例如直接
+`chezmoi apply`）的人沒有作用。`Bypass` 只作用在 chezmoi 為自己的腳本開的那個
+process；信任邊界是這個 source repo，不是 execution policy。
+
+順帶量到的一件事：chezmoi 的預設 args 是 `-NoLogo -File`，**沒有 `-NoProfile`**，
+所以安裝腳本會載入使用者的 pwsh profile —— 也就是這個 repo 自己安裝的那一份
+（oh-my-posh、PSFzf、mise）。上面的實測輸出裡就有 pwsh 去載
+`Documents\PowerShell\Microsoft.PowerShell_profile.ps1` 的錯誤。安裝腳本的行為不該
+取決於使用者的 profile，所以 args 一併補上 `-NoProfile`。
+
 ---
 
 ## 2. Neovim 在 Windows 的 standard-path

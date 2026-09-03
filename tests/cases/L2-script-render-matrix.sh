@@ -140,3 +140,29 @@ assert_contains "profile 有開啟 PSReadLine 的歷史預測（對應 zsh-autos
 assert_contains "profile 有載入 PSFzf 的 TabExpansion（對應 fzf-tab）" "$_profile" '-TabExpansion'
 assert_contains "profile 有啟用 mise" "$_profile" 'mise activate pwsh'
 unset _s _c _profile _theme
+
+# ---------- .chezmoi.toml.tmpl：直譯器設定 ----------
+# L9 第一次真實執行的根因：chezmoi 把 .ps1 寫到 %TEMP% 再交給直譯器，而全新
+# Windows 的預設 ExecutionPolicy 是 Restricted，pwsh 7 也受它管（本機實測），
+# 於是**第一支腳本就拒載**，整個 apply 在任何檔案落地前中止。乾淨的 Windows 11
+# 使用者會在同一點失敗，這不是 Sandbox 特有的。
+#
+# 修法是讓 chezmoi 用它自己的直譯器設定跑：那份設定由 .chezmoi.toml.tmpl 產生，
+# 而且**在同一次 init --apply 裡就生效**（實測：自訂直譯器留下了記號）。
+_cfg_win=$(render_file windows .chezmoi.toml.tmpl)
+assert_contains "Windows 的設定有釘住 .ps1 的直譯器" "$_cfg_win" '[interpreters.ps1]'
+assert_contains "直譯器是 pwsh（不是 Windows PowerShell 5.1）" "$_cfg_win" 'command = "pwsh"'
+assert_contains "直譯器帶 -ExecutionPolicy Bypass（Restricted 下腳本一律拒載）" \
+    "$_cfg_win" '"-ExecutionPolicy", "Bypass"'
+# chezmoi 的預設 args 只有 -NoLogo -File，於是腳本會載入使用者的 pwsh profile ——
+# 也就是這個 repo 自己裝的那一份（oh-my-posh、PSFzf、mise）。安裝腳本的行為不該
+# 取決於使用者的 profile，POSIX 那邊也沒有這個問題（chezmoi 不走互動 shell）。
+assert_contains "直譯器帶 -NoProfile" "$_cfg_win" '"-NoProfile"'
+assert_contains "直譯器的最後一個參數是 -File（腳本路徑接在後面）" "$_cfg_win" '"-File"]'
+
+# POSIX 端不得出現這段：那裡沒有 execution policy，多一個設定就是多一條分歧。
+for _os in linux linux-arm64 darwin-arm64 darwin-amd64; do
+    assert_not_contains "$_os 的設定沒有 interpreters 區段" \
+        "$(render_file "$_os" .chezmoi.toml.tmpl)" 'interpreters'
+done
+unset _cfg_win _os

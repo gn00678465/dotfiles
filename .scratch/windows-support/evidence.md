@@ -1,6 +1,8 @@
 # Evidence Report — native Windows 支援 (Tier 3)
 
-- `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）**
+- `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）。
+  L9 已首次真實執行並 FAIL：根因已定位並修好（M13，ExecutionPolicy），但修好之後
+  沒有再跑過一次 L9 —— 這份報告仍然沒有任何一個數字來自一台裝成功的 Windows**
   · 獨立驗證跑了**六輪**，六輪都判 failed；共 47 條 findings 全部已處置，見 §獨立驗證。
   **最後兩輪在產品程式碼裡找不到任何缺陷**；第六輪明確建議不要再跑第七輪，
   把剩下的風險預算花在還沒跑過的 Windows Sandbox 上
@@ -18,8 +20,8 @@
 - `change_set`: `0d72b8e...HEAD`
 - `base`: `0d72b8e`
 - `report_language`: zh-TW
-- `intent_status`: **confirmed**（v1、v2、v3 各自取得核准，逐字記在 SPEC §8）
-- `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v3`。
+- `intent_status`: **unconfirmed**（v1–v3 已核准；**v4 待核准**）
+- `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v4`。
   v1 於 `e5089df` 進入版本歷史（當時路徑 `.scratch/windows-support/spec.md`），
   **早於任何實作 commit**；核准逐字記在該檔 §8：
 
@@ -35,6 +37,9 @@
   屬驗證程序擴充，不動 §5 Must NOT、§6 失效模型或任何產品需求（詳見 SPEC §9）：
 
   > 核准 SPEC v3
+
+  v4 待核准：§6 新增失效模式 **M13**（ExecutionPolicy 擋掉所有 `.ps1`），§7 更正
+  M12 的狀態。M13 是 L9 第一次真實執行找出來的，是原本整個漏掉的一種失效模式。
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
@@ -457,14 +462,76 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
     ＝ 3405 行，是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
     mutation 與 property 三層。
 - **SUBSTITUTED：**
-  - *Real execution* —— 沒有跑「完整安裝一次」。跑的是 `L7`（重導向環境裡真的執行腳本）
-    與 `L8`（Windows 主機上真的執行 chezmoi 的 managed 與 apply，僅檔案；比對走 `cmp` 原始位元組）。
-    **偵測不到**：winget 是否真的裝得起來、裝完的工具是否能用、第一次開 Neovim 會怎樣。
+  - *Real execution* —— **L9 已經真的跑過一次，結果是 FAIL**（見下方「L9 第一次執行」）。
+    在那之前補位的是 `L7`（重導向環境裡真的執行腳本）與 `L8`（Windows 主機上真的執行
+    chezmoi 的 managed 與 apply，僅檔案；比對走 `cmp` 原始位元組）。
+    那一次執行證明了這兩層**偵測不到**什麼：整個 apply 因為 ExecutionPolicy 而在第一支
+    腳本就中止，L1–L8 十層全綠，沒有任何一層看得到。
+    根因已修（M13），但**修好之後沒有再跑過一次 L9**，所以「winget 是否真的裝得起來、
+    裝完的工具是否能用、第一次開 Neovim 會怎樣」到現在仍然沒有證據。
   - *macOS 的一切* —— 沒有實體 mac，全部證據來自 `osOverride=darwin` 的渲染矩陣。
     **偵測不到**任何只在真實 macOS 上才會出現的行為。接縫本身只在 **windows** 那一邊被
     交叉驗證（L8），darwin 那一邊**沒有任何實機驗證**。
 - **NOT REACHED：** 無。最終一輪十層全部執行完畢。
 - **DEPENDENCY UNMET：** 無。
+
+---
+
+## L9 第一次執行（2026-09-03，遠端模式，`9f44752`）
+
+**狀態：已執行 · FAIL · 根因已定位並修好 · 修後未重跑。**
+
+使用者在另一台機器的乾淨 Windows Sandbox 裡，用遠端模式一行 `irm` 跑完整支探針，
+分支 `feat/windows-support @ 9f44752`。結果 **PASS=5 FAIL=19**。
+
+### 根因（已定位）
+
+```
+File C:\Users\WDAGUtilityAccount\AppData\Local\Temp\4051484889.30-install-winget-packages.ps1
+cannot be loaded because running scripts is disabled on this system.
+chezmoi: .chezmoiscripts/30-install-winget-packages.ps1: exit status 1
+```
+
+chezmoi 把算繪後的 `.ps1` 寫到 `%TEMP%` 再交給直譯器，而 Windows 用戶端的預設
+ExecutionPolicy 是 `Restricted`。`before` 腳本跑在所有檔案目標之前，所以**整個 apply
+在任何一個檔案落地前中止** —— 19 條 FAIL 裡有 17 條只是這一件事的下游。
+
+這**不是 Sandbox 特有的**。每一台全新 Windows 11 的真實使用者都會死在同一個位置，
+拿到一台什麼都沒發生的電腦。SPEC §6 的 M1–M12 **沒有任何一條涵蓋它**，所以它同時是
+一個產品缺陷與一個失效模型的缺口（SPEC v4 補為 M13）。
+
+三項實測（本機 pwsh 7.6.5，只用 `-ExecutionPolicy` 開關，不動機器原則）：
+pwsh 7 **一樣**受 ExecutionPolicy 管；`-ExecutionPolicy Bypass` 能解；
+`.chezmoi.toml.tmpl` 的 `[interpreters.ps1]` **在同一次 `init --apply` 就生效**
+（第三項是修法可不可行的關鍵，因為要救的正是「第一次安裝」）。
+修法與不採用 `Set-ExecutionPolicy` 的理由見 `docs/research/windows-native-support.md` 1.6。
+
+### 這一次執行同時揭穿了探針自己的三個缺陷
+
+| # | 缺陷 | 為什麼重要 |
+|---|---|---|
+| P1 | **`codex config.toml has the managed [tui] keys` 回報 PASS，而當時一個檔案都沒落地** | 探針宣稱看到了它其實沒看到的東西 —— L9 最不該有的失效模式。原因：`$ErrorActionPreference` 是 `Continue`，缺檔時 `Get-Content` 是非終止錯誤、變數拿到 `$null`，而 PowerShell 的 `$null -match` 與 `$null -notmatch` **兩個都回 `$false`**，於是兩個 `throw` 都不會觸發。本機以 5.1 實測重現（同一段程式碼、指向不存在的檔案 → `PASS ok`） |
+| P2 | **失敗細節讀不到** | chezmoi 的輸出只進 transcript，而遠端模式沒有對應資料夾，Sandbox 一關就沒了。`FAIL chezmoi init --apply -> 1` 這一行不含任何線索；根因是使用者第二次進 Sandbox 手抄 transcript 才拿到的 |
+| P3 | **winget 的輸出在 results.tsv 裡是亂碼** | `?曉 PowerShell [Microsoft.PowerShell] ? 7.6.5.0 甇斗??函?撘歇?勗?...`。winget 吐 UTF-8，5.1 用主機的 ANSI 代碼頁（這台是 CP950）解。與本輪稍早修掉的 gate mutation runner UTF-8 崩潰**是同一類**：一個只在失敗路徑上才看得見的編碼假設 |
+
+三條都已修（`Get-Content` 一律 `-ErrorAction Stop` 並先 `Test-Path`；失敗細節帶 chezmoi
+輸出的尾段 30 行；`treesitter.log` 結尾印出尾段 200 行；主控台統一 UTF-8），
+並各由 L11 的斷言釘住 —— 其中 P1 那條是機械檢查（探針裡每一處 `Get-Content` 都必須帶
+`-ErrorAction Stop`），不是子字串比對。
+
+### 這一次執行**沒有**回答的
+
+- **M12（treesitter parser）仍然 unverified。** apply 在 nvim 被裝起來之前就中止，
+  那條檢查跑到了、但它問的問題從來沒有被實際問到。
+- **winget 的 9 個套件是否真的裝得起來**：一個都沒試到。supply-chain 那層證明的是
+  12 個 ID 解析得到，不是安裝會成功。
+- **symlink 權限**那條 FAIL 是預期的（乾淨機器沒開開發人員模式），但在這次執行裡它
+  和其他 17 條一樣是 apply 中止的下游，不算獨立證據。
+
+### 誠實的結論
+
+修好的是**已知的那一個**根因。M13 之後還有沒有第二個、第三個障礙，只有再跑一次 L9
+才知道。在那之前，這份報告對「這份 dotfiles 在 Windows 上裝得起來」**仍然沒有證據**。
 
 ---
 

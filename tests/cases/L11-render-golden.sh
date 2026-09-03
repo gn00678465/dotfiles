@@ -131,6 +131,23 @@ assert_contains "結尾把 results.tsv 全文印到主控台（Sandbox 關掉就
 # 寫死的輸出路徑只要留一個，桌面那條退路就有一半是假的：transcript 或 treesitter.log
 # 會照樣寫去 C:\out，而那個目錄在遠端模式下根本不存在。
 assert_not_contains "探針裡沒有寫死的 C:\out 輸出路徑" "$_probe" "'C:\out\\"
+
+# 以下四條全部來自 L9 的第一次真實執行（見 evidence「L9 第一次執行」）。
+#
+# 最重的一條是 Get-Content：探針的 $ErrorActionPreference 是 'Continue'，所以
+# 檔案不存在時 Get-Content 是**非終止**錯誤，變數拿到 $null；而 PowerShell 的
+# $null -match 與 $null -notmatch **兩個都回 $false**。於是「codex config.toml 有
+# 受管的 [tui] key」這條在整個 apply 一個檔案都沒落地的情況下回報 PASS。
+# 那次執行裡它就是這樣騙過去的（本機以 5.1 實測重現）。這是 L9 最不該有的失效模式：
+# 探針宣稱看到了它其實沒看到的東西。
+_probe_unguarded=$(grep -n 'Get-Content' "$REPO/tests/sandbox/_probe.ps1" | grep -v -- '-ErrorAction Stop' || true)
+assert_eq "探針裡每一處 Get-Content 都帶 -ErrorAction Stop（缺檔要炸，不是回 \$null）" \
+    "" "$_probe_unguarded"
+
+assert_contains "chezmoi 失敗時，FAIL 的 detail 要帶 chezmoi 輸出的尾段" "$_probe" 'Get-OutputTail'
+assert_contains "結尾要印出 treesitter.log（遠端模式關掉就沒了）" "$_probe" 'treesitter.log (tail'
+assert_contains "主控台編碼統一成 UTF-8（winget 的輸出是 UTF-8，5.1 預設用 ANSI 代碼頁解）" \
+    "$_probe" '[Console]::OutputEncoding'
 # 上面那 22 條是 assert_contains —— 子字串在不在，跟那一行會不會執行是兩回事。
 # 獨立驗證用四個變異證明了差別：把 Git 的自舉整行**註解掉**、把三行搬到 chezmoi
 # 呼叫**之後**、在正確的那行**之後再賦值一次**別的帳號、把 M12 檢查的**內容**換掉 ——
@@ -157,4 +174,4 @@ assert_eq "測試層的檔案集合" \
         L6-file-golden.sh L7-behavior.sh L8-windows-seam.sh | LC_ALL=C sort)" \
     "$(ls "$REPO/tests/cases" | LC_ALL=C sort)"
 
-unset _init _probe _pair _id _cmd _t _name _path
+unset _init _probe _probe_unguarded _pair _id _cmd _t _name _path

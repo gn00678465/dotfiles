@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
-- `spec_version`: v3
-- `status`: approved
+- `spec_version`: v4
+- `status`: revised-pending-approval
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
@@ -247,6 +247,7 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 | M10 | pwsh profile loader 重複 append | profile 每次 apply 長一行 | L7 |
 | M11 | 這次重構順手改壞 POSIX 端 | 現有機器壞掉 | L10 |
 | M12 | zig 無法讓 tree-sitter CLI 在 Windows 編出 parser | LazyVim 在 Windows 上 treesitter 半殘 | L9；**這條目前未證實**，只有社群資料，見 §7 |
+| M13 | Windows 的 ExecutionPolicy 擋掉 chezmoi 寫到 `%TEMP%` 的 `.ps1` | **第一支 `before` 腳本就拒載，整個 apply 在任何檔案落地前中止** —— 全新 Windows 一律如此，使用者拿到的是一台什麼都沒發生的機器 | L2（`.chezmoi.toml.tmpl` 的 `[interpreters.ps1]`）+ L10（POSIX 不受影響）+ L9 |
 
 ---
 
@@ -257,6 +258,9 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
   放進 winget 清單，**但我沒有辦法在主機上驗證**（Must NOT #1），只有 L9 sandbox 能證實。
   若 L9 證明不行，備案是 `Microsoft.VisualStudio.2022.BuildTools`（體積大很多）；
   evidence report 會如實記錄這條的狀態。
+  **v4 更新**：L9 已經真的跑過一次（遠端模式），但那一次死在 M13，apply 在任何檔案
+  落地前就中止，nvim 根本沒被裝起來 —— **M12 仍然未證實**，只是現在知道它為什麼沒被
+  問到。
 - **macOS 沒有實機**。macOS 的證據全部來自 `osOverride=darwin` 的渲染矩陣（L1–L6, L10），
   沒有任何一次真實 apply。這是明確的 downgrade，會寫進 evidence report。
 - **Windows Sandbox 沒有 App Installer**，`_probe.ps1` 需要先自舉 winget；
@@ -293,6 +297,15 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
 
+### v4 — 待核准
+
+- **approval: pending**
+- version bound: v4（見 §9 的變更清單）
+- 這一版尚未取得核准。契約規定核准綁定單一版本，v3 的核准不自動延伸到 v4。
+- 需要核准的實質變更：§6 新增失效模式 **M13**（ExecutionPolicy 擋掉所有 `.ps1`），
+  以及 §7 更新 M12 的狀態。這是失效模型的擴充 —— 一種 Tier 3 失效模型原本
+  **整個漏掉**、而且會擊中每一台全新 Windows 的模式。
+
 ### v3 — 2026-09-03
 
 - **approval: confirmed**
@@ -327,6 +340,42 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 ---
 
 ## 9. Revisions
+
+### v3 → v4
+
+| # | 變更 | 性質 |
+|---|---|---|
+| 1 | §6 新增 **M13**：Windows 的 ExecutionPolicy 擋掉 chezmoi 寫到 `%TEMP%` 的 `.ps1`，第一支 `before` 腳本就拒載，整個 apply 在任何檔案落地前中止 | **實質**。這是原本整個漏掉的失效模式 |
+| 2 | §7 的 M12 更新為「L9 已執行過一次，但死在 M13 之前，M12 仍未證實」 | **實質**（狀態更正） |
+
+M13 是 L9 第一次真實執行找出來的，也是這份 SPEC 最嚴重的一個缺口：§6 列了 M1–M12，
+沒有任何一條涵蓋「腳本根本不被允許執行」。它不是 Sandbox 特有的環境問題 ——
+Windows 用戶端的預設 ExecutionPolicy 就是 `Restricted`，**每一台全新機器都會死在
+同一個地方**，而使用者看到的是一台什麼都沒發生的電腦。
+
+修法（見 `docs/research/windows-native-support.md` 1.6，三項都是實測）：
+`.chezmoi.toml.tmpl` 的 Windows 分支加上
+
+```toml
+[interpreters.ps1]
+    command = "pwsh"
+    args = ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]
+```
+
+- pwsh 7 **一樣**受 ExecutionPolicy 管（實測），所以「chezmoi 用的是 pwsh 不是 5.1」
+  不構成豁免。
+- `[interpreters.ps1]` 在**同一次** `init --apply` 裡就生效（實測）—— 這是修法可不可行
+  的關鍵，因為要救的正是「第一次安裝」。
+- 不採用在 `init.ps1` 裡 `Set-ExecutionPolicy`：那會改變使用者機器的安全設定並留在
+  機器上，而且對不經 `init.ps1` 的人無效。`Bypass` 只作用在 chezmoi 為自己的腳本開的
+  那個 process。
+- 一併補 `-NoProfile`：chezmoi 的預設 args 沒有它，安裝腳本因此會載入使用者的 pwsh
+  profile —— 也就是這個 repo 自己裝的那一份。
+
+Must NOT #2 不受影響：`[interpreters.ps1]` 包在 `{{ if $p.isWindows }}` 裡，POSIX 的
+設定渲染與 base ref 逐位元組相同（L10 新增了這條比對 —— 在此之前
+`.chezmoi.toml.tmpl` **完全沒有任何程序在看**，因為它產生的是 chezmoi 自己的設定，
+不是 target，整棵樹的 diff 看不到它）。
 
 ### v2 → v3
 
