@@ -47,21 +47,23 @@
 
   > Approval V5
 
-  **但核准的是修訂本身，不是選項的選擇。** v5 的第 3 項（既有 CRLF 設定檔要不要
-  正規化）與第 4 項（M12 的處置）各自留了選項給使用者選，核准並沒有選定任何一個。
-  第 1、2 項已完整指定，實作照 RED → GREEN 進行；第 3、4 項在選定之前不動產品。
+  核准的是修訂本身，不是選項的選擇。v5 的第 3、4 項各自留了選項，另行決定：
+
+  > M14 選 c，M12 選 a
+
+  兩者都逐字記在 SPEC §8。四項已全部實作完成，見下方「SPEC v5 的實作」。
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `1e94ff8e091fdf22ec4d2fd5f673f67808c16ac4`
+- `source_state`: `9f066fba4dd5fc702dd247b2a87a6228c65acf2e`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只有一個 commit：把 v3 的核准逐字
   寫進 SPEC §8、並把本報告更新到這一輪數字的那一個。它只動 `.scratch/` 與
   `specs/windows-support/SPEC.md`，**不含任何產品、測試或 gate 檔案**
-  （可用 `git diff --stat 1e94ff8..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
+  （可用 `git diff --stat 9f066fb..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
   讀到（前者斷言它不得被裝進 `$HOME`，後者從中取 base ref），所以最終那棵樹
-  另外跑了一次完整測試套件確認 **489/489**；mutation、property、supply-chain
+  另外跑了一次完整測試套件確認 **501/501**；mutation、property、supply-chain
   三層的結論不可能被一段 markdown 核准記錄影響，沒有重跑。**上一輪報告在這裡踩過一次坑**：
   寫完報告後又提交了一個產品檔（`tests/sandbox/prepare.sh`），使得報告的自我描述
   在下一秒就過期。這次改成「報告是最後一個 commit」。
@@ -238,14 +240,14 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=1e94ff8…`, `worktree=clean` |
-| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **489 passed, 0 failed, 0 skipped** |
-| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，489/489 |
-| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 489 passed, 0 failed |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=9f066fb…`, `worktree=clean` |
+| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **501 passed, 0 failed, 0 skipped** |
+| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，501/501 |
+| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 501 passed, 0 failed |
 | Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
 | Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **34/34 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 7321 行（**不含本報告為 6643 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 3781 / set3 3540 / 共 6643 行 |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 7821 行（**不含本報告為 7071 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 4198 / set3 3623 / 共 7071 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
 | Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
 
@@ -615,11 +617,46 @@ SPEC 從 v1 就把 `zig.zig` 放進 winget 清單，理由是「社群做法是�
 這條因此從「未證實」升級為「已被推翻」，處置是產品層決定，四個選項與各自的代價
 寫在 SPEC §9 的 v4 → v5，等使用者選。
 
-### 這一輪為什麼停在這裡
+### 這一輪的流程：修訂中停下來等
 
 使用者要求走一遍「修訂中停下來等」：**SPEC 寫好、提交、請求核准，核准之前不碰產品
-也不碰探針**。所以上面每一項都只有診斷與處置方案，沒有任何實作。這份報告的
-`intent_status` 因此是 `unconfirmed`。
+也不碰探針**。診斷與處置方案先提交（`c052824`、`b91b6a1`），核准（`b76de3b`）與兩項
+選擇（`a15a188`）之後才進 RED → GREEN。這是本次工作裡唯一一次完整照契約順序停下來
+等的迭代。
+
+---
+
+## SPEC v5 的實作（`9f066fb`）
+
+四項全部先看到 RED（12 條，跨 L2 / L3 / L11）再實作。
+
+| # | 項目 | 做了什麼 | 由什麼看著 |
+|---|---|---|---|
+| 1 | 可觀察性 | `Invoke-Streamed` 逐行同時寫主控台與收集器，取代「整段收進變數、跑完才印」；treesitter 那段因為 job 的輸出只在結束時才到，改用 30 秒心跳；三個長步驟各印一行「正在做什麼、預期多久」 | L11 三條 + verbatim golden（逐位元組） |
+| 2 | registry PATH | 重讀 `HKLM\...\Session Manager\Environment` 與 `HKCU\Environment` 的 `Path` 再合併去重，取代四個寫死的目錄 | L11 三條（含「不得再出現寫死的 ProgramFiles 清單」）+ verbatim golden |
+| 3 | `.gitattributes` | `* text=auto eol=lf`。改寫器不動，parity 保住；殘留寫成 §7 具名已知限制 | L3 四條 **`git check-attr eol`** —— 問 git 自己的判定，不是比對檔案字串 |
+| 4 | WinLibs 取代 zig | winget 清單與探針工具清單都換成 `BrechtSanders.WinLibs.POSIX.UCRT` | L2 兩條 + L11 golden + supply-chain 逐一解析（本輪 OK） |
+
+**兩件在實作中量到、值得記下來的事：**
+
+- **`Invoke-Streamed` 保住了 `$LASTEXITCODE`。** 以 5.1 實測：逐行即時印出，
+  且退出碼穿過 `ForEach-Object` 管線保留（測到 3）。如果沒有保留，每一條靠
+  `$LASTEXITCODE` 判定的檢查都會靜靜地失去判定能力 —— 而那是「只在執行時才看得見」
+  的那一類，正是本次已經踩過兩次的類別（gate 的 UTF-8 崩潰、探針的空過檢查）。
+- **`Update-ProbePath` 留了一個具名例外。** mise 的 shim 目錄**不在** registry PATH
+  上：它是 profile 的 `mise activate` 加的，而探針不載 profile。nvim 是 mise shim，
+  純讀 registry 會把它誤報成沒裝 —— 與這次要修的錯誤同一類。所以那一個目錄仍然補，
+  但寫明機制，不是回頭去維護清單。5.1 實測：95 → 81 條去重、無重複、git 仍解析得到。
+
+**沒有替這四項再加 mutant，理由寫在這裡而不是省略**：M13 當時加 mutant 是因為它只靠
+九條**子字串**斷言守著，而這個 repo 自己的教訓就是子字串抓不到註解掉／改序／覆寫。
+這四項不是那個處境 —— 第 3 項靠 `git check-attr`（git 自己的判定），第 1、2、4 項靠
+**逐位元組的 verbatim golden 與 render golden**。兩者都是機械 oracle，不是子字串，
+再加 mutant 不會增加鑑別力。
+
+**M12 的狀態沒有因為這次實作而前進。** 換編譯器依據的是 nvim-treesitter 自己的建議，
+不是一次成功的 parser 編譯。狀態仍是「假設已被推翻、處置已選定、**修法未證實**」，
+只有第三次 L9 能改變它。
 
 ---
 
