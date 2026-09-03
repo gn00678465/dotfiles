@@ -4,7 +4,7 @@
 - `status`: approved
 - `tier`: 3
 - `scope`: windows-support
-- `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
+- `base_ref`: `ccae9d8`（`origin/main`，本分支與 main 的 merge-base；原為分支起點 `0d72b8e`，更新理由見 §9）
 - `contract`: `~/.claude/CLAUDE.md` 的 evidence-first 契約 **v0.6**，未被本 repo 覆寫
 
 Tier 3 的理由：會移動／改寫使用者既有的 nvim 設定、`~/.codex/config.toml`、
@@ -448,6 +448,34 @@ v5 本文把兩件事明寫成「待你決定」並列出選項。以下是那�
 ---
 
 ## 9. Revisions
+
+### base_ref 更新 — 2026-09-04（**非實質變更，未重新請求核准**）
+
+`base_ref` 由 `0d72b8e`（分支起點）改為 `ccae9d8`（`origin/main`，也是合併後的
+merge-base）。main 上的 #3（evidence-first 合約）已合併進本分支。
+
+**依合約判定為非實質變更，理由逐條寫在這裡以便日後稽核：**
+
+1. `base_ref` 記錄的是 **Must NOT #2 的比較基準**，不是要求本身。要求
+   （「Linux/macOS 現有的 target 集合與檔案內容不得因為這次 Windows 支援而改變」）
+   一個字都沒有動。§0–§7 的其他部分也都沒有動。
+2. **不改反而會讓檢查說謊。** main 在 `0d72b8e` 之後自己前進了（合約升到 v0.6、
+   verification-gate skill 改版、`commit-message` 更名為 `commit`、新增
+   `spec-archive` skill 與 verifier agent）。以 `0d72b8e` 為基準，L10 會把
+   **main 自己的變更**報成本分支造成的回歸 —— 那是假陽性。把基準移到 merge-base，
+   L10 才是在量它一直想量的那件事：**本分支有沒有弄壞 POSIX**。
+3. **不會讓覆蓋範圍變窄。** 兩個基準之間的差異全部是 main 的工作；已逐一稽核
+   managed 清單的每一項新增，全部能追到 `origin/main`（`spec-archive`、
+   `.agents/workflow/`、`.claude/agents/verifier.md`、`.codex/agents/verifier.toml`、
+   `commit-message` → `commit`），沒有一項來自本分支。
+   換基準反而**加驗了一件事**：合併時 `.chezmoiignore` 與 `.gitignore` 的衝突解法
+   （取聯集）現在也被 L10 對著 main 的現況比對。
+4. **property 層的差分沒有受影響。** P0 是拿 `dot_codex/modify_private_config.toml`
+   的移植前 awk 原版做逐位元組比對；已驗證該檔在 `0d72b8e` 與 `ccae9d8` 之間
+   **完全相同**，所以 P0 的比較對象不變。
+
+如果你認為這仍算實質變更，那它就是一次 v7 修訂，需要重新核准 —— 這裡只記錄我的
+判定與理由，不代替你的判斷。
 
 ### v5 → v6
 

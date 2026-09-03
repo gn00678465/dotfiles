@@ -45,8 +45,12 @@ else
     # dash 沒有 process substitution，走暫存檔。
     printf '%s\n' "$_base_mg" > "$TMP/mg-base.txt"
     printf '%s\n' "$_new_mg"  > "$TMP/mg-new.txt"
-    _added=$(comm -13 "$TMP/mg-base.txt" "$TMP/mg-new.txt")
-    _removed=$(comm -23 "$TMP/mg-base.txt" "$TMP/mg-new.txt")
+    # LC_ALL=C 兩邊都要：清單是用 `LC_ALL=C sort` 排的，而 comm 在別的語系下會用
+    # 不同的定序，於是判定「輸入沒有排序」並中止整層。這在合併 main 之前不會出現 ——
+    # 要等到清單裡真的出現 C 與本機語系定序不同的項目（`.agents/workflow`、
+    # `.claude/agents`）才會爆。
+    _added=$(LC_ALL=C comm -13 "$TMP/mg-base.txt" "$TMP/mg-new.txt")
+    _removed=$(LC_ALL=C comm -23 "$TMP/mg-base.txt" "$TMP/mg-new.txt")
     assert_eq "本機 OS 上，managed 只多出五支 Windows 腳本" \
 "$(printf '%s\n' \
   '.chezmoiscripts/30-install-winget-packages.ps1' \

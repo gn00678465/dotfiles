@@ -44,6 +44,7 @@ MANIFEST_FILE="$ART/layers-manifest"
 cat > "$MANIFEST_FILE" <<'EOF'
 versions
 source-state-before
+agent-doc-invariants
 suite
 suite-health-repeat
 suite-health-shuffle
@@ -89,6 +90,12 @@ run_layer versions "$ART/versions.txt" versions
 # ------------------------------------------------------- source state (before)
 run_layer source-state-before "$ART/source-state-before.txt" \
     sh tools/gate-source-state.sh
+
+# -------------------------------------------------------- agent doc invariants
+# main 的 #3 帶進來的，管的是 agent 文件之間的一致性，不屬於 Windows 移植的層。
+# 放進 gate 而不是靠人記得跑：「之後每次都要跑」如果只寫在對話裡，下一次就會漏。
+run_layer agent-doc-invariants "$ART/agent-doc-invariants.txt" \
+    python3 tests/check_agent_doc_invariants.py
 
 # ---------------------------------------------------------------- test suite
 run_layer suite "$ART/suite.tap" sh tests/run.sh
