@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
 - `spec_version`: v5
-- `status`: revised-pending-approval
+- `status`: approved
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
@@ -313,13 +313,23 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
 
-### v5 — 待核准
+### v5 — 2026-09-03
 
-- **approval: pending**
-- version bound: v5（見 §9 的變更清單）
-- 這一版尚未取得核准。契約規定核准綁定單一版本，v4 的核准不自動延伸到 v5。
-- 這一版有**四項**實質變更，其中一項（M12 的處置）需要你在幾個選項之間做決定。
-  **核准之前不會有任何實作** —— 產品與探針都不動。
+- **approval: confirmed**
+- version bound: v5 — 核准當下 `specs/windows-support/SPEC.md` 的 sha256
+  （即本節被改寫成核准狀態**之前**、`status` 仍為 `revised-pending-approval` 的檔案內容）
+  = `051a98b1a4302bb6f4e95af647c394637b32975edd8a502dda0109526bb9da8a`
+- date: 2026-09-03
+- approver: repo owner（Madao）
+- verbatim words（使用者原話，逐字）:
+
+  > Approval V5
+
+- 範圍：v5 全文，四項實質變更見 §9 的 v4 → v5。
+- **核准的是修訂本身，不是選項的選擇。** §9 的第 3 項（既有 CRLF 設定檔要不要正規化，
+  三個選項）與第 4 項（M12 的處置，四個選項）在這份核准裡**仍然沒有被選定**。
+  第 1、2 項（探針的可觀察性與 registry PATH）已完整指定，可以直接實作；
+  第 3、4 項在使用者選定之前不動產品。
 
 ### v4 — 2026-09-03
 

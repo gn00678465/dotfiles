@@ -20,7 +20,7 @@
 - `change_set`: `0d72b8e...HEAD`
 - `base`: `0d72b8e`
 - `report_language`: zh-TW
-- `intent_status`: **unconfirmed**（v1–v4 已核准；**v5 待核准，尚未實作**）
+- `intent_status`: **confirmed**（v1–v5 各自取得核准，逐字記在 SPEC §8）
 - `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v5`。
   v1 於 `e5089df` 進入版本歷史（當時路徑 `.scratch/windows-support/spec.md`），
   **早於任何實作 commit**；核准逐字記在該檔 §8：
@@ -43,9 +43,13 @@
 
   > 核准 SPEC v4
 
-  **v5 待核准，而且刻意停在這裡**：本輪是「修訂中停下來等」——SPEC 已寫好、已提交，
-  但**產品與探針一行都沒動**。v5 有四項，其中 M12 的處置與 CRLF 改寫器那一項需要
-  使用者在選項之間做決定，見 SPEC §9 的 v4 → v5。
+  v5 同理另行核准（四項實質變更見 SPEC §9 的 v4 → v5）：
+
+  > Approval V5
+
+  **但核准的是修訂本身，不是選項的選擇。** v5 的第 3 項（既有 CRLF 設定檔要不要
+  正規化）與第 4 項（M12 的處置）各自留了選項給使用者選，核准並沒有選定任何一個。
+  第 1、2 項已完整指定，實作照 RED → GREEN 進行；第 3、4 項在選定之前不動產品。
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
