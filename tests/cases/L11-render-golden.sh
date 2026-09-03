@@ -119,6 +119,18 @@ assert_contains "sandbox 探針會檢查 zsh 專屬檔案沒有落地" "$_probe"
 for _t in mise fzf rg fd lazygit git-lfs tree-sitter oh-my-posh zig nvim; do
     assert_contains "sandbox 探針會檢查 $_t 在 PATH 上" "$_probe" "'$_t'"
 done
+
+# 遠端模式：使用者要能在任何一台有 Sandbox 的機器上，不經 prepare.sh、不對應資料夾，
+# 用一行 irm 跑完 L9。這幾條釘的是那條路徑上「少一項就整個模式失效」的義務。
+assert_contains "sandbox 探針收 -Branch（名稱與 init.ps1 對齊）" "$_probe" 'param([string] $Branch)'
+assert_contains "遠端模式讓 chezmoi 自己 clone 指定分支" "$_probe" "'--branch', \$Branch"
+assert_contains "遠端模式 clone 的是正確的 GitHub 帳號" "$_probe" "'gn00678465'"
+assert_contains "遠端模式改從 chezmoi source-path 取來源樹" "$_probe" 'chezmoi source-path'
+assert_contains "沒有對應 C:\out 時輸出改寫到桌面" "$_probe" 'Desktop\chezmoi-probe'
+assert_contains "結尾把 results.tsv 全文印到主控台（Sandbox 關掉就沒了）" "$_probe" 'results.tsv (full)'
+# 寫死的輸出路徑只要留一個，桌面那條退路就有一半是假的：transcript 或 treesitter.log
+# 會照樣寫去 C:\out，而那個目錄在遠端模式下根本不存在。
+assert_not_contains "探針裡沒有寫死的 C:\out 輸出路徑" "$_probe" "'C:\out\\"
 # 上面那 22 條是 assert_contains —— 子字串在不在，跟那一行會不會執行是兩回事。
 # 獨立驗證用四個變異證明了差別：把 Git 的自舉整行**註解掉**、把三行搬到 chezmoi
 # 呼叫**之後**、在正確的那行**之後再賦值一次**別的帳號、把 M12 檢查的**內容**換掉 ——

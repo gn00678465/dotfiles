@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
-- `spec_version`: v2
-- `status`: approved
+- `spec_version`: v3
+- `status`: revised-pending-approval
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
@@ -199,7 +199,7 @@ oh-my-posh 主題：**powerlevel10k_rainbow**，但不靠 `$env:POSH_THEMES_PATH
 | L6 | **檔案層 golden**：`chezmoi apply --exclude=scripts,externals` 到預先塞好內容的暫存 destination，比對整棵樹。含 codex/claude 的資料保全案例（有註解、多 table、重複 key、缺 `[tui]`、空檔） | 任何機器 |
 | L7 | **行為測試**：50-neovim 兩個版本各自實跑（HOME/LOCALAPPDATA 指向暫存目錄，`mise`/`git` 用 stub），斷言備份不覆寫、不刪除、marker 冪等；60-pwsh-profile 連跑兩次只有一行 loader | WSL（`.ps1` 經 pwsh.exe） |
 | L8 | **接縫驗證**：Windows 主機端真實 `chezmoi.exe`（`.chezmoi.os == windows`）跑 `managed` + `apply --dry-run`，與 L3 的 `osOverride=windows` 結果逐字比對 | Windows 主機（唯讀） |
-| L9 | **E2E**：Windows Sandbox 內 `_probe.ps1` 自舉 winget → 跑完整 `init.ps1` → 斷言 11 個工具、profile、nvim 目錄、prompt 都到位，transcript 寫到 `C:\out\` | Sandbox（由你按下啟動） |
+| L9 | **E2E**：Windows Sandbox 內 `_probe.ps1` 自舉 winget → 跑完整 `init.ps1` → 斷言 11 個工具、profile、nvim 目錄、prompt 都到位。兩種模式：**本機**（`prepare.sh` 對應 `C:\src`，輸出到對應出去的 `C:\out`，可測未推送的分支）與**遠端**（`-Branch <分支>`，chezmoi 自己 clone，輸出退到桌面並在結尾把結果全文印到主控台；只能測已推送的分支） | Sandbox（由你按下啟動） |
 | L10 | **回歸**：對 base ref `0d72b8e` 跑同一份 L3/L6，斷言 Linux 與 macOS 的 target 集合與檔案內容**沒有任何改變** | 任何機器 |
 
 收尾：`verification-gate` skill（`gate` 迭代、`evidence` 一次），Tier 3 再派 `verifier` agent 獨立驗證。
@@ -293,6 +293,14 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
 
+### v3 — 待核准
+
+- **approval: pending**
+- version bound: v3（見 §9 的變更清單）
+- 這一版尚未取得核准。契約規定核准綁定單一版本，v2 的核准不自動延伸到 v3。
+- 需要核准的實質變更只有一項：§3 的 L9 一列新增遠端模式。這是驗證程序的擴充，
+  不改變 §5 Must NOT、§6 失效模型或任何產品需求。
+
 ### v2 — 2026-09-03
 
 - **approval: confirmed**
@@ -312,6 +320,30 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 ---
 
 ## 9. Revisions
+
+### v2 → v3
+
+| # | 變更 | 性質 |
+|---|---|---|
+| 1 | §3 的 L9 一列改寫：`_probe.ps1` 新增**遠端模式**（`-Branch <分支>`），使用者可在任何一台有 Windows Sandbox 的機器上，不經 `prepare.sh`、不對應資料夾，用一行 `irm` 跑完 L9 | **實質**（驗證程序擴充）。這是唯一需要重新核准的一項 |
+
+遠端模式的形狀：
+
+- `param([string] $Branch)`，名稱與 `init.ps1` 對齊。
+- 有 `-Branch` → `chezmoi init --apply --branch <分支> gn00678465`，讓 chezmoi
+  自己 clone；沒有 `-Branch` → 維持 `--source C:\src\dotfiles` 的本機模式。
+  要讀來源樹取預期值的檢查，遠端模式改讀 `chezmoi source-path`。
+- `C:\out` **不存在時**（先探測再建立，否則會憑空造出一個對應不出去的目錄）
+  輸出改寫到 `%USERPROFILE%\Desktop\chezmoi-probe\`，並在結尾把 `results.tsv`
+  全文印到主控台 —— Sandbox 一關檔案就沒了，主控台是唯一會活下來的副本。
+- winget 自舉那段不動：它本來就是「找不到才裝」。
+- 仍然是 ASCII、無 BOM、相容 Windows PowerShell 5.1，否則 `irm` 這條路走不通。
+
+代價與限制（寫進 `tests/sandbox/README.md`）：遠端模式測的是 **GitHub 上**的分支，
+不是本機工作樹；未推送的變更只能用本機模式測。兩種模式並存，不是取代。
+
+L11-D 新增 7 條斷言釘住上述義務（含「不得留下寫死的 `C:\out` 輸出路徑」，
+因為只要漏一個，桌面那條退路就有一半是假的），全部先觀察到 RED。
 
 ### v1 → v2
 

@@ -10,19 +10,50 @@
     same reason init.ps1 is: 5.1 decodes a BOM-less .ps1 with the ANSI code page
     and mangles anything else. See docs/research/windows-native-support.md 8.
 
-    Inputs   C:\src        read-only, prepared by tests/sandbox/prepare.sh
-    Outputs  C:\out        writable: transcript.txt and results.tsv
+    Two modes.
+
+    Local (no -Branch): the source tree is the read-only mapped folder
+    C:\src\dotfiles, put there by tests/sandbox/prepare.sh, and output goes to
+    the mapped C:\out. This is what sandbox.wsb's LogonCommand runs.
+
+    Remote (-Branch <name>): nothing is mapped and nothing is prepared. chezmoi
+    clones the branch itself, and the expected-value checks read whatever
+    `chezmoi source-path` reports instead of C:\src. Run it from inside a stock
+    sandbox with one line:
+
+      & ([scriptblock]::Create((irm https://raw.githubusercontent.com/gn00678465/dotfiles/<branch>/tests/sandbox/_probe.ps1))) -Branch <branch>
+
+    Output falls back to the desktop when C:\out is not mapped, and the whole
+    results table is echoed to the console at the end -- closing the sandbox
+    destroys the files, so the console is the only copy that survives.
 
     Nothing here is part of the installed dotfiles. In particular the winget
     bootstrap below exists only because the sandbox base image ships without
     App Installer; a real Windows 11 machine already has winget.
 #>
 
+param([string] $Branch)
+
 $ErrorActionPreference = 'Continue'
 $ProgressPreference = 'SilentlyContinue'
 
-New-Item -ItemType Directory -Force -Path 'C:\out' | Out-Null
-Start-Transcript -Path 'C:\out\transcript.txt' -Force | Out-Null
+$remote = -not [string]::IsNullOrWhiteSpace($Branch)
+
+# Probe existence *before* creating anything: C:\ is writable inside the sandbox,
+# so New-Item would happily invent an unmapped C:\out and the results would be
+# thrown away when the sandbox closes.
+$outDir = 'C:\out'
+if (-not (Test-Path -LiteralPath $outDir)) {
+    $outDir = Join-Path $env:USERPROFILE 'Desktop\chezmoi-probe'
+}
+New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+
+$transcriptPath = Join-Path $outDir 'transcript.txt'
+$resultsPath    = Join-Path $outDir 'results.tsv'
+$treesitterLog  = Join-Path $outDir 'treesitter.log'
+
+Start-Transcript -Path $transcriptPath -Force | Out-Null
+Write-Host ("probe: mode={0} outDir={1}" -f $(if ($remote) { "remote branch $Branch" } else { 'local' }), $outDir)
 
 $results = New-Object System.Collections.ArrayList
 
@@ -98,17 +129,20 @@ Check 'winget is available' {
 }
 
 # ---------------------------------------------------------------- install
-# Run the repo's own bootstrap, exactly as a user would, but against the local
-# source tree instead of GitHub (the branch under test is not pushed).
+# Run the repo's own bootstrap, exactly as a user would. Locally that means the
+# mapped source tree (the branch under test may not be pushed); remotely it means
+# letting chezmoi clone the branch, which is also what a real user's first run does.
 $repo = 'C:\src\dotfiles'
-Check 'source tree is present' {
-    if (-not (Test-Path (Join-Path $repo '.chezmoiscripts'))) { throw "missing $repo" }
-    'ok'
+if (-not $remote) {
+    Check 'source tree is present' {
+        if (-not (Test-Path (Join-Path $repo '.chezmoiscripts'))) { throw "missing $repo" }
+        'ok'
+    }
 }
 
 Check 'init.ps1 installs pwsh 7, git and chezmoi' {
-    # Reuse init.ps1's package list without its `chezmoi init <github user>` tail,
-    # so the sandbox installs from C:\src rather than from the remote.
+    # Reuse init.ps1's package list without its `chezmoi init <github user>` tail:
+    # the init call below is the one under test, and it differs per mode.
     foreach ($id in @('Microsoft.PowerShell', 'Git.Git', 'twpayne.chezmoi')) {
         Update-ProbePath
         $cmd = @{ 'Microsoft.PowerShell' = 'pwsh'; 'Git.Git' = 'git'; 'twpayne.chezmoi' = 'chezmoi' }[$id]
@@ -123,14 +157,34 @@ Check 'init.ps1 installs pwsh 7, git and chezmoi' {
 
 Check 'chezmoi init --apply completes' {
     Update-ProbePath
-    # --source points at the read-only mapped folder; chezmoi writes only to
-    # the destination and to its own state under %LOCALAPPDATA%.
-    & chezmoi init --apply --source $repo 2>&1 | Out-String | Write-Host
+    # Not $args: that is an automatic variable, and shadowing it inside a
+    # scriptblock is a 5.1 footgun for no gain.
+    if ($remote) {
+        $cmArgs = @('init', '--apply', '--branch', $Branch, 'gn00678465')
+    } else {
+        # --source points at the read-only mapped folder; chezmoi writes only to
+        # the destination and to its own state under %LOCALAPPDATA%.
+        $cmArgs = @('init', '--apply', '--source', $repo)
+    }
+    Write-Host "probe: chezmoi $($cmArgs -join ' ')"
+    & chezmoi @cmArgs 2>&1 | Out-String | Write-Host
     if ($LASTEXITCODE -ne 0) { throw "chezmoi init --apply -> $LASTEXITCODE" }
     'applied'
 }
 
 Update-ProbePath
+
+# In remote mode there is no C:\src to read expected values from; the clone
+# chezmoi just made is the source tree, and only chezmoi knows where it put it.
+if ($remote) {
+    $sourcePath = (& chezmoi source-path) | Select-Object -First 1
+    if ($sourcePath) { $repo = $sourcePath }
+    Check 'source tree is present' {
+        if (-not $sourcePath) { throw 'chezmoi source-path returned nothing' }
+        if (-not (Test-Path (Join-Path $repo '.chezmoiscripts'))) { throw "missing $repo" }
+        $repo
+    }
+}
 
 # ---------------------------------------------------------------- tools
 foreach ($t in @('mise', 'fzf', 'rg', 'fd', 'lazygit', 'git-lfs', 'tree-sitter', 'oh-my-posh', 'zig', 'nvim')) {
@@ -221,11 +275,11 @@ Check 'nvim-treesitter builds a parser (SPEC M12)' {
     if (-not (Wait-Job $job -Timeout 900)) {
         Stop-Job $job; throw 'timed out after 15 minutes'
     }
-    Receive-Job $job | Out-File 'C:\out\treesitter.log'
+    Receive-Job $job | Out-File $treesitterLog
     $parser = Join-Path $env:LOCALAPPDATA 'nvim-data\site\parser\lua.so'
     $parser2 = Join-Path $env:LOCALAPPDATA 'nvim-data\lazy\nvim-treesitter\parser\lua.so'
     if ((Test-Path $parser) -or (Test-Path $parser2)) { return 'lua parser built' }
-    throw 'no lua parser produced -- see C:\out\treesitter.log'
+    throw "no lua parser produced -- see $treesitterLog"
 }
 
 # ---------------------------------------------------------------- report
@@ -233,8 +287,15 @@ $summary = "PASS={0} FAIL={1}" -f `
     (@($results | Where-Object { $_ -like 'PASS*' }).Count), `
     (@($results | Where-Object { $_ -like 'FAIL*' }).Count)
 [void]$results.Add("SUMMARY`t$summary`t")
-$results | Out-File -FilePath 'C:\out\results.tsv' -Encoding utf8
+$results | Out-File -FilePath $resultsPath -Encoding utf8
 Write-Host ''
 Write-Host "probe: $summary"
-Write-Host 'probe: results in C:\out\results.tsv, transcript in C:\out\transcript.txt'
+Write-Host "probe: results in $resultsPath, transcript in $transcriptPath"
+
+# Closing the sandbox destroys the files. Echo the whole table so the console --
+# which the operator can still scroll and copy -- carries the same information.
+Write-Host ''
+Write-Host '--- results.tsv (full) ---'
+foreach ($line in $results) { Write-Host $line }
+Write-Host '--- end results.tsv ---'
 Stop-Transcript | Out-Null

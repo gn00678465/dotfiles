@@ -18,8 +18,8 @@
 - `change_set`: `0d72b8e...HEAD`
 - `base`: `0d72b8e`
 - `report_language`: zh-TW
-- `intent_status`: **confirmed**（v1、v2 各自取得核准，逐字記在 SPEC §8）
-- `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v2`。
+- `intent_status`: **unconfirmed**（v1、v2 已核准；**v3 待核准**）
+- `intent_source`: 已提交的 SPEC `specs/windows-support/SPEC.md`，`spec_version: v3`。
   v1 於 `e5089df` 進入版本歷史（當時路徑 `.scratch/windows-support/spec.md`），
   **早於任何實作 commit**；核准逐字記在該檔 §8：
 
@@ -30,6 +30,9 @@
   v1 的核准不延伸到 v2，因此 v2 另行取得核准，同樣逐字記在 SPEC §8：
 
   > 核准 SPEC v2
+
+  v3 同理待核准：唯一的實質變更是 §3 的 L9 一列新增遠端模式（`_probe.ps1 -Branch`），
+  屬驗證程序擴充，不動 §5 Must NOT、§6 失效模型或任何產品需求。詳見 SPEC §9。
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
