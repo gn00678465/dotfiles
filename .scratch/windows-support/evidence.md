@@ -1,8 +1,8 @@
 # Evidence Report — native Windows 支援 (Tier 3)
 
 - `headline`: **GATE PASSED — reproducibility degraded（工具版本只有記錄，沒有釘住）。
-  L9 已首次真實執行並 FAIL：根因已定位並修好（M13，ExecutionPolicy），但修好之後
-  沒有再跑過一次 L9 —— 這份報告仍然沒有任何一個數字來自一台裝成功的 Windows**
+  L9 已真實執行六次，最後一次 24 條全過；M13、M14、M12 三條都由真機證實。
+  一項具名限制：「工具在使用者新開的終端機 PATH 上」沒有自動化程序，只有手動驗證**
   · 獨立驗證跑了**六輪**，六輪都判 failed；共 47 條 findings 全部已處置，見 §獨立驗證。
   **最後兩輪在產品程式碼裡找不到任何缺陷**；第六輪明確建議不要再跑第七輪，
   把剩下的風險預算花在還沒跑過的 Windows Sandbox 上
@@ -53,7 +53,8 @@
 
   兩者都逐字記在 SPEC §8。四項已全部實作完成，見下方「SPEC v5 的實作」。
 
-  v6 同理另行核准（移除十條修不好的 `tool on PATH` 檢查，改為九條
+  v6 已實作完成並由 L9 第六次執行證實（24 條全過）。核准逐字（移除十條修不好的
+  `tool on PATH` 檢查，改為九條
   `winget list --exact --id`，並把「工具在新終端機的 PATH 上」明寫為只有手動驗證；
   見 SPEC §9 的 v5 → v6 與下方「L9 的五次執行」）：
 
@@ -61,15 +62,15 @@
 
 - `ordering`: **mixed**（逐檔事實見 §RED reconstruction）
 - `git_facts`: **complete**
-- `source_state`: `acea95235491697c2c8f182080373d8a0119fd19`
+- `source_state`: `10d3e5bcf884144bfbbbec3815871e46baad78bc`
   （由 `tools/gate-source-state.sh` 計算，最終一輪執行的**前後各驗一次，兩次相同**）
 
   這個 SHA 是 gate 實際量測的那棵樹。在它之後只有一個 commit：把 v3 的核准逐字
   寫進 SPEC §8、並把本報告更新到這一輪數字的那一個。它只動 `.scratch/` 與
   `specs/windows-support/SPEC.md`，**不含任何產品、測試或 gate 檔案**
-  （可用 `git diff --stat acea952..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
+  （可用 `git diff --stat 10d3e5b..HEAD` 核對）。SPEC 那個檔案確實會被 L3 與 L10
   讀到（前者斷言它不得被裝進 `$HOME`，後者從中取 base ref），所以最終那棵樹
-  另外跑了一次完整測試套件確認 **511/511**；mutation、property、supply-chain
+  另外跑了一次完整測試套件確認 **500/500**；mutation、property、supply-chain
   三層的結論不可能被一段 markdown 核准記錄影響，沒有重跑。**上一輪報告在這裡踩過一次坑**：
   寫完報告後又提交了一個產品檔（`tests/sandbox/prepare.sh`），使得報告的自我描述
   在下一秒就過期。這次改成「報告是最後一個 commit」。
@@ -177,7 +178,7 @@
 
 | Claim | Test | Status |
 |---|---|---|
-| Windows 用 winget 取代 brew | `L2`；**supply-chain 逐一 `winget show --exact` 解析 12 個 ID**；真正的安裝只有 L9 能證 | pass（安裝本身 unverified） |
+| Windows 用 winget 取代 brew | `L2`；**supply-chain 逐一 `winget show --exact` 解析 12 個 ID**；真正的安裝由 L9 證 | pass。**安裝已由真機證實**：L9 第 1–4 次在全新映像上真的跑過 `winget install`，第 6 次九條 `winget list` 全過 |
 | Windows 的 neovim 路徑正確 | `L7`（對假的 `%LOCALAPPDATA%`／`%TEMP%` 實跑，斷言建出來的目錄名與備份集合） | pass |
 | 補上 Windows nvim 路徑研究 | `docs/research/windows-native-support.md` §2 | pass |
 | Windows 用 PowerShell 7 + oh-my-posh | `L2`（AllHosts 選擇）、`L3`、`L4`、`L7`（loader 逐字）、`L5`（主題 external 釘版本+sha256） | pass |
@@ -199,7 +200,9 @@
 | M10（profile loader 重複追加） | `L7` 跑三次恰好一行、內容逐字；mutant `loader-idempotency`、`loader-line-content` | pass |
 | M11（順手改壞 POSIX） | `L10` 對 base ref 的整棵樹 `diff -r` 加逐支腳本渲染比對；mutant `posix-script-content-drift` | pass（含一項具名偏離） |
 | M9（winget ID 打錯） | **supply-chain 第四項**：抽出實際會安裝的 12 個 ID 逐一解析；抽取規則對不上程式碼就直接失敗 | pass |
-| M12（zig 能否讓 tree-sitter 在 Windows 編出 parser） | `tests/sandbox/_probe.ps1` | **unverified —— L9 尚未執行** |
+| M12（tree-sitter 在 Windows 編不編得出 parser） | `tests/sandbox/_probe.ps1` 的 M12 檢查（L9 第 3–6 次執行） | **verified**。原本的假設（zig 當 C compiler）已被實測推翻，改用 WinLibs 的 gcc 之後 `lua parser built`。這條檢查必須真的跑起 `nvim`、`tree-sitter`、`gcc` 才會有 parser |
+| M13（ExecutionPolicy 擋掉所有 `.ps1`）| `L2` 的 `[interpreters.ps1]` 斷言 + mutant `interpreter-execution-policy-dropped`；L9 第 1 次找到、第 2 次起證實 | **fixed & verified** |
+| M14（Git for Windows 把來源樹 checkout 成 CRLF）| `L3` 的 `git check-attr eol`；L9 第 2 次抓到、第 3 次起證實 | **fixed & verified**（另有量化佐證：受管 profile 3019 → 2966 bytes，差 53 = 53 行各少一個 `\r`）|
 
 ---
 
@@ -246,14 +249,14 @@ L4／L5／L7／L8／L10 的測試與實作在同一個或之後的 commit，故�
 | Layer | Command | Threshold（什麼算通過） | Result |
 |---|---|---|---|
 | Versions | gate 的 versions 層 | 全部工具版本可取得 | 六項全部記錄 |
-| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=acea952…`, `worktree=clean` |
-| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **511 passed, 0 failed, 0 skipped** |
-| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，511/511 |
-| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 511 passed, 0 failed |
+| Source state (before) | `sh tools/gate-source-state.sh` | 非淺 clone；工作樹乾淨（白名單只有 `.gate/`） | `commit=10d3e5b…`, `worktree=clean` |
+| Tests | `sh tests/run.sh` | 0 失敗（**無 base 測試套件可比，只能報絕對數**） | **500 passed, 0 failed, 0 skipped** |
+| Suite health（重跑） | `sh tests/run.sh` 第二次 | 與第一次逐行相同 | 逐行相同，500/500 |
+| Suite health（隨機順序） | `TESTS_SHUFFLE=1 sh tests/run.sh` | 總數與失敗數不變 | 500 passed, 0 failed |
 | Property-based | `python3 tools/gate-properties.py --cases 30 --base 0d72b8e` | P0–P5 在每個案例上成立 | **7 個 seed ×（30 生成 + 12 固定敵意輸入 + 5 已知限制形狀）= 329 個案例，P0–P5 全部成立**（已知限制那 5 種只驗 P0，見 F3／V6） |
 | Mutation | `python3 tools/gate-mutants.py`（手寫，無現成工具） | 0 個存活、0 個不穩定的 mutant（每個跑兩輪） | **34/34 killed，0 survivors**。runner 現在**每個 mutant 跑兩輪**，任一輪沒紅就記成 UNSTABLE 並視同失敗 —— 單跑一輪分不出「一定會被殺」與「這次剛好被殺」 |
-| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 8129 行（**不含本報告為 7342 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
-| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 4375 / set3 3754 / 共 7342 行 |
+| Supply chain + secrets + winget ID | `python3 tools/gate-supply-chain.py --base 0d72b8e` | 新增/變更的 external sha256 全部相符；0 機密命中；全部 winget ID 可解析 | **11** 個釘住下載（六個平台組合全部渲染過），**6 個新增/變更全部下載比對相符**；掃過 8137 行（**不含本報告為 7292 行**，引用這一份）、**0 命中**；**12 個 winget ID 全部解析成功** |
+| Changed-line accounting | `python3 tools/gate-changed-lines.py --base 0d72b8e` | 只報告（見下方 UNAVAILABLE） | **不含本報告**（可重現的那一份）：set1 0 / set2 4454 / set3 3683 / 共 7292 行 |
 | Source state (after) | `sh tools/gate-source-state.sh` | 與 before **完全相同** | 相同 |
 | Manifest audit | `sh tools/gate-manifest-audit.sh` | 10 層全部留下執行記號且無多餘 | **10/10** |
 
@@ -301,6 +304,11 @@ Tier 3 依契約派了一個獨立的 `verifier`，只給四項輸入（任務�
 裝完的工具鏈能不能開出一個可用的 shell、M12 是否可行，以及**一個沒開開發人員模式的
 乾淨 Windows 11 帳號碰到那兩個 symlink 會發生什麼**（它認為這是真實首跑最可能的失敗原因），
 六輪驗證一條都答不了，一次沙箱開機四條全答。
+
+**這個建議後來被證明是對的，而且比它自己預期的更值錢。** L9 真的跑起來之後，
+六次執行找出了三個獨立的產品缺陷（M13、M14，以及 M12 的假設被推翻），
+其中 M13 會擊中**每一台全新 Windows**。獨立驗證的第五、六輪在產品程式碼裡
+一個缺陷都找不到；沙箱的第一次開機就找到一個致命的。
 
 ### 第五輪
 
@@ -480,13 +488,12 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
     ＝ 3405 行，是全部可執行的新增行。這一層什麼都沒證明；補位的是 Table 1 的逐檔對應、
     mutation 與 property 三層。
 - **SUBSTITUTED：**
-  - *Real execution* —— **L9 已經真的跑過一次，結果是 FAIL**（見下方「L9 第一次執行」）。
-    在那之前補位的是 `L7`（重導向環境裡真的執行腳本）與 `L8`（Windows 主機上真的執行
-    chezmoi 的 managed 與 apply，僅檔案；比對走 `cmp` 原始位元組）。
-    那一次執行證明了這兩層**偵測不到**什麼：整個 apply 因為 ExecutionPolicy 而在第一支
-    腳本就中止，L1–L8 十層全綠，沒有任何一層看得到。
-    根因已修（M13），但**修好之後沒有再跑過一次 L9**，所以「winget 是否真的裝得起來、
-    裝完的工具是否能用、第一次開 Neovim 會怎樣」到現在仍然沒有證據。
+  - *Real execution* —— **L9 已經真的跑過六次**（見下方「L9 的六次執行」）。
+    **不再是 SUBSTITUTED**：`winget install` 真的跑過、apply 從零完成過、
+    LazyVim 第一次啟動真的編出 parser。第一次執行同時證明了 L1–L8 **偵測不到**什麼：
+    整個 apply 因為 ExecutionPolicy 在第一支腳本就中止，十層全綠，沒有一層看得到。
+    **殘留**：全新映像上的完整安裝證據來自第三、四次；第五、六次是同一個 Sandbox 的
+    重跑（套件已裝、winget 跳過），所以 **v6 新增的九條套件檢查從未在全新映像上跑過**。
   - *macOS 的一切* —— 沒有實體 mac，全部證據來自 `osOverride=darwin` 的渲染矩陣。
     **偵測不到**任何只在真實 macOS 上才會出現的行為。接縫本身只在 **windows** 那一邊被
     交叉驗證（L8），darwin 那一邊**沒有任何實機驗證**。
@@ -495,201 +502,57 @@ mutation 層擋下並中止後續）；Must NOT #1 在已提交的來源樹裡�
 
 ---
 
-## L9 第一次執行（2026-09-03，遠端模式，`9f44752`）
-
-**狀態：已執行 · FAIL · 根因已定位並修好 · 修後未重跑。**
-
-使用者在另一台機器的乾淨 Windows Sandbox 裡，用遠端模式一行 `irm` 跑完整支探針，
-分支 `feat/windows-support @ 9f44752`。結果 **PASS=5 FAIL=19**。
-
-### 根因（已定位）
-
-```
-File C:\Users\WDAGUtilityAccount\AppData\Local\Temp\4051484889.30-install-winget-packages.ps1
-cannot be loaded because running scripts is disabled on this system.
-chezmoi: .chezmoiscripts/30-install-winget-packages.ps1: exit status 1
-```
-
-chezmoi 把算繪後的 `.ps1` 寫到 `%TEMP%` 再交給直譯器，而 Windows 用戶端的預設
-ExecutionPolicy 是 `Restricted`。`before` 腳本跑在所有檔案目標之前，所以**整個 apply
-在任何一個檔案落地前中止** —— 19 條 FAIL 裡有 17 條只是這一件事的下游。
-
-這**不是 Sandbox 特有的**。每一台全新 Windows 11 的真實使用者都會死在同一個位置，
-拿到一台什麼都沒發生的電腦。SPEC §6 的 M1–M12 **沒有任何一條涵蓋它**，所以它同時是
-一個產品缺陷與一個失效模型的缺口（SPEC v4 補為 M13）。
-
-三項實測（本機 pwsh 7.6.5，只用 `-ExecutionPolicy` 開關，不動機器原則）：
-pwsh 7 **一樣**受 ExecutionPolicy 管；`-ExecutionPolicy Bypass` 能解；
-`.chezmoi.toml.tmpl` 的 `[interpreters.ps1]` **在同一次 `init --apply` 就生效**
-（第三項是修法可不可行的關鍵，因為要救的正是「第一次安裝」）。
-修法與不採用 `Set-ExecutionPolicy` 的理由見 `docs/research/windows-native-support.md` 1.6。
-
-### 這一次執行同時揭穿了探針自己的三個缺陷
-
-| # | 缺陷 | 為什麼重要 |
-|---|---|---|
-| P1 | **`codex config.toml has the managed [tui] keys` 回報 PASS，而當時一個檔案都沒落地** | 探針宣稱看到了它其實沒看到的東西 —— L9 最不該有的失效模式。原因：`$ErrorActionPreference` 是 `Continue`，缺檔時 `Get-Content` 是非終止錯誤、變數拿到 `$null`，而 PowerShell 的 `$null -match` 與 `$null -notmatch` **兩個都回 `$false`**，於是兩個 `throw` 都不會觸發。本機以 5.1 實測重現（同一段程式碼、指向不存在的檔案 → `PASS ok`） |
-| P2 | **失敗細節讀不到** | chezmoi 的輸出只進 transcript，而遠端模式沒有對應資料夾，Sandbox 一關就沒了。`FAIL chezmoi init --apply -> 1` 這一行不含任何線索；根因是使用者第二次進 Sandbox 手抄 transcript 才拿到的 |
-| P3 | **winget 的輸出在 results.tsv 裡是亂碼** | `?曉 PowerShell [Microsoft.PowerShell] ? 7.6.5.0 甇斗??函?撘歇?勗?...`。winget 吐 UTF-8，5.1 用主機的 ANSI 代碼頁（這台是 CP950）解。與本輪稍早修掉的 gate mutation runner UTF-8 崩潰**是同一類**：一個只在失敗路徑上才看得見的編碼假設 |
-
-三條都已修（`Get-Content` 一律 `-ErrorAction Stop` 並先 `Test-Path`；失敗細節帶 chezmoi
-輸出的尾段 30 行；`treesitter.log` 結尾印出尾段 200 行；主控台統一 UTF-8），
-並各由 L11 的斷言釘住 —— 其中 P1 那條是機械檢查（探針裡每一處 `Get-Content` 都必須帶
-`-ErrorAction Stop`），不是子字串比對。
-
-### 這一次執行**沒有**回答的
-
-- **M12（treesitter parser）仍然 unverified。** apply 在 nvim 被裝起來之前就中止，
-  那條檢查跑到了、但它問的問題從來沒有被實際問到。
-- **winget 的 9 個套件是否真的裝得起來**：一個都沒試到。supply-chain 那層證明的是
-  12 個 ID 解析得到，不是安裝會成功。
-- **symlink 權限**那條 FAIL 是預期的（乾淨機器沒開開發人員模式），但在這次執行裡它
-  和其他 17 條一樣是 apply 中止的下游，不算獨立證據。
-
-### 這個修法本身被什麼看著
-
-- **L2**：Windows 的設定必須有 `[interpreters.ps1]`、`command = "pwsh"`、
-  `"-ExecutionPolicy", "Bypass"`、`"-NoProfile"`、以 `"-File"]` 收尾（5 條）；
-  四個 POSIX 組合都不得出現 `interpreters`（4 條）。
-- **L10**：`.chezmoi.toml.tmpl` 的 POSIX 渲染與 base ref 逐位元組相同（`sourceDir`
-  那一行必然不同，濾掉，再單獨斷言那一行仍然存在）。**這個檔案在此之前完全沒有任何
-  程序在看** —— 它產生的是 chezmoi 自己的設定、不是 target，整棵樹的 diff 看不到它，
-  而 Must NOT #2 明明管得到。
-- **negative control（實跑）**：把平台守衛換成 `{{ if true }}` → L2 的四條 POSIX
-  斷言與 L10 那條同時變紅；還原後全綠。
-- **mutant `interpreter-execution-policy-dropped`**：拿掉 `-ExecutionPolicy Bypass`
-  這兩個參數。加它的理由是這個 repo 自己的教訓 —— 子字串斷言抓不到註解掉、改序、
-  之後再覆寫，而上面那 9 條全是子字串斷言；L10 也救不了，因為整段包在 `isWindows`
-  裡，POSIX 的渲染一個位元組都沒變。這是唯一能機械證明「L2 那條真的會紅」的東西。
-
-### 誠實的結論
-
-修好的是**已知的那一個**根因。M13 之後還有沒有第二個、第三個障礙，只有再跑一次 L9
-才知道。在那之前，這份報告對「這份 dotfiles 在 Windows 上裝得起來」**仍然沒有證據**。
-
-**後續（第二次執行）證明這個保留是對的：M13 之後確實還有東西。** 見下一節。
-
----
-
-## L9 第二次執行（2026-09-03，遠端模式，`1e94ff8`）
-
-**狀態：已執行 · PASS=12 FAIL=12 · M13 已證實修好 · 又找出兩個新問題與一個被推翻的假設
-· 依合約停在 SPEC 修訂，尚未實作。**
-
-`1e94ff8` 正是 gate 最後一次完整執行所量測的那棵樹。
-
-### 修好的
-
-- **M13 已證實**：`chezmoi init --apply completes` PASS。第一次執行時整個 apply
-  在任何檔案落地前中止，這一次檔案全部落地（profile、oh-my-posh 主題、cc-statusline、
-  settings.json、nvim starter 全部 PASS）。
-- **P3（編碼）已證實**：winget 的中文輸出這一次是正常的，不再是 CP950 亂碼。
-- **P1（空過的檢查）已證實**：`codex config.toml` 這條上一輪在一個檔案都沒落地時
-  回報 PASS，這一輪**第一次真的讀到檔案，並且抓到了受管 key 缺失** —— 修好的檢查
-  立刻付了它的房租。
-- symlink 那條這次是 PASS（該台機器有 symlink 權限），與第一次的預期 FAIL 不同；
-  兩次都不是獨立證據，第一次是 apply 中止的下游。
-
-### 新找出來的（皆已量測到根因，處置寫進 SPEC v5，**尚未實作**）
-
-| # | 現象 | 根因 | 層級 |
-|---|---|---|---|
-| A | 十個工具全部 `tool on PATH: not found`，但 apply exit 0 | **探針的觀察錯誤，不是沒裝。** 探針的 `Update-ProbePath` 只塞四個寫死的目錄，而 Windows 的 PATH 是 process 啟動時的快照 —— 探針在任何安裝發生前就啟動了，winget 對 registry PATH 的更新它看不到 | 探針 |
-| B | `codex config.toml` 缺 `status_line_use_colors` | **Git for Windows 預設 `core.autocrlf=true`**，來源樹被 checkout 成 CRLF，算繪結果把一個 `\r` 帶進受管設定檔，探針那條 `$` 錨定的 .NET 正則因此不 match（SPEC v5 的 M14） | 產品 |
-| C | M12 仍未證實 | 是 A 的下游（nvim 由 mise 裝）。但使用者事後實跑 nvim，得到比「未證實」更強的結果 —— 見下 | — |
-
-**A 的判定不是猜的。** 這個 repo 只管一個 nvim 檔案
-（`AppData/Local/nvim/lua/plugins/completion.lua`）；`init.lua` 與
-`.chezmoi-lazyvim-starter` 只可能來自 `50-neovim.ps1` 的 clone，而那支腳本在 `mise`
-找不到時會**在 clone 之前 `exit 0`**。那條檢查是 PASS，所以 mise 對腳本是可見的，
-套件真的裝了。使用者事後在新終端機實測 mise / nvim 正常，與這條推論一致。
-
-**B 的四項量測**：.NET `(?m)^...$` 對 LF match、對 CRLF 不 match；LF 來源樹產生的
-config 全 LF；CRLF 來源樹產生的同一個檔**只有那一行帶 CR**，其餘逐位元組相同 ——
-正好就是失敗的那一個 key。POSIX 端結構上看不到：L6 的 golden 與 329 個 property case
-全部從 LF 樹跑。
-
-### 被推翻的假設：M12
-
-使用者在 Sandbox 內開新終端機實跑 nvim：nvim-treesitter `main` 回報
-`Unmet requirements: C compiler ❌`（curl / tar / tree-sitter CLI 都 ✅），
-並建議 `winget install BrechtSanders.WinLibs.POSIX`。
-
-SPEC 從 v1 就把 `zig.zig` 放進 winget 清單，理由是「社群做法是改用 zig」。
-**那個假設在真機上不成立** —— nvim-treesitter 的需求檢查不認 zig。
-
-**而且這不是 A 那一類的觀察誤差**：使用者在同一個終端機跑 `zig version` 得到
-`0.16.0`，zig 裝好了也找得到。排除掉 PATH 這個混淆因子之後，結論是確定的。
-這條因此從「未證實」升級為「已被推翻」，處置是產品層決定，四個選項與各自的代價
-寫在 SPEC §9 的 v4 → v5，等使用者選。
-
-### 這一輪的流程：修訂中停下來等
-
-使用者要求走一遍「修訂中停下來等」：**SPEC 寫好、提交、請求核准，核准之前不碰產品
-也不碰探針**。診斷與處置方案先提交（`c052824`、`b91b6a1`），核准（`b76de3b`）與兩項
-選擇（`a15a188`）之後才進 RED → GREEN。這是本次工作裡唯一一次完整照契約順序停下來
-等的迭代。
-
----
-
-## SPEC v5 的實作（`9f066fb`）
-
-四項全部先看到 RED（12 條，跨 L2 / L3 / L11）再實作。
-
-| # | 項目 | 做了什麼 | 由什麼看著 |
-|---|---|---|---|
-| 1 | 可觀察性 | `Invoke-Streamed` 逐行同時寫主控台與收集器，取代「整段收進變數、跑完才印」；treesitter 那段因為 job 的輸出只在結束時才到，改用 30 秒心跳；三個長步驟各印一行「正在做什麼、預期多久」 | L11 三條 + verbatim golden（逐位元組） |
-| 2 | registry PATH | 重讀 `HKLM\...\Session Manager\Environment` 與 `HKCU\Environment` 的 `Path` 再合併去重，取代四個寫死的目錄 | L11 三條（含「不得再出現寫死的 ProgramFiles 清單」）+ verbatim golden |
-| 3 | `.gitattributes` | `* text=auto eol=lf`。改寫器不動，parity 保住；殘留寫成 §7 具名已知限制 | L3 四條 **`git check-attr eol`** —— 問 git 自己的判定，不是比對檔案字串 |
-| 4 | WinLibs 取代 zig | winget 清單與探針工具清單都換成 `BrechtSanders.WinLibs.POSIX.UCRT` | L2 兩條 + L11 golden + supply-chain 逐一解析（本輪 OK） |
-
-**兩件在實作中量到、值得記下來的事：**
-
-- **`Invoke-Streamed` 保住了 `$LASTEXITCODE`。** 以 5.1 實測：逐行即時印出，
-  且退出碼穿過 `ForEach-Object` 管線保留（測到 3）。如果沒有保留，每一條靠
-  `$LASTEXITCODE` 判定的檢查都會靜靜地失去判定能力 —— 而那是「只在執行時才看得見」
-  的那一類，正是本次已經踩過兩次的類別（gate 的 UTF-8 崩潰、探針的空過檢查）。
-- **`Update-ProbePath` 留了一個具名例外。** mise 的 shim 目錄**不在** registry PATH
-  上：它是 profile 的 `mise activate` 加的，而探針不載 profile。nvim 是 mise shim，
-  純讀 registry 會把它誤報成沒裝 —— 與這次要修的錯誤同一類。所以那一個目錄仍然補，
-  但寫明機制，不是回頭去維護清單。5.1 實測：95 → 81 條去重、無重複、git 仍解析得到。
-
-**沒有替這四項再加 mutant，理由寫在這裡而不是省略**：M13 當時加 mutant 是因為它只靠
-九條**子字串**斷言守著，而這個 repo 自己的教訓就是子字串抓不到註解掉／改序／覆寫。
-這四項不是那個處境 —— 第 3 項靠 `git check-attr`（git 自己的判定），第 1、2、4 項靠
-**逐位元組的 verbatim golden 與 render golden**。兩者都是機械 oracle，不是子字串，
-再加 mutant 不會增加鑑別力。
-
-**M12 的狀態沒有因為這次實作而前進。** 換編譯器依據的是 nvim-treesitter 自己的建議，
-不是一次成功的 parser 編譯。狀態仍是「假設已被推翻、處置已選定、**修法未證實**」，
-只有第三次 L9 能改變它。
-
----
-
-## L9 的五次執行（完整結果）
+## L9 的六次執行
 
 L9 是這份工作裡唯一能證明「這份 dotfiles 在 Windows 上真的裝得起來」的一層。
-它總共跑了五次，全部是遠端模式，由使用者在 Windows Sandbox 內執行。
+全部是遠端模式，由使用者在 Windows Sandbox 內執行。
 
-| # | commit | 結果 | 這一次證明了什麼 / 找出了什麼 |
-|---|---|---|---|
-| 1 | `9f44752` | PASS=5 FAIL=19 | **M13**：ExecutionPolicy 擋掉 chezmoi 寫到 `%TEMP%` 的第一支 `.ps1`，整個 apply 在任何檔案落地前中止。同時揭穿探針自己的三個缺陷（空過的 codex 檢查、失敗細節讀不到、winget 輸出亂碼） |
-| 2 | `1e94ff8` | PASS=12 FAIL=12 | **M13 已修**（檔案全部落地）、**編碼已修**、**空過的檢查已修**（它第一次真的讀到檔案就抓到 M14）。新找出 **M14**（CRLF）與 `tool on PATH` 全紅。並推翻 M12 的 zig 假設 |
-| 3 | `3e7d9c7` | PASS=14 FAIL=10 | **M12 首次證實**（`lua parser built`）、**M14 證實已修**。`tool on PATH` 十條仍全紅 |
-| 4 | `24b3fe8` | PASS=15 FAIL=10 | M12、M14 再次證實。探針開始「會說話」：報告顯示 PATH 裡確實有 `WinGet\Links`、`mise\shims`、`mingw64\bin`，但父程序仍然找不到工具 |
-| 5 | `acea952` | PASS=16 FAIL=10 | M12、M14 再次證實。子程序啟動成功、繼承 13 條 PATH，但父程序解析不到任何一條工具結果 |
+| # | commit | 環境 | 結果 | 這一次的意義 |
+|---|---|---|---|---|
+| 1 | `9f44752` | 全新映像 | PASS=5 FAIL=19 | **M13**：ExecutionPolicy 擋掉 chezmoi 寫到 `%TEMP%` 的第一支 `.ps1`，apply 在任何檔案落地前中止。同時揭穿探針自己三個缺陷（空過的 codex 檢查、失敗細節讀不到、winget 輸出亂碼） |
+| 2 | `1e94ff8` | 全新映像 | PASS=12 FAIL=12 | **M13 已修**（檔案全部落地）、編碼已修、空過的檢查已修（它第一次真的讀到檔案就抓到 M14）。新找出 **M14**（CRLF）；推翻 **M12** 的 zig 假設 |
+| 3 | `3e7d9c7` | 全新映像 | PASS=14 FAIL=10 | **M12 首次證實**（`lua parser built`）、**M14 證實已修**。`tool on PATH` 十條全紅 |
+| 4 | `24b3fe8` | 全新映像 | PASS=15 FAIL=10 | M12、M14 再次證實。探針開始「會說話」：PATH 裡確實有 `WinGet\Links`、`mise\shims`、`mingw64\bin`，父程序仍找不到工具 |
+| 5 | `acea952` | 同一 Sandbox 重跑 | PASS=16 FAIL=10 | M12、M14 再次證實。子程序起得來、繼承 13 條 PATH，但父程序解析不到任何一條結果 |
+| 6 | `10d3e5b` | 同一 Sandbox 重跑 | **PASS=24 FAIL=0** | v6 的探針全過：九條套件檢查、M12、M14、所有檔案落地 |
 
-**已證實的（自動、可重現）**：M13、M14、M12，以及每一次執行都通過的檔案落地
-（profile、loader 唯一一行、oh-my-posh 主題、cc-statusline、settings.json、
-codex config、nvim starter、zsh 檔案沒有落地、symlink）。
+### 已由真機證實的
 
-### `tool on PATH`：修了三輪、根因未找到
+| 項目 | 由哪一次、怎麼證的 |
+|---|---|
+| **M13**（ExecutionPolicy）| **fixed & verified**。第 1 次找到，第 2 次起 apply 從零完成 |
+| **M14**（CRLF checkout）| **fixed & verified**。第 2 次抓到，第 3 次起 codex 的受管 key 齊全。另有量化佐證：受管 profile 在第 2 次是 3019 bytes、第 3 次起是 2966 —— 差 53，正好等於檔案的 53 行各少一個 `\r` |
+| **M12**（treesitter 的 C compiler）| **verified**。第 3 次起 `lua parser built`。這條檢查必須真的跑起 `nvim`、`tree-sitter`、`gcc` 才會有 parser，所以它同時證明這三支可執行 |
+| 檔案落地 | 每一次成功的執行都通過：profile、loader 唯一一行、oh-my-posh 主題、cc-statusline、settings.json、codex config、nvim starter、zsh 檔案沒有落地、symlink |
+| winget 九個套件已安裝 | 第 6 次，九條全過 |
+
+### 第 6 次的界線（重要）
+
+**第 6 次是同一個 Sandbox 的重跑，不是全新映像。** 套件已經裝好，所以
+`30-install-winget-packages` 這一輪是跳過的。因此：
+
+- 第 6 次證明的是 **v6 的探針在「已安裝」環境下 24 條全過**。
+- **全新映像上「從零裝到好」的證據來自第 3、4 次**（apply 從零完成、parser 編出來）。
+- **v6 新增的九條 `winget list` 檢查沒有在全新映像上跑過。** 它們在已安裝環境下
+  必然為 PASS —— 那正是它們該回報的，但這一輪沒有測到「安裝失敗時它們會紅」。
+
+要把這個縫補起來，只需要在全新 Sandbox 映像上再跑一次 v6 的探針。這件事沒有做。
+
+### 一項已被量測超越、但**沒有**去改的 SPEC 措辭
+
+SPEC §7 的 M12 段落寫著「這一項在 L9 再跑一次之前仍然沒有被證明」，那是 v5 當下的
+真話；L9 第 3 次起已經證明它（`lua parser built`）。**我沒有去改那段文字**：
+SPEC 目前停在已核准的 v6，而更動已核准文件的內容要走自己的修訂與核准，
+不能因為「只是更新狀態」就順手改掉。狀態以本報告為準；若要讓 SPEC 自己也反映
+這件事，那是一次 v7 修訂，需要另行核准。
+
+### `tool on PATH`：修了三輪、根因未找到、最後移除
 
 | 輪次 | 改法 | 本機驗證 | Sandbox |
 |---|---|---|---|
 | 1 | 固定四目錄 → 重讀 registry 的 Machine+User | 通過 | 十條全紅 |
 | 2 | 改用 `[Environment]::GetEnvironmentVariable`，並讓重建留下報告 | 通過 | 十條全紅 |
-| 3 | 查找改到新程序裡做 | 通過 | 子程序起得來，但父程序解析不到結果 |
+| 3 | 查找改到新程序裡做 | 通過 | 子程序起得來，父程序解析不到結果 |
 
 本機以 5.1 逐一排除了**七種**機制，沒有一種能重現：負向查找快取、檔案在程序啟動後
 才建立、`REG_EXPAND_SZ` 未展開、PATH 尾端反斜線、PATH 目錄裡是 symlink、
@@ -697,24 +560,21 @@ codex config、nvim starter、zsh 檔案沒有落地、symlink）。
 （最後這一條在主機上完整重現了該條件：通道正常、三行輸出、tab 都在）。
 使用者另外確認此問題**與 PowerShell 5 或 7 無關**。
 
-**誠實的結論：根因沒有找到，而本機不是那個 Sandbox 的可靠模型。**
-連續三輪「本機驗證通過、Sandbox 仍然失敗」不是運氣不好，是這條檢查的本機綠燈
-本來就是弱證據。
+**根因沒有找到。** 連續三輪「本機驗證通過、Sandbox 仍然失敗」不是運氣不好 ——
+本機不是那個 Sandbox 的可靠模型，本機綠燈對這一條本來就是弱證據。
 
-過程中我自己的兩個缺陷也是靠 smoke test 才抓到，兩個都是「只在執行時才看得見」
-那一類：`& powershell.exe` 靠 PATH 解析（PATH 問題的解法自己依賴 PATH），
+過程中我自己的兩個缺陷也是靠 smoke test 才抓到，都是「只在執行時才看得見」那一類：
+`& powershell.exe` 靠 PATH 解析（PATH 問題的解法自己依賴 PATH），
 以及 `-Command` 傳腳本會被 native argument 的引號處理吃掉內嵌雙引號。
 
-### 使用者的決定（v6，待核准）
+**處置（SPEC v6，使用者決定）**：十條移除，不是留著標記為預期失敗 —— 理由是
+**已知會紅的檢查會讓人學會忽略 FAIL**，而 results.tsv 是這一層唯一的產出。
+改為九條 `winget list --exact --id`（產品腳本自己的判斷指令，不依賴 PATH），
+搭配 M12 檢查。
 
-十條檢查**移除**，不是留著標記為預期失敗 —— 理由是**已知會紅的檢查會讓人學會忽略
-FAIL**，而 results.tsv 是這一層唯一的產出。改為九條
-`winget list --exact --id`（產品腳本自己的判斷指令，不依賴 PATH），搭配既有的 M12
-檢查（它必須真的跑起 nvim / gcc / tree-sitter）。
-
-**少證了什麼，明寫**：「其餘工具在使用者新開的終端機 PATH 上」**不再有任何自動化
-程序**，只有手動驗證 —— 使用者在第三次執行後於 Sandbox 內開新終端機確認 mise、
-nvim 可用，`zig version` 回報 0.16.0。這寫進 SPEC §7 的具名已知限制。
+**少證了什麼**：「其餘工具在使用者新開的終端機 PATH 上」**沒有任何自動化程序**，
+只有手動驗證 —— 使用者在第 3 次執行後於 Sandbox 內開新終端機確認 mise、nvim 可用，
+`zig version` 回報 0.16.0。已寫進 SPEC §7 的具名已知限制。
 
 ---
 
