@@ -31,6 +31,7 @@ sh -c "$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/main/i
 
 | 時機 | 問什麼 |
 |---|---|
+| `run_onchange_before_05-wsl-user-runtime-dir` 開 systemd linger（僅 WSL） | `sudo` 密碼 |
 | `run_onchange_before_10-install-packages` 裝套件 | `sudo` 密碼 |
 | `run_once_before_20-install-homebrew` 裝 Homebrew | `sudo` 密碼（快取通常還在） |
 | `run_after_default-shell` 改登入 shell | **你自己的**密碼（`chsh` 是 setuid，不是 sudo） |

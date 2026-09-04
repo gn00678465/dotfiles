@@ -403,7 +403,9 @@ Check 'zsh-only files did NOT land' {
 # create the ~/.claude/skills symlinks. Recorded either way -- this is the check
 # that tells us whether init.ps1's warning fires for a real reason.
 Check 'claude skills symlinks' {
-    $p = Join-Path $HOME '.claude\skills\commit-message'
+    # The skill is named `commit` (renamed from commit-message); the Linux
+    # probe reads the names from dot_claude/skills instead of writing one here.
+    $p = Join-Path $HOME '.claude\skills\commit'
     if (-not (Test-Path -LiteralPath $p)) { throw 'missing (expected without Developer Mode)' }
     'present'
 }

@@ -65,6 +65,10 @@ for _os in $ALL_OSES; do
     done
 done
 
+# 05-wsl-user-runtime-dir 只在 isWSL = true 時非空，上面的平台矩陣看不到它。
+_check_sh "native-wsl / run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl" \
+    "$(render_file native-wsl .chezmoiscripts/run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl)"
+
 # 使用者每次開 shell 都會載入的檔案，壞掉的後果最直接。
 _check_ps "windows / profile.ps1" \
     "$(render_file windows private_dot_config/powershell/profile.ps1.tmpl)"

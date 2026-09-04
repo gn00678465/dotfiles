@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -73,7 +72,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="posix-nvim-delete",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.sh.tmpl",
         old='  mv "$1" "$dest"',
         new='  rm -rf "$1"',
         layer="L7",
@@ -81,7 +80,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="windows-nvim-marker",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old="if (-not (Test-Path -LiteralPath $marker)) {",
         new="if ($true) {",
         layer="L7",
@@ -89,7 +88,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="windows-nvim-data-backup",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old="    Backup-NvimDirectory $nvimData\n",
         new="",
         layer="L7",
@@ -169,7 +168,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="backup-timestamp-fallback",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.sh.tmpl",
         old=(
             "  if [[ -e $dest ]]; then\n"
             '    dest="$1.bak.$(date +%Y%m%d%H%M%S)"\n'
@@ -181,7 +180,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="backup-timestamp-fallback-windows",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old=(
             "    if (Test-Path -LiteralPath $dest) {\n"
             "        $dest = \"$Path.bak.$(Get-Date -Format 'yyyyMMddHHmmss')\"\n"
@@ -191,8 +190,7 @@ MUTANTS: list[Mutant] = [
         layer="L7",
         rationale=(
             "Windows 端第二次 bootstrap 直接沿用 dir.bak，把上一份備份埋掉。"
-            "POSIX 那半有 L10 逐位元組比對兜底，Windows 這半沒有 base 可比，"
-            "只有 L7 能證偽它"
+            "備份的形狀只有真的把腳本跑起來才看得到，L7 是唯一能證偽它的層"
         ),
     ),
     Mutant(
@@ -219,7 +217,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="windows-path-not-included",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old='{{ includeTemplate "windows-path.ps1" . }}',
         new="",
         layer="L2",
@@ -243,13 +241,12 @@ MUTANTS: list[Mutant] = [
     Mutant(
         name="posix-script-content-drift",
         path=".chezmoiscripts/run_onchange_before_30-install-brew-packages.sh.tmpl",
-        old="for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter; do",
+        old="for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli; do",
         new="for formula in mise fzf git-lfs ripgrep fd lazygit; do",
-        layer="L10",
+        layer="L2",
         rationale=(
-            "把 AGENTS.md 明文禁止修剪的 tree-sitter 拿掉 —— 改變了 Linux/macOS 的"
-            "既有行為（Must NOT #2）。L10 原本帶 --exclude=scripts，腳本內容從來"
-            "沒有跟 base 比對過，這個 mutant 一度可以存活整套測試"
+            "把 AGENTS.md 明文禁止修剪的 tree-sitter-cli 拿掉。L2 直接釘 brew 清單"
+            "那一行的內容（L10 移除前是靠對 base ref 的逐位元組比對擋下）"
         ),
     ),
     Mutant(
@@ -280,8 +277,8 @@ MUTANTS: list[Mutant] = [
         layer="L11",
         rationale=(
             "AGENTS.md 明文禁止修剪的那一項，Windows 版。"
-            "POSIX 的鏡像（posix-script-content-drift）由 L10 對 base ref 比對擋下，"
-            "Windows 沒有 base 可比，這一條就是 L11 存在的理由"
+            "POSIX 的鏡像（posix-script-content-drift）由 L2 釘清單內容擋下；"
+            "Windows 這一條由 L11 的 golden 擋"
         ),
     ),
     Mutant(
@@ -294,13 +291,13 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="neovim-skip-aborts-apply",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old="    Write-Warning 'chezmoi: mise not found, skipping neovim'",
         new="    Write-Error 'chezmoi: mise not found, skipping neovim'",
         layer="L7",
         rationale=(
             "$ErrorActionPreference = 'Stop' 之下 Write-Error 是終止性的，後面的 exit 0 "
-            "到不了。這支是 run_onchange_before_，非零退出會在任何檔案被寫出來之前中止"
+            "到不了。這支是 run_before_，非零退出會在任何檔案被寫出來之前中止"
             "整個 apply —— 使用者連 PowerShell profile 都拿不到"
         ),
     ),
@@ -398,8 +395,8 @@ MUTANTS: list[Mutant] = [
         rationale=(
             "拿掉 -ExecutionPolicy Bypass。全新 Windows 的預設是 Restricted，"
             "chezmoi 寫到 %TEMP% 的第一支 .ps1 就會拒載，整個 apply 在任何檔案"
-            "落地前中止（M13，L9 第一次真實執行的根因）。L10 抓不到這一條 —— "
-            "整個區段包在 isWindows 裡，POSIX 的渲染完全不受影響"
+            "落地前中止（M13，L9 第一次真實執行的根因）。整個區段包在 isWindows 裡，"
+            "POSIX 的渲染完全不受影響，只有 L2 對 Windows 設定的斷言看得到"
         ),
     ),
     Mutant(
@@ -457,7 +454,6 @@ def main() -> int:
     try:
         # 先確認未突變的複本本身是綠的。這是「基線」控制：如果它本來就紅，
         # 後面每一個 mutant 的 kill 都可能是它造成的，整輪分數沒有意義。
-        env = dict(os.environ)
         baseline_layers = sorted({m.layer for m in MUTANTS})
         base = run(["sh", "tests/run.sh", *baseline_layers], worktree)
         if base.returncode != 0:

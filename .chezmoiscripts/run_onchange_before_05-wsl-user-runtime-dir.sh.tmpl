@@ -1,0 +1,48 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if and (eq $p.os "linux") .isWSL -}}
+#!/bin/sh
+# WSL exports XDG_RUNTIME_DIR=/run/user/<uid> into every process it starts, but
+# nothing creates that directory: it belongs to systemd-logind, which only makes
+# it for a PAM login session, and a `wsl.exe` shell is not one (`loginctl` shows
+# no session, and the dir is absent after a plain WSL boot). chezmoi
+# MkdirAll's $XDG_RUNTIME_DIR before spawning any child process (a work-around
+# for snap that fires here too), so `chezmoi update` / `git` / `cd` / `edit` all
+# abort with `mkdir /run/user/1000: permission denied`. `apply` runs scripts
+# through a different path and still works, which is why this script can run.
+#
+# Lingering makes logind create the directory at boot, login session or not.
+# It is the systemd-sanctioned way to get a user runtime dir without a login;
+# a fallback XDG_RUNTIME_DIR in .zshrc would only cover zsh-launched processes.
+set -eu
+
+# Only meaningful when systemd is PID 1 (wsl.conf `[boot] systemd=true`).
+# Without it there is no logind, and WSL exports no XDG_RUNTIME_DIR either.
+[ -d /run/systemd/system ] || exit 0
+
+user=$(id -un)
+# show-user fails ("not logged in or lingering") when logind does not track the
+# user at all, which is the same answer as Linger=no.
+if [ "$(loginctl show-user "$user" --property=Linger --value 2>/dev/null || true)" = yes ]; then
+    exit 0
+fi
+
+echo "chezmoi: enabling systemd linger for $user so /run/user/$(id -u) exists without a login session"
+if [ "$(id -u)" -eq 0 ]; then
+    loginctl enable-linger "$user"
+elif command -v sudo >/dev/null 2>&1; then
+    # Prime the sudo credential cache first: fails fast and loudly with no tty,
+    # instead of hanging.
+    if ! sudo -v; then
+        echo "chezmoi: sudo authentication failed. Run: sudo loginctl enable-linger $user" >&2
+        exit 1
+    fi
+    sudo loginctl enable-linger "$user"
+else
+    echo "chezmoi: sudo not available. Run as root: loginctl enable-linger $user" >&2
+    exit 1
+fi
+
+if [ ! -d "/run/user/$(id -u)" ]; then
+    echo "chezmoi: /run/user/$(id -u) will be created on the next WSL boot (wsl --shutdown)."
+fi
+{{ end -}}

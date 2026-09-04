@@ -11,6 +11,9 @@
 # 免得新增一支腳本卻忘了給它平台守衛。
 _expect() {
     case $1 in
+        # 只在 isWSL = true 時非空；平台矩陣的 fixture 全是 isWSL = false，所以這裡
+        # 是空清單，WSL 那一種渲染在下面用 native-wsl fixture 單獨釘。
+        run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl)   echo '' ;;
         run_onchange_before_10-install-packages.sh.tmpl)      echo 'linux linux-arm64' ;;
         run_once_before_20-install-homebrew.sh.tmpl)          echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
         run_onchange_before_30-install-brew-packages.sh.tmpl) echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
@@ -18,8 +21,8 @@ _expect() {
         run_onchange_before_35-install-ps-modules.ps1.tmpl)    echo 'windows windows-arm64' ;;
         run_onchange_after_40-git-lfs.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
         run_onchange_after_40-git-lfs.ps1.tmpl)               echo 'windows windows-arm64' ;;
-        run_onchange_before_50-neovim.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
-        run_onchange_before_50-neovim.ps1.tmpl)               echo 'windows windows-arm64' ;;
+        run_before_50-neovim.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_before_50-neovim.ps1.tmpl)               echo 'windows windows-arm64' ;;
         run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows windows-arm64' ;;
         run_after_default-shell.sh.tmpl)                      echo 'linux linux-arm64' ;;
         *) echo '__UNKNOWN__' ;;
@@ -27,15 +30,16 @@ _expect() {
 }
 
 # 表裡列到、但 source 樹裡不存在的腳本 —— 抓「整支檔案漏掉」
-for _s in run_onchange_before_10-install-packages.sh.tmpl \
+for _s in run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl \
+          run_onchange_before_10-install-packages.sh.tmpl \
           run_once_before_20-install-homebrew.sh.tmpl \
           run_onchange_before_30-install-brew-packages.sh.tmpl \
           run_onchange_before_30-install-winget-packages.ps1.tmpl \
           run_onchange_before_35-install-ps-modules.ps1.tmpl \
           run_onchange_after_40-git-lfs.sh.tmpl \
           run_onchange_after_40-git-lfs.ps1.tmpl \
-          run_onchange_before_50-neovim.sh.tmpl \
-          run_onchange_before_50-neovim.ps1.tmpl \
+          run_before_50-neovim.sh.tmpl \
+          run_before_50-neovim.ps1.tmpl \
           run_after_60-pwsh-profile.ps1.tmpl \
           run_after_default-shell.sh.tmpl; do
     if [ -f "$REPO/.chezmoiscripts/$_s" ]; then
@@ -81,11 +85,22 @@ done
 
 unset _s _f _want _out _os
 
+# 05-wsl-user-runtime-dir 的守衛是 isWSL，不是 OS：WSL 會把 XDG_RUNTIME_DIR 塞進
+# 每一個 process 卻不建那個目錄，原生 Linux 的 logind 會在登入時自己建。所以它在
+# isWSL = true 時必須非空，在同一個 OS 的 isWSL = false 時必須是空的。
+_wsl=$(render_file native-wsl .chezmoiscripts/run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 2>&1)
+assert_not_blank "05-wsl-user-runtime-dir 在 isWSL = true 時非空" "$_wsl"
+assert_contains "05-wsl-user-runtime-dir 用 loginctl enable-linger（不是 mkdir，那個目錄歸 logind 管）" \
+    "$_wsl" 'loginctl enable-linger'
+assert_blank "05-wsl-user-runtime-dir 在原生 Linux（isWSL = false）渲染成空" \
+    "$(render_file native .chezmoiscripts/run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 2>&1)"
+unset _wsl
+
 # 跨檔案一致性：POSIX 與 Windows 的 50-neovim 是兩份檔案，但它們必須釘同一個
 # neovim 版本、同一個 marker 檔名、同一個 starter repo。這三個值一旦各寫各的，
 # 就會出現「有人 bump 了一邊，另一邊悄悄留在舊版」的分歧。
-_posix_nvim=$(render_file linux .chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl)
-_win_nvim=$(render_file windows .chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl)
+_posix_nvim=$(render_file linux .chezmoiscripts/run_before_50-neovim.sh.tmpl)
+_win_nvim=$(render_file windows .chezmoiscripts/run_before_50-neovim.ps1.tmpl)
 
 _pin_posix=$(printf '%s\n' "$_posix_nvim" | sed -n 's/.*neovim@\([0-9][0-9.]*\).*/\1/p' | head -1)
 _pin_win=$(printf '%s\n' "$_win_nvim" | sed -n 's/.*neovim@\([0-9][0-9.]*\).*/\1/p' | head -1)
@@ -102,6 +117,16 @@ _starter_win=$(printf '%s\n' "$_win_nvim" | sed -n 's|.*\(https://github.com/[^ 
 assert_eq "兩個平台的 50-neovim clone 同一個 starter repo" "$_starter_posix" "$_starter_win"
 
 unset _posix_nvim _win_nvim _pin_posix _pin_win _marker_posix _marker_win _starter_posix _starter_win
+
+# 50-neovim 兩邊都是 run_（每次 apply 都跑），不是 run_onchange_：腳本冪等，而
+# 「使用者刪掉 neovim → 下一次 apply 裝回來」只有 run_ 做得到。run_onchange_ 只在
+# 自己的 hash 變時重跑，chezmoi 還把那個 hash 記在 scriptState 與 entryState 兩個
+# bucket，重裝等於手動刪 state（實測）。
+for _s in run_before_50-neovim.sh.tmpl run_before_50-neovim.ps1.tmpl; do
+    if [ -f "$REPO/.chezmoiscripts/$_s" ]; then _pass "50-neovim 是 run_ 不是 run_onchange_：$_s"
+    else _fail "50-neovim 是 run_ 不是 run_onchange_：$_s" "找不到 $_s（改回 run_onchange_ 會讓刪掉的 neovim 不再裝回）"; fi
+done
+unset _s
 
 # 60-pwsh-profile 必須挑 CurrentUserAllHosts（profile.ps1）而不是
 # CurrentUserCurrentHost（Microsoft.PowerShell_profile.ps1）：Windows Terminal、
@@ -120,7 +145,7 @@ unset _pwsh_profile
 # 整個 neovim/LazyVim 安裝就靜靜地沒發生。實測過那個分歧。
 for _s in run_onchange_before_30-install-winget-packages.ps1.tmpl \
           run_onchange_after_40-git-lfs.ps1.tmpl \
-          run_onchange_before_50-neovim.ps1.tmpl; do
+          run_before_50-neovim.ps1.tmpl; do
     _c=$(render_file windows ".chezmoiscripts/$_s")
     assert_contains "$_s 有套用 windows-path partial" "$_c" 'Microsoft\WinGet\Links'
     assert_contains "$_s 的 PATH 補強有含 mise shims" "$_c" 'mise\shims'
@@ -140,6 +165,20 @@ assert_contains "profile 有開啟 PSReadLine 的歷史預測（對應 zsh-autos
 assert_contains "profile 有載入 PSFzf 的 TabExpansion（對應 fzf-tab）" "$_profile" '-TabExpansion'
 assert_contains "profile 有啟用 mise" "$_profile" 'mise activate pwsh'
 unset _s _c _profile _theme
+
+# tree-sitter CLI 在兩個平台都要裝，而且要的是 **CLI**：brew 的 `tree-sitter` formula
+# 從 0.27 起只裝函式庫，CLI 拆到 `tree-sitter-cli`。少了 CLI，LazyVim 會退回 mason 的
+# GitHub 預編譯二進位，那個要 glibc 2.39，Debian 12（2.36）上每一個 parser 都編不過（實測）。
+# 只看 `for formula` 那一行：腳本的註解本來就會提到 tree-sitter-cli（說明為什麼不是
+# tree-sitter），比對整個檔案會讓「清單裡拿掉、註解裡還在」的 mutant 存活。
+_brew=$(render_file linux .chezmoiscripts/run_onchange_before_30-install-brew-packages.sh.tmpl \
+        | grep '^for formula')
+assert_contains "brew 清單裝的是 tree-sitter-cli（CLI）" "$_brew" ' tree-sitter-cli'
+assert_not_contains "brew 清單沒有只裝函式庫的 tree-sitter formula" "$_brew" ' tree-sitter '
+assert_contains "winget 清單裝的是 tree-sitter.tree-sitter-cli" \
+    "$(render_file windows .chezmoiscripts/run_onchange_before_30-install-winget-packages.ps1.tmpl)" \
+    "'tree-sitter.tree-sitter-cli'"
+unset _brew
 
 # ---------- .chezmoi.toml.tmpl：直譯器設定 ----------
 # L9 第一次真實執行的根因：chezmoi 把 .ps1 寫到 %TEMP% 再交給直譯器，而全新

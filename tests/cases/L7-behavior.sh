@@ -55,7 +55,7 @@ fi
 exit 0
 STUB
 chmod +x "$_a/stub/"*
-render_file linux .chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl > "$_a/50-neovim.sh"
+render_file linux .chezmoiscripts/run_before_50-neovim.sh.tmpl > "$_a/50-neovim.sh"
 
 # 光把 stub 放進 PATH 不夠：腳本第一行是
 #   eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -166,7 +166,7 @@ else
     # 開始驅動主機上的真工具 —— 而那正是 Must NOT #1 守的那條線。
     printf '@echo off\r\necho %%* >> "%s\\mise-calls.log"\r\nexit /b 0\r\n' "$_bn" > "$_bw/stub/mise.cmd"
     printf '@echo off\r\nif "%%1"=="clone" (\r\n  mkdir "%%~5" 2>nul\r\n  mkdir "%%~5\\.git" 2>nul\r\n  echo starter> "%%~5\\init.lua"\r\n)\r\nexit /b 0\r\n' > "$_bw/stub/git.cmd"
-    render_file windows .chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl > "$_bw/50-neovim.ps1"
+    render_file windows .chezmoiscripts/run_before_50-neovim.ps1.tmpl > "$_bw/50-neovim.ps1"
 
     # 假的 %LOCALAPPDATA% / %TEMP% / %ProgramFiles%：腳本算出來的每一條路徑都會
     # 落在這個沙盒裡，而 windows-path.ps1 想 prepend 的真實目錄都不存在，
@@ -243,7 +243,7 @@ PSEOF
     # ---- mise 不存在時的行為：必須「跳過」，不是「中止整個 apply」 ----
     # POSIX 版是 `echo ... >&2; exit 0`。Windows 版原本寫 Write-Error，而在
     # $ErrorActionPreference = 'Stop' 之下 Write-Error 是**終止性**的 ——
-    # 後面那行 exit 0 根本到不了，chezmoi 收到的是 1。這支是 run_onchange_before_，
+    # 後面那行 exit 0 根本到不了，chezmoi 收到的是 1。這支是 run_before_，
     # 非零退出會在**任何檔案被寫出來之前**中止整個 apply：使用者連 PowerShell
     # profile 與 settings.json 都拿不到。比它想做的「跳過 neovim」嚴重得多。
     _nomise="$_bw/nomise"
@@ -291,3 +291,82 @@ NOMISEEOF
 fi
 
 unset _a _out _dir _i _PWSH _WT _WU _id _bw _bn _loader _prof _i
+
+# ================= D. WSL 的 05-wsl-user-runtime-dir =================
+# 這支腳本的副作用是 `sudo loginctl enable-linger`，動的是主機的 logind 狀態，
+# 所以 loginctl 與 sudo 都用 stub 換掉，只看它「在什麼狀態下呼叫了什麼」。
+# `id` 與 /run/systemd/system 用真的：前者無害，後者在這台主機上本來就存在。
+_d="$TMP/l7d"
+rm -rf "$_d"; mkdir -p "$_d/stub"
+render_file native-wsl .chezmoiscripts/run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl > "$_d/05.sh"
+# loginctl stub：show-user 的答案由 STUB_LINGER 決定（yes / no / absent＝logind 不認識這個使用者）
+cat > "$_d/stub/loginctl" <<'STUB'
+#!/bin/sh
+echo "$@" >> "$STUB_LOG/loginctl.log"
+case "$1:${STUB_LINGER:-absent}" in
+    show-user:yes)    echo yes ;;
+    show-user:no)     echo no ;;
+    show-user:absent) echo "Failed to get user: User ID 1000 is not logged in or lingering" >&2; exit 1 ;;
+esac
+exit 0
+STUB
+cat > "$_d/stub/sudo" <<'STUB'
+#!/bin/sh
+echo "$@" >> "$STUB_LOG/sudo.log"
+[ "$1" = "-v" ] && [ "${STUB_SUDO_FAIL:-0}" = 1 ] && exit 1
+exit 0
+STUB
+chmod +x "$_d/stub/"*
+
+_run_d() { # linger-state sudo-fail
+    _log="$_d/log-$1-$2"; rm -rf "$_log"; mkdir -p "$_log"
+    STUB_LOG="$_log" STUB_LINGER="$1" STUB_SUDO_FAIL="$2" PATH="$_d/stub:$PATH" sh "$_d/05.sh" 2>&1
+}
+
+if [ -d /run/systemd/system ]; then
+    # 已經 linger：什麼都不做，尤其不能碰 sudo（每次 apply 都要密碼是不可接受的）。
+    if _out=$(_run_d yes 0); then _pass "WSL linger 已開啟時腳本成功結束"
+    else _fail "WSL linger 已開啟時腳本成功結束" "$_out"; fi
+    assert_eq "WSL linger 已開啟時不呼叫 sudo" "absent" \
+        "$([ -e "$_d/log-yes-0/sudo.log" ] && echo present || echo absent)"
+
+    # logind 根本不認識這個使用者（沒有 session 也沒有 linger）＝這台機器實際的狀態：
+    # 要走 sudo -v 再 enable-linger，而且對象是目前的使用者。
+    if _out=$(_run_d absent 0); then _pass "WSL 無 linger 時腳本成功結束"
+    else _fail "WSL 無 linger 時腳本成功結束" "$_out"; fi
+    assert_eq "WSL 無 linger 時先 sudo -v 再 enable-linger 目前使用者" \
+        "-v
+loginctl enable-linger $(id -un)" "$(cat "$_d/log-absent-0/sudo.log" 2>&1)"
+    assert_eq "WSL Linger=no 時同樣 enable-linger" "1" \
+        "$(_run_d no 0 >/dev/null; grep -c 'enable-linger' "$_d/log-no-0/sudo.log" 2>/dev/null | tr -d ' ')"
+
+    # sudo 拿不到密碼：要失敗（非零）、要說出該手動跑的指令、不能繼續呼叫 enable-linger。
+    if _out=$(_run_d absent 1); then _fail "WSL sudo 認證失敗時腳本以非零結束" "$_out"
+    else _pass "WSL sudo 認證失敗時腳本以非零結束"; fi
+    assert_contains "WSL sudo 認證失敗時印出手動指令" "$_out" "sudo loginctl enable-linger $(id -un)"
+    assert_eq "WSL sudo 認證失敗時不再呼叫 enable-linger" "1" \
+        "$(wc -l < "$_d/log-absent-1/sudo.log" | tr -d ' ')"
+else
+    skip "WSL 05-wsl-user-runtime-dir 的行為" "這台主機不是 systemd 開機，腳本會在第一行退出"
+fi
+
+# 沒有 systemd 的 WSL（wsl.conf 沒開 systemd）：logind 不存在，腳本必須安靜退出，
+# 連 loginctl 都不能碰。用 mount namespace 把 /run/systemd 蓋掉來模擬。
+if [ "$_HAVE_NS" = 1 ] && [ -d /run/systemd ]; then
+    mkdir -p "$_d/emptyrun" "$_d/log-nosystemd"
+    cat > "$_d/run-nosystemd.sh" <<RUNEOF
+#!/bin/sh
+mount --bind "$_d/emptyrun" /run/systemd
+export STUB_LOG="$_d/log-nosystemd" PATH="$_d/stub:\$PATH"
+exec sh "$_d/05.sh"
+RUNEOF
+    chmod +x "$_d/run-nosystemd.sh"
+    if _out=$(unshare --map-root-user --mount "$_d/run-nosystemd.sh" 2>&1); then
+        _pass "沒有 systemd 時腳本安靜退出"
+    else _fail "沒有 systemd 時腳本安靜退出" "$_out"; fi
+    assert_eq "沒有 systemd 時不呼叫 loginctl" "absent" \
+        "$([ -e "$_d/log-nosystemd/loginctl.log" ] && echo present || echo absent)"
+else
+    skip "沒有 systemd 時 05-wsl-user-runtime-dir 安靜退出" "需要 user namespace 才能蓋掉 /run/systemd"
+fi
+unset _d _out _log

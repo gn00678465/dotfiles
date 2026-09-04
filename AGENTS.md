@@ -60,6 +60,14 @@ calling `Set-ExecutionPolicy` from `init.ps1`. See
 
 Keep the POSIX and Windows halves in sync:
 
+- `05-wsl-user-runtime-dir` (WSL only, guarded by `.isWSL` not by OS) runs
+  `loginctl enable-linger` once. WSL exports `XDG_RUNTIME_DIR=/run/user/<uid>` into
+  every process but never creates the directory (no PAM session, so logind does not
+  either), and chezmoi `MkdirAll`s it before spawning any child process -- so
+  `chezmoi update` / `git` / `cd` die with `mkdir /run/user/1000: permission denied`
+  while `apply` still works (measured on v2.72.0; scripts go through a different
+  path). Lingering makes logind create the dir at boot. Do not "fix" this with a
+  fallback `XDG_RUNTIME_DIR` in `.zshrc`: that only covers zsh-launched processes.
 - `10-install-packages` (apt, Linux only) holds OS prerequisites only: `zsh git curl` plus what the Homebrew installer needs. Do not add tools here.
 - `30-install-brew-packages` (brew, both OS) is the single list for tools (`mise fzf git-lfs`, ...). New tools go here so macOS gets them too.
 - `40-git-lfs` is `run_onchange_after_` on purpose: `git lfs install` must run after `create_empty_dot_gitconfig` so it writes `~/.gitconfig`, not chezmoi-owned `~/.config/git/config`.
@@ -68,7 +76,7 @@ Keep the POSIX and Windows halves in sync:
   (the first is the `.oh-my-zsh` tarball); it predates the Windows work on POSIX, and
   the Windows script introduces the same unpinned clone. Pinning it would change what
   POSIX machines fetch, so it is recorded rather than changed.
-- `50-neovim` installs neovim through mise (not brew, and pinned to an explicit version -- see the comment there before bumping) and clones the LazyVim starter into `~/.config/nvim` once, then deletes its `.git`. Any pre-existing `~/.config/nvim`, `~/.local/share/nvim`, `~/.local/state/nvim` or `~/.cache/nvim` is moved to `.bak` first, never deleted; the `.chezmoi-lazyvim-starter` marker it leaves behind is what stops a re-run from doing that to the user's own config. It is `run_onchange_before_` on purpose: `git clone` refuses a non-empty target, so the starter must land before chezmoi applies the files it owns under `private_dot_config/nvim/` on top of it. Anything the source tree does not name stays the user's to edit in place -- nothing here is `exact`.
+- `50-neovim` installs neovim through mise (not brew, and pinned to an explicit version -- see the comment there before bumping) and clones the LazyVim starter into `~/.config/nvim` once, then deletes its `.git`. Any pre-existing `~/.config/nvim`, `~/.local/share/nvim`, `~/.local/state/nvim` or `~/.cache/nvim` is moved to `.bak` first, never deleted; the `.chezmoi-lazyvim-starter` marker it leaves behind is what stops a re-run from doing that to the user's own config. It is `run_before_` on purpose, on both counts: `before` because `git clone` refuses a non-empty target, so the starter must land before chezmoi applies the files it owns under `private_dot_config/nvim/` on top of it; plain `run_` (not `run_onchange_`) because the script is idempotent and a neovim the user removed must come back on the next `apply` -- with `run_onchange_` it only re-ran when its own hash changed, and chezmoi records that hash in both `scriptState` and `entryState`, so a reinstall meant deleting both by hand (measured). Anything the source tree does not name stays the user's to edit in place -- nothing here is `exact`.
 - `30-install-winget-packages` (winget, Windows only) is the Windows counterpart of
   `30-install-brew-packages`. New tools go in **both**. `Microsoft.PowerShell` and
   `Git.Git` are deliberately absent: chezmoi needs git to clone and pwsh 7 to run
@@ -91,7 +99,7 @@ Keep the POSIX and Windows halves in sync:
   BOM-less `.ps1` with the ANSI code page, and a mangled comment is a parse error.
   The same applies to `tests/sandbox/_probe.ps1`. Scripts under `.chezmoiscripts/`
   are not affected: pwsh 7 reads them as UTF-8.
-- `tree-sitter` in `30-install-brew-packages` is not a standalone tool: nvim-treesitter's `main` branch shells out to it to build every parser, so it is a LazyVim dependency. Do not prune it.
+- `tree-sitter-cli` in `30-install-brew-packages` is not a standalone tool: nvim-treesitter's `main` branch shells out to `tree-sitter build` for every parser, so it is a LazyVim dependency. Do not prune it, and do not "simplify" it back to `tree-sitter`: since 0.27 that formula installs only the library, and with no CLI on PATH LazyVim installs mason's GitHub prebuilt binary instead -- which needs glibc 2.39 and fails on every parser on Debian 12 (2.36), measured. The brew bottle runs against brew's own glibc. mason prepends its bin dir inside nvim, so a machine that already has mason's copy must delete `~/.local/share/nvim/mason/packages/tree-sitter-cli` before brew's is picked up.
 - **A C compiler is part of that dependency too**, and on Windows the choice is not free: `BrechtSanders.WinLibs.POSIX.UCRT` (gcc) is in `30-install-winget-packages` because nvim-treesitter's requirement check **rejects zig** -- measured, with `zig version` returning 0.16.0 on PATH at the time, so this is not a PATH-visibility problem. `zig.zig` was removed; it was only ever there to be that compiler. See `docs/research/windows-native-support.md` 10.1.
 - **`.gitattributes` forces LF checkout, and that is load-bearing.** Git for Windows defaults to `core.autocrlf=true`, so without it a fresh Windows clones the source tree as CRLF and chezmoi renders those `\r` straight into managed config files -- measured, via a stray `\r` on one key of `~/.codex/config.toml`. The `modify_` rewriters compare lines literally and do not strip CR, so this is not cosmetic. Pinned by `git check-attr eol` assertions in `tests/cases/L3`, not by grepping the file.
 - Anything needing a brew binary inside a script must `eval "$(<prefix>/bin/brew shellenv)"` first; chezmoi runs scripts without the interactive shell PATH.
@@ -124,13 +132,17 @@ future drift away from that parity still fails the gate.
 runs selected layers. Layers: L1 platform partial, L2 script render matrix,
 L3 managed target set, L4 syntax, L5 externals, L6 file-level goldens (the
 data-preservation cases), L7 behaviour (real script runs in a redirected
-environment), L8 real-Windows seam validation, L10 POSIX regression against the
-SPEC's `base_ref`, L11 verbatim render goldens (`init.ps1`, `_probe.ps1`, the
-Windows scripts). L9 is the Windows Sandbox end-to-end run -- see
-`tests/sandbox/README.md`: **local mode** (`prepare.sh` + `sandbox.wsb`, tests an
+environment), L8 real-Windows seam validation, L11 verbatim render goldens (`init.ps1`, `_probe.ps1`, the
+Windows scripts). L9 is the end-to-end run in a throwaway machine -- see
+`tests/sandbox/README.md`. Windows: `_probe.ps1` in Windows Sandbox, **local mode** (`prepare.sh` + `sandbox.wsb`, tests an
 unpushed tree) and **remote mode** (one `irm | iex` line inside any Sandbox,
 tests a pushed branch; nothing survives the Sandbox closing except what the
-probe prints).
+probe prints). Linux: `_probe.sh`, launched by `docker.sh` (debian:12 container,
+one command, no systemd so the linger / `chezmoi update` checks SKIP) or `wsl.sh`
+(a fresh `chezmoi-probe` WSL distro with systemd -- the only place the WSL
+runtime-dir fix can be shown to work). Unlike the Windows one it keeps going
+after the first install: second apply, `chezmoi git`, remove-and-reinstall
+neovim, because that is where this repo's real bugs were.
 
 L4, L7 and L8 skip cleanly without WSL interop. Everything else runs anywhere.
 
