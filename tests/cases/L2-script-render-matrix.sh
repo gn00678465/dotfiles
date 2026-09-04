@@ -156,6 +156,18 @@ assert_contains "profile 有載入 PSFzf 的 TabExpansion（對應 fzf-tab）" "
 assert_contains "profile 有啟用 mise" "$_profile" 'mise activate pwsh'
 unset _s _c _profile _theme
 
+# tree-sitter CLI 在兩個平台都要裝，而且要的是 **CLI**：brew 的 `tree-sitter` formula
+# 從 0.27 起只裝函式庫，CLI 拆到 `tree-sitter-cli`。少了 CLI，LazyVim 會退回 mason 的
+# GitHub 預編譯二進位，那個要 glibc 2.39，Debian 12（2.36）上每一個 parser 都編不過（實測）。
+_brew=$(render_file linux .chezmoiscripts/run_onchange_before_30-install-brew-packages.sh.tmpl)
+assert_contains "brew 清單裝的是 tree-sitter-cli（CLI）" "$_brew" ' tree-sitter-cli'
+assert_not_contains "brew 清單沒有只裝函式庫的 tree-sitter formula" \
+    "$(printf '%s\n' "$_brew" | grep '^for formula')" ' tree-sitter;'
+assert_contains "winget 清單裝的是 tree-sitter.tree-sitter-cli" \
+    "$(render_file windows .chezmoiscripts/run_onchange_before_30-install-winget-packages.ps1.tmpl)" \
+    "'tree-sitter.tree-sitter-cli'"
+unset _brew
+
 # ---------- .chezmoi.toml.tmpl：直譯器設定 ----------
 # L9 第一次真實執行的根因：chezmoi 把 .ps1 寫到 %TEMP% 再交給直譯器，而全新
 # Windows 的預設 ExecutionPolicy 是 Restricted，pwsh 7 也受它管（本機實測），

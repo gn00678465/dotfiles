@@ -13,7 +13,12 @@ eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
 # unknown variable but would abort on an unknown flag.
 export HOMEBREW_NO_ASK=1
 
-for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter; do
+# tree-sitter-cli, not tree-sitter: since 0.27 the `tree-sitter` formula ships
+# only libtree-sitter and the CLI lives in `tree-sitter-cli`. nvim-treesitter
+# needs the CLI. Without it on PATH LazyVim falls back to mason's GitHub
+# prebuilt binary, which wants glibc 2.39 and fails on Debian 12 (2.36); the
+# brew bottle runs against brew's own glibc, so it works there.
+for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli; do
   brew list --formula "$formula" &>/dev/null || brew install "$formula"
 done
 {{ end -}}

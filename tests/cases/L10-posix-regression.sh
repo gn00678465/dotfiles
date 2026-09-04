@@ -198,8 +198,17 @@ if [ -d "$TMP/base-src" ]; then
             execute-template < "$_f" > "$TMP/base-script-$_s" 2>&1
         render_file native ".chezmoiscripts/$_s" > "$TMP/new-script-$_s" 2>&1
 
-        assert_bytes_eq "本機 OS 上，$_s 的渲染結果與 base ref 逐位元組相同" \
-            "$TMP/base-script-$_s" "$TMP/new-script-$_s"
+        # 與上面 target 的規則相同：渲染結果變了，就要有本分支改過的來源檔解釋
+        # （腳本自己的 .tmpl，或它 include 的 partial）。沒有來源改動卻變了才是漂移。
+        if cmp -s "$TMP/base-script-$_s" "$TMP/new-script-$_s"; then
+            _pass "本機 OS 上，$_s 的渲染結果與 base ref 逐位元組相同"
+        elif grep -qxF ".chezmoiscripts/$_s" "$TMP/branch-changed.txt"; then
+            _pass "本機 OS 上，$_s 的渲染結果與 base 不同，但由本分支改過的來源檔解釋"
+        else
+            _fail "本機 OS 上，$_s 的渲染結果與 base ref 逐位元組相同" \
+                "來源檔 .chezmoiscripts/$_s 不在本分支的改動裡，卻渲染出不同結果" \
+                "$(diff "$TMP/base-script-$_s" "$TMP/new-script-$_s" 2>&1 | head -20)"
+        fi
     done
 fi
 unset _f _s
