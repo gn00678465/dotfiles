@@ -60,15 +60,14 @@ sandbox_win=$(wslpath -w "$sandbox_wsl" 2>/dev/null || printf '%s\\chezmoi-sandb
 # Inside the new distro the same folder is under /mnt/c.
 sandbox_in=$(printf '%s' "$sandbox_win" | sed 's|^\([A-Za-z]\):|/mnt/\L\1|; s|\\|/|g')
 
+mkdir -p "$sandbox_wsl/out"
 if [ -z "$branch" ]; then
-    mkdir -p "$sandbox_wsl/src" "$sandbox_wsl/out"
+    mkdir -p "$sandbox_wsl/src"
     CHEZMOI_SANDBOX_DIR="$sandbox_wsl" sh "$REPO/tests/sandbox/prepare.sh" >/dev/null
     echo "wsl.sh: local mode, commit $(git -C "$REPO" rev-parse --short HEAD)"
 else
-    mkdir -p "$sandbox_wsl/out"
     echo "wsl.sh: remote mode, branch $branch"
 fi
-mkdir -p "$sandbox_wsl/out"
 cp "$REPO/tests/sandbox/_probe.sh" "$sandbox_wsl/_probe.sh"
 rm -f "$sandbox_wsl/out/results.tsv" "$sandbox_wsl/out/transcript.txt" "$sandbox_wsl/out/treesitter.log"
 
@@ -78,7 +77,7 @@ if w --list --quiet | grep -qx "$NAME"; then
 fi
 echo "wsl.sh: exporting a debian:12 rootfs from docker"
 rootfs="$sandbox_wsl/rootfs.tar"
-cid=$(docker create "${CHEZMOI_PROBE_IMAGE:-debian:12}")
+cid=$(docker create debian:12)
 docker export "$cid" > "$rootfs"
 docker rm "$cid" >/dev/null
 echo "wsl.sh: registering $NAME with wsl --import"

@@ -16,14 +16,13 @@
 set -eu
 
 REPO=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
-branch=""; out=""; image="${CHEZMOI_PROBE_IMAGE:-debian:12}"
+branch=""; out=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --branch) branch=$2; shift 2 ;;
         --branch=*) branch=${1#*=}; shift ;;
         --out) out=$2; shift 2 ;;
         --out=*) out=${1#*=}; shift ;;
-        --image) image=$2; shift 2 ;;
         *) echo "docker.sh: unknown argument: $1" >&2; exit 2 ;;
     esac
 done
@@ -46,15 +45,15 @@ if [ -z "$branch" ]; then
     # then leaves the tree alone and the mount can stay read-only.
     git -C "$work/dotfiles" init -q
     set -- "$@" -v "$work/dotfiles:/src/dotfiles:ro"
-    echo "docker.sh: local mode, commit $(git -C "$REPO" rev-parse --short HEAD), image $image"
+    echo "docker.sh: local mode, commit $(git -C "$REPO" rev-parse --short HEAD)"
 else
-    echo "docker.sh: remote mode, branch $branch, image $image"
+    echo "docker.sh: remote mode, branch $branch"
 fi
 [ -t 1 ] && set -- -t "$@"
 
 # The bootstrap is root's job and is not part of the dotfiles: it only makes
 # the container look like a machine someone can log in to.
-docker run --rm "$@" -e "PROBE_ARGS=${branch:+--branch $branch}" "$image" sh -c '
+docker run --rm "$@" -e "PROBE_ARGS=${branch:+--branch $branch}" debian:12 sh -c '
 set -e
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null

@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -455,7 +454,6 @@ def main() -> int:
     try:
         # 先確認未突變的複本本身是綠的。這是「基線」控制：如果它本來就紅，
         # 後面每一個 mutant 的 kill 都可能是它造成的，整輪分數沒有意義。
-        env = dict(os.environ)
         baseline_layers = sorted({m.layer for m in MUTANTS})
         base = run(["sh", "tests/run.sh", *baseline_layers], worktree)
         if base.returncode != 0:
