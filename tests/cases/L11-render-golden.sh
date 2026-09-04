@@ -202,11 +202,54 @@ assert_eq "探針不再靠寫死的 ProgramFiles 目錄清單判定 PATH" "0" "$
 #
 # 這兩個檔案不是模板，git 本來就追得到；但 gate 是靠測試而不是靠人看 diff。
 # 逐位元組比對是「golden pin」原本的意思。
-for _pair in "init.ps1|$REPO/init.ps1" "_probe.ps1|$REPO/tests/sandbox/_probe.ps1"; do
+for _pair in "init.ps1|$REPO/init.ps1" "_probe.ps1|$REPO/tests/sandbox/_probe.ps1" \
+             "_probe.sh|$REPO/tests/sandbox/_probe.sh"; do
     _name=${_pair%%|*}; _path=${_pair##*|}
     assert_bytes_eq "verbatim golden：$_name 沒有被改動（含註解掉、改序、覆寫）" \
         "$GOLDEN/verbatim/$_name" "$_path"
 done
+
+# ---------- Linux 探針（_probe.sh）：Windows 探針的義務，加上「第二次之後」 ----------
+# 這個 repo 真正出過的錯都在第二次執行才出現（chezmoi update 撞 /run/user/<uid>、
+# 刪掉的 neovim 不會裝回），所以 Linux 探針不在第一次安裝後停下。少掉任何一段，
+# 就是一份看起來通過、實際上沒問那個問題的結果。
+_probe_sh=$(cat "$REPO/tests/sandbox/_probe.sh")
+assert_contains "Linux 探針收 --branch（遠端模式）" "$_probe_sh" '--branch) [ $# -ge 2 ]'
+assert_contains "遠端模式跑的是 GitHub 上那個分支的 init.sh（使用者的第一次安裝路徑）" \
+    "$_probe_sh" 'gn00678465/dotfiles/$branch/init.sh'
+assert_contains "遠端模式改從 chezmoi source-path 取來源樹" "$_probe_sh" 'chezmoi source-path'
+assert_contains "沒有掛 /out 時輸出改寫到 \$HOME/chezmoi-probe" "$_probe_sh" '$HOME/chezmoi-probe'
+assert_contains "結尾把 results.tsv 全文印到主控台" "$_probe_sh" 'results.tsv (full)'
+assert_contains "結尾要印出 treesitter.log" "$_probe_sh" 'treesitter.log (tail'
+assert_contains "子程序輸出邊收邊印" "$_probe_sh" 'run_streamed'
+assert_contains "長步驟開始前先報預期多久" "$_probe_sh" 'probe: this usually takes'
+assert_contains "Linux 探針會問 M12（treesitter parser 編不編得出來）" "$_probe_sh" "'nvim-treesitter builds a parser'"
+assert_contains "Linux 探針釘 tree-sitter CLI 是 brew 的、而且跑得起來（Debian 12 的 glibc 回歸）" \
+    "$_probe_sh" "tree-sitter CLI is brew's and runs on this glibc"
+assert_contains "Linux 探針釘 nvim 是 versions.toml 的 pin" "$_probe_sh" 'NVIM v$pin'
+assert_contains "Linux 探針會檢查 Windows 專屬檔案沒有落地" "$_probe_sh" 'Windows-only files did NOT land'
+assert_contains "Linux 探針會檢查 symlink" "$_probe_sh" 'claude skills symlinks'
+assert_contains "第二次 apply 必須不互動（--no-tty）" "$_probe_sh" 'chezmoi apply --no-tty'
+assert_contains "第二次 apply 不得重新 bootstrap nvim" "$_probe_sh" 'second apply did not re-bootstrap nvim'
+assert_contains "走一次 chezmoi git（chezmoi update 的 code path）" "$_probe_sh" 'chezmoi git -- status'
+assert_contains "有 systemd 時檢查 linger 與 /run/user/<uid>" "$_probe_sh" 'loginctl show-user'
+assert_contains "沒有 systemd 時那幾條是 SKIP，不是 PASS" "$_probe_sh" "skip '05-wsl-user-runtime-dir enabled linger"
+assert_contains "刪掉 neovim 再 apply 要裝回來（50-neovim 是 run_）" \
+    "$_probe_sh" "a removed neovim is reinstalled by the next apply"
+
+# 兩份套件清單必須**等於**產品腳本的清單，理由與 winget 那條相同：產品加了套件而
+# 探針沒加，L9 就悄悄少驗一個。
+_probe_apt=$(sed -n "s/^apt_packages='\(.*\)'$/\1/p" "$REPO/tests/sandbox/_probe.sh" | tr ' ' '\n' | LC_ALL=C sort)
+_script_apt=$(render_file linux .chezmoiscripts/run_onchange_before_10-install-packages.sh.tmpl \
+    | sed -n 's/^for pkg in \(.*\); do$/\1/p' | tr ' ' '\n' | LC_ALL=C sort)
+assert_not_blank "Linux 探針讀得到 apt 套件清單" "$_probe_apt"
+assert_eq "Linux 探針的 apt 清單與 10-install-packages 完全相同" "$_script_apt" "$_probe_apt"
+_probe_brew=$(sed -n "s/^brew_formulas='\(.*\)'$/\1/p" "$REPO/tests/sandbox/_probe.sh" | tr ' ' '\n' | LC_ALL=C sort)
+_script_brew=$(render_file linux .chezmoiscripts/run_onchange_before_30-install-brew-packages.sh.tmpl \
+    | sed -n 's/^for formula in \(.*\); do$/\1/p' | tr ' ' '\n' | LC_ALL=C sort)
+assert_not_blank "Linux 探針讀得到 brew 清單" "$_probe_brew"
+assert_eq "Linux 探針的 brew 清單與 30-install-brew-packages 完全相同" "$_script_brew" "$_probe_brew"
+unset _probe_sh _probe_apt _script_apt _probe_brew _script_brew
 
 # 測試層自己也會被刪掉。gate 的 manifest 稽核管的是 **gate 的層**，不是測試層；
 # 而 tests/run.sh 在指定的層檔案不存在時是 exit 0（`1..0`）。L1/L2/L3/L5/L6/L7/L11

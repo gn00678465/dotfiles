@@ -133,11 +133,16 @@ runs selected layers. Layers: L1 platform partial, L2 script render matrix,
 L3 managed target set, L4 syntax, L5 externals, L6 file-level goldens (the
 data-preservation cases), L7 behaviour (real script runs in a redirected
 environment), L8 real-Windows seam validation, L11 verbatim render goldens (`init.ps1`, `_probe.ps1`, the
-Windows scripts). L9 is the Windows Sandbox end-to-end run -- see
-`tests/sandbox/README.md`: **local mode** (`prepare.sh` + `sandbox.wsb`, tests an
+Windows scripts). L9 is the end-to-end run in a throwaway machine -- see
+`tests/sandbox/README.md`. Windows: `_probe.ps1` in Windows Sandbox, **local mode** (`prepare.sh` + `sandbox.wsb`, tests an
 unpushed tree) and **remote mode** (one `irm | iex` line inside any Sandbox,
 tests a pushed branch; nothing survives the Sandbox closing except what the
-probe prints).
+probe prints). Linux: `_probe.sh`, launched by `docker.sh` (debian:12 container,
+one command, no systemd so the linger / `chezmoi update` checks SKIP) or `wsl.sh`
+(a fresh `chezmoi-probe` WSL distro with systemd -- the only place the WSL
+runtime-dir fix can be shown to work). Unlike the Windows one it keeps going
+after the first install: second apply, `chezmoi git`, remove-and-reinstall
+neovim, because that is where this repo's real bugs were.
 
 L4, L7 and L8 skip cleanly without WSL interop. Everything else runs anywhere.
 

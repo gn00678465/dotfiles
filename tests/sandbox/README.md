@@ -60,3 +60,38 @@ Windows Sandbox，在裡面的 Windows PowerShell 5.1 貼上一行：
 
 Sandbox 的基礎映像沒有 App Installer，所以 `winget` 不存在。那段程式碼只服務這個
 測試環境，**不會進到 `init.ps1`**：真實的 Windows 11 本來就有 winget。
+
+---
+
+# L9（Linux）：Docker 容器與全新 WSL distro
+
+Linux 的探針是 `_probe.sh`，跟 `_probe.ps1` 問同一組問題，再多走「第二次之後」：
+這個 repo 真正出過的錯（`chezmoi update` 撞不存在的 `/run/user/<uid>`、刪掉的 neovim
+不會裝回）都不在第一次安裝出現。所以它在第一次 `init --apply` 之後還會做第二次
+`apply`（必須不互動、不重新 bootstrap nvim）、`chezmoi git`（`update` 的 code path）、
+以及 `mise uninstall neovim` → `apply` → 裝回來。
+
+兩個啟動器，探針共用：
+
+| | `docker.sh` | `wsl.sh` |
+|---|---|---|
+| 環境 | `debian:12` 容器，用完即丟 | 全新的 `chezmoi-probe` WSL distro，跑完 `--unregister` |
+| 能從哪裡跑 | 任何有 docker 的機器 | 只有 Windows 主機上的 WSL（需要 `wsl.exe` 互通） |
+| systemd | 沒有 → linger / `chezmoi update` 兩條是 **SKIP** | 有 → 這是唯一能證明 WSL runtime-dir 修正的地方 |
+| 輸出 | `.gate/l9-linux/`（`--out` 可改） | `chezmoi-sandbox\out\`，與 Windows Sandbox 同一個資料夾 |
+
+```sh
+tests/sandbox/docker.sh                  # 本機模式：HEAD（git archive，只帶已提交的內容）
+tests/sandbox/docker.sh --branch <name>  # 遠端模式：跑 GitHub 上那個分支的 init.sh
+tests/sandbox/wsl.sh                     # 本機模式：經 prepare.sh 放到 chezmoi-sandbox\src
+tests/sandbox/wsl.sh --branch <name>     # 遠端模式
+tests/sandbox/wsl.sh --keep              # 跑完保留 distro（wsl.exe -d chezmoi-probe 進去看）
+```
+
+`results.tsv` 的格式與 Windows 相同（`PASS|FAIL|SKIP <tab> 名稱 <tab> 細節`，最後一行
+`SUMMARY`），探針結尾一樣把全表印到主控台。容器與 distro 都是 root 先做最小的自舉
+（`sudo`、`curl`、一個叫 `probe` 的使用者、免密碼 sudo——探針沒有 tty，跟 Windows Sandbox
+的使用者是管理員同一個道理），那段不屬於 dotfiles。
+
+`wsl.sh` 會在你的 Windows 上註冊一個 distro（第一次要下載 Debian 映像），名字 `chezmoi-probe`
+是保留給它的：同名的既有 distro 會被直接換掉。
