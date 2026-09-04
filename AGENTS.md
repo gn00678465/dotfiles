@@ -60,6 +60,14 @@ calling `Set-ExecutionPolicy` from `init.ps1`. See
 
 Keep the POSIX and Windows halves in sync:
 
+- `05-wsl-user-runtime-dir` (WSL only, guarded by `.isWSL` not by OS) runs
+  `loginctl enable-linger` once. WSL exports `XDG_RUNTIME_DIR=/run/user/<uid>` into
+  every process but never creates the directory (no PAM session, so logind does not
+  either), and chezmoi `MkdirAll`s it before spawning any child process -- so
+  `chezmoi update` / `git` / `cd` die with `mkdir /run/user/1000: permission denied`
+  while `apply` still works (measured on v2.72.0; scripts go through a different
+  path). Lingering makes logind create the dir at boot. Do not "fix" this with a
+  fallback `XDG_RUNTIME_DIR` in `.zshrc`: that only covers zsh-launched processes.
 - `10-install-packages` (apt, Linux only) holds OS prerequisites only: `zsh git curl` plus what the Homebrew installer needs. Do not add tools here.
 - `30-install-brew-packages` (brew, both OS) is the single list for tools (`mise fzf git-lfs`, ...). New tools go here so macOS gets them too.
 - `40-git-lfs` is `run_onchange_after_` on purpose: `git lfs install` must run after `create_empty_dot_gitconfig` so it writes `~/.gitconfig`, not chezmoi-owned `~/.config/git/config`.

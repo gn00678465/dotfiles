@@ -11,6 +11,9 @@
 # 免得新增一支腳本卻忘了給它平台守衛。
 _expect() {
     case $1 in
+        # 只在 isWSL = true 時非空；平台矩陣的 fixture 全是 isWSL = false，所以這裡
+        # 是空清單，WSL 那一種渲染在下面用 native-wsl fixture 單獨釘。
+        run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl)   echo '' ;;
         run_onchange_before_10-install-packages.sh.tmpl)      echo 'linux linux-arm64' ;;
         run_once_before_20-install-homebrew.sh.tmpl)          echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
         run_onchange_before_30-install-brew-packages.sh.tmpl) echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
@@ -27,7 +30,8 @@ _expect() {
 }
 
 # 表裡列到、但 source 樹裡不存在的腳本 —— 抓「整支檔案漏掉」
-for _s in run_onchange_before_10-install-packages.sh.tmpl \
+for _s in run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl \
+          run_onchange_before_10-install-packages.sh.tmpl \
           run_once_before_20-install-homebrew.sh.tmpl \
           run_onchange_before_30-install-brew-packages.sh.tmpl \
           run_onchange_before_30-install-winget-packages.ps1.tmpl \
@@ -80,6 +84,17 @@ for _f in "$REPO"/.chezmoiscripts/*.ps1.tmpl; do
 done
 
 unset _s _f _want _out _os
+
+# 05-wsl-user-runtime-dir 的守衛是 isWSL，不是 OS：WSL 會把 XDG_RUNTIME_DIR 塞進
+# 每一個 process 卻不建那個目錄，原生 Linux 的 logind 會在登入時自己建。所以它在
+# isWSL = true 時必須非空，在同一個 OS 的 isWSL = false 時必須是空的。
+_wsl=$(render_file native-wsl .chezmoiscripts/run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 2>&1)
+assert_not_blank "05-wsl-user-runtime-dir 在 isWSL = true 時非空" "$_wsl"
+assert_contains "05-wsl-user-runtime-dir 用 loginctl enable-linger（不是 mkdir，那個目錄歸 logind 管）" \
+    "$_wsl" 'loginctl enable-linger'
+assert_blank "05-wsl-user-runtime-dir 在原生 Linux（isWSL = false）渲染成空" \
+    "$(render_file native .chezmoiscripts/run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 2>&1)"
+unset _wsl
 
 # 跨檔案一致性：POSIX 與 Windows 的 50-neovim 是兩份檔案，但它們必須釘同一個
 # neovim 版本、同一個 marker 檔名、同一個 starter repo。這三個值一旦各寫各的，

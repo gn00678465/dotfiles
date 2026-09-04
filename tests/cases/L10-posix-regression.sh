@@ -99,7 +99,21 @@ else
     # 所以那五支 Windows 腳本在基準裡本來就有，新增集合應該是**空的**。
     # 這是降級的一部分——L10 不再重新驗證「移植只多出這五支」，那件事的證據留在
     # 歷史裡（`777b122` 與更早的每一輪都對 `ccae9d8` 比對過）。
-    assert_eq "本機 OS 上，managed 相對 base 沒有多出任何 target" "" "$(printf '%s' "$_added")"
+    # 多出來的 target 比照上面「有差異的檔案」的規則：每一條都要有本分支改過的
+    # 來源檔可以解釋（05-wsl-user-runtime-dir 是第一個在 base 之後新增的 POSIX
+    # 腳本）。反查同樣用 source-path，不猜檔名；沒有來源改動能解釋的新 target
+    # 仍然是失敗 —— 那才是這條斷言原本要抓的漂移。
+    _unexplained_added=''
+    for _t in $_added; do
+        _src=$(chezmoi --source "$REPO" --destination "$TMP/dest-new-native" \
+                 --persistent-state "$TMP/st-newnat.boltdb" --config "$FIXTURES/native.toml" \
+                 --no-tty source-path "$TMP/dest-new-native/$_t" 2>/dev/null | sed "s|^$REPO/||")
+        if [ -z "$_src" ] || ! grep -qxF "$_src" "$TMP/branch-changed.txt"; then
+            _unexplained_added="$_unexplained_added${_unexplained_added:+ }$_t"
+        fi
+    done
+    assert_eq "本機 OS 上，managed 相對 base 多出的每一個 target 都由本分支新增的來源檔解釋" \
+        "" "$_unexplained_added"
     assert_eq "本機 OS 上，managed 沒有任何 target 消失" "" "$(printf '%s' "$_removed")"
 
     # macOS 沒有實機，base ref 也沒有 osOverride 接縫，所以 darwin 只能間接釘：
@@ -121,7 +135,7 @@ else
     assert_eq "那兩個檔案的差異只有 brew prefix 一項" "" "$_substantive"
 fi
 
-unset _base_src _base_out _new_out _diff _unexplained _onlyin _src _real _base_mg _new_mg _added _removed _dw_out _changed_files _substantive
+unset _base_src _base_out _new_out _diff _unexplained _onlyin _src _real _base_mg _new_mg _added _removed _unexplained_added _t _dw_out _changed_files _substantive
 
 # external 也要釘回歸：L10 上面的 apply 帶 --exclude=externals，不會碰到它們。
 # 比對忽略空行與註解：兩者在 TOML 裡都沒有語意，而 {{ if }} 包裹會多出空行、

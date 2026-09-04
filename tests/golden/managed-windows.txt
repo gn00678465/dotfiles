@@ -33,6 +33,7 @@
 .agents/workflows/templates
 .agents/workflows/templates/spec.md
 .agents/workflows/templates/verification.md
+.chezmoiscripts/05-wsl-user-runtime-dir.sh
 .chezmoiscripts/10-install-packages.sh
 .chezmoiscripts/20-install-homebrew.sh
 .chezmoiscripts/30-install-brew-packages.sh
