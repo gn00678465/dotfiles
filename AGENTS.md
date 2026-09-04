@@ -138,7 +138,11 @@ L4, L7 and L8 skip cleanly without WSL interop. Everything else runs anywhere.
 to: it runs the suite plus suite-health repeats and shuffles, property cases
 (`gate-properties.py`), hand-written mutants (`gate-mutants.py`), supply-chain
 resolution of every external and winget ID (`gate-supply-chain.py`),
-changed-line coverage, and a source-state check before and after. Every layer
+changed-line coverage, a source-state check before and after, and an intent
+layer (`gate-intent.sh`) that derives the evidence report's `intent_status` /
+`intent_source` header lines from the committed SPEC -- the report copies them
+verbatim, and `spec-archive` refuses to close a spec whose `spec_version` the
+report does not quote. Every layer
 goes through `run_layer` so a failure is the layer's exit code, never `tee`'s;
 `gate-manifest-audit.sh` fails the gate if a layer declared in the manifest did
 not actually run. Artifacts land in `.gate/<scope>/` (ignored by git).
@@ -150,4 +154,4 @@ workflow because `spec-archive` reads it there at CLOSE. The evidence report for
 a shipped change is committed at `.scratch/<scope>/evidence.md` -- outside
 `specs/` on purpose, since `spec-archive` moves the whole `specs/<scope>/`
 directory. `windows-support` is the first change to have gone through the full
-SPEC v1..v6 → gate → evidence path; its report is the worked example.
+SPEC v1..v7 → gate → evidence → archive path; its report is the worked example.

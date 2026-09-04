@@ -1,10 +1,10 @@
 # SPEC — native Windows 支援
 
-- `spec_version`: v6
-- `status`: approved
+- `spec_version`: v7
+- `status`: shipped
 - `tier`: 3
 - `scope`: windows-support
-- `base_ref`: `0d72b8e`（`feat/windows-support` 分支起點）
+- `base_ref`: `59ebb87`（`origin/main`；**注意：main 已經含有這份移植**，所以 L10 不再重新驗證 Must NOT #2 —— 這是 v7 明確核准的降級，理由與代價見 §9 的 v6 → v7。先前為 `ccae9d8`、更早為 `0d72b8e`）
 - `contract`: `~/.claude/CLAUDE.md` 的 evidence-first 契約 **v0.6**，未被本 repo 覆寫
 
 Tier 3 的理由：會移動／改寫使用者既有的 nvim 設定、`~/.codex/config.toml`、
@@ -341,6 +341,25 @@ uv/mise 在 Windows 的設定檔位置、nvim-treesitter 在 Windows 的 C compi
 - 範圍：v1 的 §0–§7 全文，含 §5 Must NOT 七條、§6 Tier 3 失效模型 M1–M12、
   §7 已宣告的兩個缺口（macOS 無實機、M12 未證實）。
 
+### v7 — 2026-09-04
+
+- **approval: confirmed**
+- version bound: v7 — 核准當下 `specs/windows-support/SPEC.md` 的 sha256
+  （即本節被改寫成核准狀態**之前**、`status` 仍為 `revised-pending-approval` 的檔案內容）
+  = `ec4c30fb6170af56d0f9d671fc8eeeba9dad87dd28011bfabe86681abfea6ae4`
+- date: 2026-09-04
+- approver: repo owner（Madao）
+- verbatim words（使用者原話，逐字）:
+
+  > 將 v7 核准
+
+- 範圍：v7 全文。實質變更為 **Must NOT #2 的驗證方式降級**，處置採 §9 v6 → v7
+  所列的 **(b)**：`base_ref` 改為 `origin/main`。
+- **這是降級，不是維護。** main 已經含有這份移植，L10 因此變成拿它自己比它自己，
+  **Must NOT #2 不再被 L10 重新驗證**，只剩下「本分支相對 main 的剩餘差異沒有改變
+  POSIX」。對移植本身的驗證已經完成且留在 git 歷史裡（`777b122` 與更早的每一輪都
+  對 `ccae9d8` 逐位元組比對過）；結束的是「每一次執行都能重新證明」。
+
 ### v6 — 2026-09-03
 
 - **approval: confirmed**
@@ -448,6 +467,85 @@ v5 本文把兩件事明寫成「待你決定」並列出選項。以下是那�
 ---
 
 ## 9. Revisions
+
+### v6 → v7（待核准）：Must NOT #2 的驗證方式降級
+
+**這一項是降級，不是維護。** 上一次動 `base_ref`（見下一節）我判定為非實質變更，
+理由之一是「不會讓覆蓋範圍變窄」。**那個理由這次不成立**，所以這次走修訂與核准。
+
+#### 事實
+
+`base_ref` 目前是 `ccae9d8`＝**Windows 支援併進 main 之前**的最後一個 main 狀態。
+main 之後又前進了三次：#7（Windows 支援本身）、#8（`agent-instructions.md` 的維護
+註解從 HTML 註解改成 Go template 註解，於是不再被算繪進 `~/.claude/CLAUDE.md` 與
+`~/.codex/AGENTS.md`）、#9（`dot_agents/workflow` → `workflows`）。本分支已合併 main，
+所以 #8 與 #9 的**POSIX 輸出變更**現在也在本分支裡。
+
+於是 L10 對 `ccae9d8` 比對時紅了三條，而那三條**全部是 main 自己的變更**，
+不是這次 Windows 移植造成的 —— 以 Must NOT #2 要問的問題而言，這是假陽性。
+
+#### 兩難
+
+`ccae9d8` 之後，main 上**不存在**「有 #8/#9、但沒有 Windows 移植」的commit：
+#8 與 #9 都排在 #7 之後。所以沒有一個基準能同時滿足兩件事。
+
+| 選項 | 結果 |
+|---|---|
+| (a) 維持 `ccae9d8` | 三條永久紅。這正是上一輪拿掉十條 `tool on PATH` 的理由：**已知會紅的檢查會讓人學會忽略 FAIL** |
+| (b) `base_ref` → `origin/main`（`59ebb87`） | 紅燈消失，但 main **已經含有這份移植**，L10 變成拿它自己比它自己。**Must NOT #2 不再被 L10 重新驗證**，L10 只剩下「本分支相對 main 的剩餘差異沒有改變 POSIX」 |
+| (c) 維持 `ccae9d8`，但排除 main 事後改過的路徑 | 每次 main 動就要維護一份排除清單，而清單會靜靜地把覆蓋範圍吃掉 —— 與這份工作一路上拒絕的「固定清單」是同一種東西 |
+
+#### 建議：(b)，並且明寫它是降級
+
+Must NOT #2 對**這份移植本身**的驗證**已經完成，而且留在 git 歷史裡**：
+evidence 在 `777b122` 那一輪（以及更早的每一輪）都是對 `ccae9d8` 逐位元組比對過的，
+`.gate/` 的產出與報告都在。結束的不是「曾經證明過」，而是「每一次執行都能重新證明」——
+因為已經沒有一個夠新、又不含這份移植的 main 可以當基準。
+
+採 (b) 之後 L10 還會驗什麼：本分支相對 main 的**剩餘差異**（目前是測試與文件修正）
+不改變 POSIX 輸出。這仍然有價值，但**比原本弱**，必須寫清楚。
+
+連帶要調整的斷言（核准後才動）：
+- 「managed 只多出五支 Windows 腳本」→ 期望值改成**空集合**（main 已經有那五支）。
+- 逐支腳本的逐位元組比對仍然保留，但對那五支 Windows 腳本而言變成自己比自己。
+- 「managed 沒有任何 target 消失」不變，仍然有效。
+
+如果你選 (a) 或 (c)，或有第四種做法，這一節就照你的決定改寫。
+
+### base_ref 更新 — 2026-09-04（**非實質變更，未重新請求核准**）
+
+`base_ref` 由 `0d72b8e`（分支起點）改為 `ccae9d8`（`origin/main`，也是合併後的
+merge-base）。main 上的 #3（evidence-first 合約）已合併進本分支。
+
+**依合約判定為非實質變更，理由逐條寫在這裡以便日後稽核：**
+
+1. `base_ref` 記錄的是 **Must NOT #2 的比較基準**，不是要求本身。要求
+   （「Linux/macOS 現有的 target 集合與檔案內容不得因為這次 Windows 支援而改變」）
+   一個字都沒有動。§0–§7 的其他部分也都沒有動。
+2. **不改反而會讓檢查說謊。** main 在 `0d72b8e` 之後自己前進了（合約升到 v0.6、
+   verification-gate skill 改版、`commit-message` 更名為 `commit`、新增
+   `spec-archive` skill 與 verifier agent）。以 `0d72b8e` 為基準，L10 會把
+   **main 自己的變更**報成本分支造成的回歸 —— 那是假陽性。把基準移到 merge-base，
+   L10 才是在量它一直想量的那件事：**本分支有沒有弄壞 POSIX**。
+3. **不會讓覆蓋範圍變窄。** 兩個基準之間的差異全部是 main 的工作；已逐一稽核
+   managed 清單的每一項新增，全部能追到 `origin/main`（`spec-archive`、
+   `.agents/workflow/`、`.claude/agents/verifier.md`、`.codex/agents/verifier.toml`、
+   `commit-message` → `commit`），沒有一項來自本分支。
+   換基準反而**加驗了一件事**：合併時 `.chezmoiignore` 與 `.gitignore` 的衝突解法
+   （取聯集）現在也被 L10 對著 main 的現況比對。
+4. **property 層的差分沒有受影響。** P0 是拿 `dot_codex/modify_private_config.toml`
+   的移植前 awk 原版做逐位元組比對；已驗證該檔在 `0d72b8e` 與 `ccae9d8` 之間
+   **完全相同**，所以 P0 的比較對象不變。
+
+如果你認為這仍算實質變更，那它就是一次 v7 修訂，需要重新核准 —— 這裡只記錄我的
+判定與理由，不代替你的判斷。
+
+**基準不會再往前追（2026-09-04 補記）。** Windows 支援已經併進 main（merge commit
+`cbbdafc`），所以 `ccae9d8` 已經不是 `origin/main` 的頂端了 —— 原本那句「`origin/main`，
+本分支與 main 的 merge-base」現在會誤導人，已改成「Windows 支援併進 main 之前的最後
+一個 main 狀態」。**SHA 不變，而且不該變**：Must NOT #2 問的是「這次 Windows 支援有
+沒有改變 POSIX 的既有行為」，比較對象必須是**還沒有這份移植的 main**。改成追 main
+的頂端會變成拿它自己比它自己，這條不變量就等於沒有了。
 
 ### v5 → v6
 

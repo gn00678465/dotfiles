@@ -47,10 +47,13 @@ def git(repo: Path, *args: str) -> None:
 
 
 def expect(desc: str, repo: Path, args: list[str], rc: int,
-           stdout_has: str | None = None) -> subprocess.CompletedProcess:
+           stdout_has: str | None = None,
+           stderr_has: str | None = None) -> subprocess.CompletedProcess:
     global FAILURES, PASSES
     r = harness([sys.executable, str(ARCHIVER), *args], repo)
-    ok = r.returncode == rc and (stdout_has is None or stdout_has in r.stdout)
+    ok = (r.returncode == rc
+          and (stdout_has is None or stdout_has in r.stdout)
+          and (stderr_has is None or stderr_has in r.stderr))
     if ok:
         PASSES += 1
         print(f"ok: {desc} (rc={r.returncode})")
@@ -58,6 +61,7 @@ def expect(desc: str, repo: Path, args: list[str], rc: int,
         FAILURES += 1
         print(f"FAIL: {desc} — expected rc {rc}"
               + (f" and stdout containing '{stdout_has}'" if stdout_has else "")
+              + (f" and stderr containing '{stderr_has}'" if stderr_has else "")
               + f", got rc {r.returncode}\n  stdout: {r.stdout.strip()}"
               + f"\n  stderr: {r.stderr.strip()}", file=sys.stderr)
     return r
@@ -80,13 +84,14 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory(prefix="spec-archive-test-") as tmp:
         repo = Path(tmp)
-        git(repo, "init", "-q")
+        git(repo, "init", "-q", "-b", "main")
         git(repo, "config", "user.email", "test@test")
         git(repo, "config", "user.name", "test")
 
         spec = repo / "specs/foo/SPEC.md"
         spec.parent.mkdir(parents=True)
-        spec.write_text("- `status`: draft\n\n## Approval\n", encoding="utf-8")
+        spec.write_text("- `spec_version`: v2\n- `status`: draft\n\n## Approval\n",
+                        encoding="utf-8")
         git(repo, "add", "-A")
         git(repo, "commit", "-qm", "init")
 
@@ -98,8 +103,56 @@ def main() -> None:
         git(repo, "add", "-A")
         git(repo, "commit", "-qm", "approve")
         expect("missing spec cannot be evaluated", repo, ["bar"], 2)
-        expect("--check lists the approved candidate", repo, ["--check"], 0,
-               stdout_has="candidate")
+        expect("--check on the default branch fails on an approved candidate",
+               repo, ["--check"], 1, stdout_has="VIOLATION")
+        git(repo, "checkout", "-q", "-b", "feat")
+        expect("--check on a feature branch lists the candidate and passes",
+               repo, ["--check"], 0, stdout_has="candidate")
+
+        # Evidence gate: CLOSE reads the gate's committed evidence report and
+        # refuses when it is missing, uncommitted, or bound to another spec
+        # version — the header must come from git, not from memory.
+        expect("archiving without a committed evidence report is refused",
+               repo, ["foo"], 1, stderr_has="evidence")
+        (repo / ".gitignore").write_text(".gate/\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "ignore gate artifacts")
+        ignored = repo / ".gate/foo/evidence.md"
+        ignored.parent.mkdir(parents=True)
+        ignored.write_text("- `intent_source`: SPEC `spec_version: v2`\n",
+                           encoding="utf-8")
+        expect("an evidence report that is not tracked by git is refused",
+               repo, ["foo"], 1, stderr_has="not committed")
+        ignored.unlink()
+        evidence = repo / ".scratch/foo/evidence.md"
+        evidence.parent.mkdir(parents=True)
+        evidence.write_text("- `intent_source`: SPEC `spec_version: v1`\n"
+                            "\n## Baseline\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "evidence v1")
+        expect("evidence bound to another spec_version is refused",
+               repo, ["foo"], 1, stderr_has="spec_version")
+        evidence.write_text("- `headline`: GATE PASSED\n\n## Baseline\n"
+                            "`spec_version: v2` mentioned only in the body\n",
+                            encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "evidence without version in header")
+        expect("evidence whose header carries no spec_version cannot be evaluated",
+               repo, ["foo"], 2, stderr_has="spec_version")
+        evidence.write_text("- `intent_source`: SPEC `spec_version: v2`\n"
+                            "\n## Baseline\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "evidence v2")
+        qux = repo / "specs/qux/SPEC.md"
+        qux.parent.mkdir(parents=True)
+        qux.write_text("- `status`: approved\n", encoding="utf-8")
+        (repo / ".scratch/qux").mkdir(parents=True)
+        (repo / ".scratch/qux/evidence.md").write_text(
+            "- `intent_source`: SPEC `spec_version: v1`\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "qux without spec_version")
+        expect("a spec without a spec_version line cannot be evaluated",
+               repo, ["qux"], 2, stderr_has="spec_version")
 
         # Happy path: one atomic commit, status flipped, spec moved.
         expect("approved spec on a clean tree archives", repo, ["foo"], 0,
