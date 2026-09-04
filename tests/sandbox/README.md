@@ -93,5 +93,18 @@ tests/sandbox/wsl.sh --keep              # 跑完保留 distro（wsl.exe -d chez
 （`sudo`、`curl`、一個叫 `probe` 的使用者、免密碼 sudo——探針沒有 tty，跟 Windows Sandbox
 的使用者是管理員同一個道理），那段不屬於 dotfiles。
 
-`wsl.sh` 會在你的 Windows 上註冊一個 distro（第一次要下載 Debian 映像），名字 `chezmoi-probe`
-是保留給它的：同名的既有 distro 會被直接換掉。
+`wsl.sh` 會在你的 Windows 上用 `wsl --import` 註冊一個 distro（rootfs 由 docker 的 `debian:12`
+匯出，所以也需要 docker），名字 `chezmoi-probe` 是保留給它的：同名的既有 distro 會被直接換掉。
+不用 `wsl --install Debian`：從 WSL 內部呼叫它會把呼叫端 distro 的 Windows 互通一起清掉（實測）。
+
+**跑完之後呼叫端 distro 的互通會斷**（`wsl.exe`、`pwsh.exe` 變成 `exec format error`）：
+binfmt_misc 是整個 WSL VM 共用的，探針 distro 停掉時它的 `/init` 會把 `WSLInterop` 註銷。
+`wsl.sh` 結尾偵測到會印出修法，需要 root：
+
+```sh
+sudo sh -c 'echo ":WSLInterop:M::MZ::/init:PF" > /proc/sys/fs/binfmt_misc/register'
+```
+
+第一次在全新 WSL distro 的實跑：33 PASS / 0 FAIL / 1 SKIP（`chezmoi update` 在本機模式沒有
+remote 可拉）。`XDG_RUNTIME_DIR=/run/user/1000` 確實被 WSL 塞進來、`05-wsl-user-runtime-dir`
+把 linger 開起來、目錄存在、`chezmoi git` 能跑——原本壞掉的那條路徑在乾淨的機器上證明修好了。

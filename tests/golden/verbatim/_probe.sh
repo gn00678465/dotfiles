@@ -190,7 +190,9 @@ brew_formulas='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli'
 
 c_apt() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q '^install ok installed$' || { echo 'not installed'; return 1; }; echo installed; }
 for _p in $apt_packages; do check "apt package installed: $_p" c_apt "$_p"; done
-c_brew() { brew list --formula "$1" >/dev/null 2>&1 || { echo 'not installed'; return 1; }; brew list --versions "$1"; }
+# stderr dropped on the detail line: brew's `locale` warnings on a fresh
+# rootfs are noise here, the version is the fact.
+c_brew() { brew list --formula "$1" >/dev/null 2>&1 || { echo 'not installed'; return 1; }; brew list --versions "$1" 2>/dev/null; }
 for _f in $brew_formulas; do check "brew formula installed: $_f" c_brew "$_f"; done
 
 # ---------------------------------------------------------------- files
