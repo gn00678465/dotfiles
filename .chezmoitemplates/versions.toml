@@ -4,7 +4,7 @@
   呼叫端：{{- $v := includeTemplate "versions.toml" . | fromToml -}}
 
   neovim 這個 pin 不要隨手 bump —— 理由（glibc 底線、nvim-treesitter main 分支
-  的最低版本會中途調高）寫在 .chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl
+  的最低版本會中途調高）寫在 .chezmoiscripts/run_before_50-neovim.sh.tmpl
   的註解與 docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md。
 */ -}}
 neovim = "0.12.5"

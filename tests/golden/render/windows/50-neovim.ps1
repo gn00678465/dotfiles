@@ -23,7 +23,7 @@ foreach ($dir in @(
 if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
     # Write-Warning 而不是 Write-Error：在 $ErrorActionPreference = 'Stop' 之下
     # Write-Error 是**終止性**的，後面那行 exit 0 根本到不了，chezmoi 收到的是 1。
-    # 這支是 run_onchange_before_，非零退出會在任何檔案被寫出來之前中止整個 apply
+    # 這支是 run_before_，非零退出會在任何檔案被寫出來之前中止整個 apply
     # ——使用者連 PowerShell profile 都拿不到。POSIX 版是 `echo >&2; exit 0`，
     # 這裡要對稱。由 tests/cases/L7 的退出碼斷言釘住。
     Write-Warning 'chezmoi: mise not found, skipping neovim'
@@ -47,7 +47,7 @@ $nvimData   = Join-Path $env:LOCALAPPDATA 'nvim-data'
 $nvimCache  = Join-Path $env:TEMP 'nvim'
 
 # 我們自己的標記檔，不是 LazyVim 的。一旦這支腳本會搬東西，「目錄存在」就不再是
-# 可用的守衛：重跑時（這是 run_onchange_，改了腳本就會重跑）既有的
+# 可用的守衛：重跑時（這是 run_，每次 apply 都跑，所以刪掉的 neovim 會裝回來）既有的
 # %LOCALAPPDATA%\nvim 是使用者自己的設定，不是外來的，不可以再被搬走重 clone。
 # 刪掉這個檔案就是刻意要求下次 apply 重新 bootstrap。
 $marker = Join-Path $nvimConfig '.chezmoi-lazyvim-starter'

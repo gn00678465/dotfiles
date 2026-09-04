@@ -53,7 +53,7 @@ unset _os _t _win _lin _m
 # 用 `git check-attr` 問 git 自己的判定，而不是比對 .gitattributes 的字串 ——
 # 後者只證明檔案裡有那行字，不證明它對任何一個路徑真的生效。
 for _f in dot_codex/modify_private_config.toml \
-          .chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl \
+          .chezmoiscripts/run_before_50-neovim.ps1.tmpl \
           tests/sandbox/_probe.ps1 \
           init.ps1; do
     assert_eq "git 對 $_f 的 eol 判定是 lf" "lf" \

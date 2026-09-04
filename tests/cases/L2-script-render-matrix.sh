@@ -21,8 +21,8 @@ _expect() {
         run_onchange_before_35-install-ps-modules.ps1.tmpl)    echo 'windows windows-arm64' ;;
         run_onchange_after_40-git-lfs.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
         run_onchange_after_40-git-lfs.ps1.tmpl)               echo 'windows windows-arm64' ;;
-        run_onchange_before_50-neovim.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
-        run_onchange_before_50-neovim.ps1.tmpl)               echo 'windows windows-arm64' ;;
+        run_before_50-neovim.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_before_50-neovim.ps1.tmpl)               echo 'windows windows-arm64' ;;
         run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows windows-arm64' ;;
         run_after_default-shell.sh.tmpl)                      echo 'linux linux-arm64' ;;
         *) echo '__UNKNOWN__' ;;
@@ -38,8 +38,8 @@ for _s in run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl \
           run_onchange_before_35-install-ps-modules.ps1.tmpl \
           run_onchange_after_40-git-lfs.sh.tmpl \
           run_onchange_after_40-git-lfs.ps1.tmpl \
-          run_onchange_before_50-neovim.sh.tmpl \
-          run_onchange_before_50-neovim.ps1.tmpl \
+          run_before_50-neovim.sh.tmpl \
+          run_before_50-neovim.ps1.tmpl \
           run_after_60-pwsh-profile.ps1.tmpl \
           run_after_default-shell.sh.tmpl; do
     if [ -f "$REPO/.chezmoiscripts/$_s" ]; then
@@ -99,8 +99,8 @@ unset _wsl
 # 跨檔案一致性：POSIX 與 Windows 的 50-neovim 是兩份檔案，但它們必須釘同一個
 # neovim 版本、同一個 marker 檔名、同一個 starter repo。這三個值一旦各寫各的，
 # 就會出現「有人 bump 了一邊，另一邊悄悄留在舊版」的分歧。
-_posix_nvim=$(render_file linux .chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl)
-_win_nvim=$(render_file windows .chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl)
+_posix_nvim=$(render_file linux .chezmoiscripts/run_before_50-neovim.sh.tmpl)
+_win_nvim=$(render_file windows .chezmoiscripts/run_before_50-neovim.ps1.tmpl)
 
 _pin_posix=$(printf '%s\n' "$_posix_nvim" | sed -n 's/.*neovim@\([0-9][0-9.]*\).*/\1/p' | head -1)
 _pin_win=$(printf '%s\n' "$_win_nvim" | sed -n 's/.*neovim@\([0-9][0-9.]*\).*/\1/p' | head -1)
@@ -117,6 +117,16 @@ _starter_win=$(printf '%s\n' "$_win_nvim" | sed -n 's|.*\(https://github.com/[^ 
 assert_eq "兩個平台的 50-neovim clone 同一個 starter repo" "$_starter_posix" "$_starter_win"
 
 unset _posix_nvim _win_nvim _pin_posix _pin_win _marker_posix _marker_win _starter_posix _starter_win
+
+# 50-neovim 兩邊都是 run_（每次 apply 都跑），不是 run_onchange_：腳本冪等，而
+# 「使用者刪掉 neovim → 下一次 apply 裝回來」只有 run_ 做得到。run_onchange_ 只在
+# 自己的 hash 變時重跑，chezmoi 還把那個 hash 記在 scriptState 與 entryState 兩個
+# bucket，重裝等於手動刪 state（實測）。
+for _s in run_before_50-neovim.sh.tmpl run_before_50-neovim.ps1.tmpl; do
+    if [ -f "$REPO/.chezmoiscripts/$_s" ]; then _pass "50-neovim 是 run_ 不是 run_onchange_：$_s"
+    else _fail "50-neovim 是 run_ 不是 run_onchange_：$_s" "找不到 $_s（改回 run_onchange_ 會讓刪掉的 neovim 不再裝回）"; fi
+done
+unset _s
 
 # 60-pwsh-profile 必須挑 CurrentUserAllHosts（profile.ps1）而不是
 # CurrentUserCurrentHost（Microsoft.PowerShell_profile.ps1）：Windows Terminal、
@@ -135,7 +145,7 @@ unset _pwsh_profile
 # 整個 neovim/LazyVim 安裝就靜靜地沒發生。實測過那個分歧。
 for _s in run_onchange_before_30-install-winget-packages.ps1.tmpl \
           run_onchange_after_40-git-lfs.ps1.tmpl \
-          run_onchange_before_50-neovim.ps1.tmpl; do
+          run_before_50-neovim.ps1.tmpl; do
     _c=$(render_file windows ".chezmoiscripts/$_s")
     assert_contains "$_s 有套用 windows-path partial" "$_c" 'Microsoft\WinGet\Links'
     assert_contains "$_s 的 PATH 補強有含 mise shims" "$_c" 'mise\shims'

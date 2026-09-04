@@ -73,7 +73,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="posix-nvim-delete",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.sh.tmpl",
         old='  mv "$1" "$dest"',
         new='  rm -rf "$1"',
         layer="L7",
@@ -81,7 +81,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="windows-nvim-marker",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old="if (-not (Test-Path -LiteralPath $marker)) {",
         new="if ($true) {",
         layer="L7",
@@ -89,7 +89,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="windows-nvim-data-backup",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old="    Backup-NvimDirectory $nvimData\n",
         new="",
         layer="L7",
@@ -169,7 +169,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="backup-timestamp-fallback",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.sh.tmpl",
         old=(
             "  if [[ -e $dest ]]; then\n"
             '    dest="$1.bak.$(date +%Y%m%d%H%M%S)"\n'
@@ -181,7 +181,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="backup-timestamp-fallback-windows",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old=(
             "    if (Test-Path -LiteralPath $dest) {\n"
             "        $dest = \"$Path.bak.$(Get-Date -Format 'yyyyMMddHHmmss')\"\n"
@@ -218,7 +218,7 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="windows-path-not-included",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old='{{ includeTemplate "windows-path.ps1" . }}',
         new="",
         layer="L2",
@@ -292,13 +292,13 @@ MUTANTS: list[Mutant] = [
     ),
     Mutant(
         name="neovim-skip-aborts-apply",
-        path=".chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl",
+        path=".chezmoiscripts/run_before_50-neovim.ps1.tmpl",
         old="    Write-Warning 'chezmoi: mise not found, skipping neovim'",
         new="    Write-Error 'chezmoi: mise not found, skipping neovim'",
         layer="L7",
         rationale=(
             "$ErrorActionPreference = 'Stop' 之下 Write-Error 是終止性的，後面的 exit 0 "
-            "到不了。這支是 run_onchange_before_，非零退出會在任何檔案被寫出來之前中止"
+            "到不了。這支是 run_before_，非零退出會在任何檔案被寫出來之前中止"
             "整個 apply —— 使用者連 PowerShell profile 都拿不到"
         ),
     ),

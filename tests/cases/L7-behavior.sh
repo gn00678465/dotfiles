@@ -55,7 +55,7 @@ fi
 exit 0
 STUB
 chmod +x "$_a/stub/"*
-render_file linux .chezmoiscripts/run_onchange_before_50-neovim.sh.tmpl > "$_a/50-neovim.sh"
+render_file linux .chezmoiscripts/run_before_50-neovim.sh.tmpl > "$_a/50-neovim.sh"
 
 # 光把 stub 放進 PATH 不夠：腳本第一行是
 #   eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -166,7 +166,7 @@ else
     # 開始驅動主機上的真工具 —— 而那正是 Must NOT #1 守的那條線。
     printf '@echo off\r\necho %%* >> "%s\\mise-calls.log"\r\nexit /b 0\r\n' "$_bn" > "$_bw/stub/mise.cmd"
     printf '@echo off\r\nif "%%1"=="clone" (\r\n  mkdir "%%~5" 2>nul\r\n  mkdir "%%~5\\.git" 2>nul\r\n  echo starter> "%%~5\\init.lua"\r\n)\r\nexit /b 0\r\n' > "$_bw/stub/git.cmd"
-    render_file windows .chezmoiscripts/run_onchange_before_50-neovim.ps1.tmpl > "$_bw/50-neovim.ps1"
+    render_file windows .chezmoiscripts/run_before_50-neovim.ps1.tmpl > "$_bw/50-neovim.ps1"
 
     # 假的 %LOCALAPPDATA% / %TEMP% / %ProgramFiles%：腳本算出來的每一條路徑都會
     # 落在這個沙盒裡，而 windows-path.ps1 想 prepend 的真實目錄都不存在，
@@ -243,7 +243,7 @@ PSEOF
     # ---- mise 不存在時的行為：必須「跳過」，不是「中止整個 apply」 ----
     # POSIX 版是 `echo ... >&2; exit 0`。Windows 版原本寫 Write-Error，而在
     # $ErrorActionPreference = 'Stop' 之下 Write-Error 是**終止性**的 ——
-    # 後面那行 exit 0 根本到不了，chezmoi 收到的是 1。這支是 run_onchange_before_，
+    # 後面那行 exit 0 根本到不了，chezmoi 收到的是 1。這支是 run_before_，
     # 非零退出會在**任何檔案被寫出來之前**中止整個 apply：使用者連 PowerShell
     # profile 與 settings.json 都拿不到。比它想做的「跳過 neovim」嚴重得多。
     _nomise="$_bw/nomise"

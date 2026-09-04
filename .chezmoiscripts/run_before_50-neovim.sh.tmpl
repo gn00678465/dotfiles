@@ -6,6 +6,11 @@
 # `before`, because `git clone` refuses a non-empty target and chezmoi owns
 # files *inside* ~/.config/nvim (private_dot_config/nvim/...). The starter has
 # to land first; chezmoi then writes our overrides on top of it.
+# `run_` rather than `run_onchange_`: the script is idempotent (`mise use` is a
+# no-op for an installed version, the marker below stops the re-clone), so
+# running it on every apply is what makes a removed neovim come back. With
+# run_onchange_ it only re-ran when its own hash changed, and chezmoi keeps
+# that hash in two state buckets, so "reinstall" meant hand-editing state.
 set -euo pipefail
 
 eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
@@ -43,10 +48,10 @@ nvim_state="${XDG_STATE_HOME:-$HOME/.local/state}/nvim"
 nvim_cache="${XDG_CACHE_HOME:-$HOME/.cache}/nvim"
 
 # Our own marker, not LazyVim's. Directory existence is not a usable guard once
-# this script moves things aside: on a re-run (this is run_onchange_, so editing
-# the script re-runs it) an existing ~/.config/nvim is the user's own config,
-# not a foreign one, and must not be backed up and re-cloned over. Delete this
-# file to deliberately force a clean re-bootstrap on the next apply.
+# this script moves things aside: on a re-run (this is run_, it runs on every
+# apply) an existing ~/.config/nvim is the user's own config, not a foreign one,
+# and must not be backed up and re-cloned over. Delete this file to deliberately
+# force a clean re-bootstrap on the next apply.
 marker="$nvim_config/{{ $v.lazyvimMarker }}"
 
 # `mv dir dir.bak` moves dir *inside* dir.bak when dir.bak already exists, which
