@@ -1,7 +1,7 @@
 # SPEC — native Windows 支援
 
 - `spec_version`: v7
-- `status`: approved
+- `status`: shipped
 - `tier`: 3
 - `scope`: windows-support
 - `base_ref`: `59ebb87`（`origin/main`；**注意：main 已經含有這份移植**，所以 L10 不再重新驗證 Must NOT #2 —— 這是 v7 明確核准的降級，理由與代價見 §9 的 v6 → v7。先前為 `ccae9d8`、更早為 `0d72b8e`）
