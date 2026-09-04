@@ -159,10 +159,12 @@ unset _s _c _profile _theme
 # tree-sitter CLI 在兩個平台都要裝，而且要的是 **CLI**：brew 的 `tree-sitter` formula
 # 從 0.27 起只裝函式庫，CLI 拆到 `tree-sitter-cli`。少了 CLI，LazyVim 會退回 mason 的
 # GitHub 預編譯二進位，那個要 glibc 2.39，Debian 12（2.36）上每一個 parser 都編不過（實測）。
-_brew=$(render_file linux .chezmoiscripts/run_onchange_before_30-install-brew-packages.sh.tmpl)
+# 只看 `for formula` 那一行：腳本的註解本來就會提到 tree-sitter-cli（說明為什麼不是
+# tree-sitter），比對整個檔案會讓「清單裡拿掉、註解裡還在」的 mutant 存活。
+_brew=$(render_file linux .chezmoiscripts/run_onchange_before_30-install-brew-packages.sh.tmpl \
+        | grep '^for formula')
 assert_contains "brew 清單裝的是 tree-sitter-cli（CLI）" "$_brew" ' tree-sitter-cli'
-assert_not_contains "brew 清單沒有只裝函式庫的 tree-sitter formula" \
-    "$(printf '%s\n' "$_brew" | grep '^for formula')" ' tree-sitter;'
+assert_not_contains "brew 清單沒有只裝函式庫的 tree-sitter formula" "$_brew" ' tree-sitter '
 assert_contains "winget 清單裝的是 tree-sitter.tree-sitter-cli" \
     "$(render_file windows .chezmoiscripts/run_onchange_before_30-install-winget-packages.ps1.tmpl)" \
     "'tree-sitter.tree-sitter-cli'"
