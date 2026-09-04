@@ -50,6 +50,7 @@ MANIFEST_FILE="$ART/layers-manifest"
 cat > "$MANIFEST_FILE" <<'EOF'
 versions
 source-state-before
+intent
 agent-doc-invariants
 suite
 suite-health-repeat
@@ -96,6 +97,12 @@ run_layer versions "$ART/versions.txt" versions
 # ------------------------------------------------------- source state (before)
 run_layer source-state-before "$ART/source-state-before.txt" \
     sh tools/gate-source-state.sh
+
+# -------------------------------------------------------------------- intent
+# evidence 標頭的 intent 欄位從這裡的輸出逐字複製。手填的標頭會與 SPEC 脫節
+# （這份報告發生過：SPEC 到了 v7，標頭還寫 v6），而 spec-archive 在 CLOSE 會拿
+# 報告引用的 spec_version 與 SPEC 比對。
+run_layer intent "$ART/intent.txt" sh tools/gate-intent.sh windows-support
 
 # -------------------------------------------------------- agent doc invariants
 # main 的 #3 帶進來的，管的是 agent 文件之間的一致性，不屬於 Windows 移植的層。
