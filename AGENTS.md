@@ -132,8 +132,7 @@ future drift away from that parity still fails the gate.
 runs selected layers. Layers: L1 platform partial, L2 script render matrix,
 L3 managed target set, L4 syntax, L5 externals, L6 file-level goldens (the
 data-preservation cases), L7 behaviour (real script runs in a redirected
-environment), L8 real-Windows seam validation, L10 POSIX regression against the
-SPEC's `base_ref`, L11 verbatim render goldens (`init.ps1`, `_probe.ps1`, the
+environment), L8 real-Windows seam validation, L11 verbatim render goldens (`init.ps1`, `_probe.ps1`, the
 Windows scripts). L9 is the Windows Sandbox end-to-end run -- see
 `tests/sandbox/README.md`: **local mode** (`prepare.sh` + `sandbox.wsb`, tests an
 unpushed tree) and **remote mode** (one `irm | iex` line inside any Sandbox,

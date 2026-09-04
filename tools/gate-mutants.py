@@ -191,8 +191,7 @@ MUTANTS: list[Mutant] = [
         layer="L7",
         rationale=(
             "Windows 端第二次 bootstrap 直接沿用 dir.bak，把上一份備份埋掉。"
-            "POSIX 那半有 L10 逐位元組比對兜底，Windows 這半沒有 base 可比，"
-            "只有 L7 能證偽它"
+            "備份的形狀只有真的把腳本跑起來才看得到，L7 是唯一能證偽它的層"
         ),
     ),
     Mutant(
@@ -247,9 +246,8 @@ MUTANTS: list[Mutant] = [
         new="for formula in mise fzf git-lfs ripgrep fd lazygit; do",
         layer="L2",
         rationale=(
-            "把 AGENTS.md 明文禁止修剪的 tree-sitter-cli 拿掉。原本由 L10 對 base ref"
-            "逐位元組比對擋下；L10 改成「差異須由本分支改過的來源檔解釋」之後，"
-            "同一條 branch 裡改過的腳本就解釋得掉自己，所以改由 L2 直接釘清單內容"
+            "把 AGENTS.md 明文禁止修剪的 tree-sitter-cli 拿掉。L2 直接釘 brew 清單"
+            "那一行的內容（L10 移除前是靠對 base ref 的逐位元組比對擋下）"
         ),
     ),
     Mutant(
@@ -280,8 +278,8 @@ MUTANTS: list[Mutant] = [
         layer="L11",
         rationale=(
             "AGENTS.md 明文禁止修剪的那一項，Windows 版。"
-            "POSIX 的鏡像（posix-script-content-drift）由 L10 對 base ref 比對擋下，"
-            "Windows 沒有 base 可比，這一條就是 L11 存在的理由"
+            "POSIX 的鏡像（posix-script-content-drift）由 L2 釘清單內容擋下；"
+            "Windows 這一條由 L11 的 golden 擋"
         ),
     ),
     Mutant(
@@ -398,8 +396,8 @@ MUTANTS: list[Mutant] = [
         rationale=(
             "拿掉 -ExecutionPolicy Bypass。全新 Windows 的預設是 Restricted，"
             "chezmoi 寫到 %TEMP% 的第一支 .ps1 就會拒載，整個 apply 在任何檔案"
-            "落地前中止（M13，L9 第一次真實執行的根因）。L10 抓不到這一條 —— "
-            "整個區段包在 isWindows 裡，POSIX 的渲染完全不受影響"
+            "落地前中止（M13，L9 第一次真實執行的根因）。整個區段包在 isWindows 裡，"
+            "POSIX 的渲染完全不受影響，只有 L2 對 Windows 設定的斷言看得到"
         ),
     ),
     Mutant(

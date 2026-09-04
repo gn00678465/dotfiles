@@ -1,7 +1,7 @@
-# L11 — Windows 側缺的那個 oracle。
+# L11 — Windows 側的內容 oracle。
 #
-# POSIX 的每一個產物都能跟 base ref 逐位元組比對（L10），那一個機制免費擋掉整類
-# 「內容悄悄漂移」的問題。Windows 沒有 base ref 可比，於是原本只剩三個程序，而它們
+# 這一層誕生時 POSIX 有 L10 對 base ref 逐位元組比對（移植期間的回歸比較器，移植
+# 封存後已移除）；Windows 沒有 base ref 可比，於是原本只剩三個程序，而它們
 # 結構上都不可能因為內容改變而失敗：
 #   L2 比的是一份手列的子字串清單；
 #   L7 把 %LOCALAPPDATA%/%ProgramFiles% 重導向到空沙盒，看不到 PATH 與套件清單；
@@ -65,8 +65,8 @@ _arch_pair windows windows-arm64 ".config/powershell/profile.ps1" "profile.ps1"
 _arch_pair linux linux-arm64 ".chezmoiscripts/50-neovim.sh" "50-neovim.sh"
 
 # ---------- C. Windows 專屬產物的 golden 快照 ----------
-# 涵蓋的是「這個平台沒有 base ref 可比」的那些檔案。POSIX 專屬與跨平台共用的部分
-# 分別由 L10 與上面的 A 負責，不重複。
+# 涵蓋的是 Windows 專屬的檔案。跨平台共用的部分由上面的 A 負責，POSIX 專屬的
+# 腳本內容由 L2 的具名斷言釘住，不重複。
 _GOLDEN_RENDER="$GOLDEN/render/windows"
 for _t in .chezmoiscripts/30-install-winget-packages.ps1 \
           .chezmoiscripts/35-install-ps-modules.ps1 \
@@ -209,13 +209,13 @@ for _pair in "init.ps1|$REPO/init.ps1" "_probe.ps1|$REPO/tests/sandbox/_probe.ps
 done
 
 # 測試層自己也會被刪掉。gate 的 manifest 稽核管的是 **gate 的層**，不是測試層；
-# 而 tests/run.sh 在指定的層檔案不存在時是 exit 0（`1..0`）。L1/L2/L3/L5/L6/L7/L10/L11
+# 而 tests/run.sh 在指定的層檔案不存在時是 exit 0（`1..0`）。L1/L2/L3/L5/L6/L7/L11
 # 被刪掉會讓對應的 mutant 變成 SURVIVED 而讓 mutation 層變紅，但 **L4 與 L8 沒有任何
 # mutant 指向它們** —— 獨立驗證實測：把這兩個檔案刪掉，整個 gate 照樣全綠。
 # L8 是 SPEC 對 M8 唯一指名的程序（接縫與真實 Windows 行為是否一致），而這份報告
 # 每一條 Windows 與 macOS 的主張都是經由那個接縫推導出來的。
 assert_eq "測試層的檔案集合" \
-    "$(printf '%s\n' L1-platform.sh L10-posix-regression.sh L11-render-golden.sh \
+    "$(printf '%s\n' L1-platform.sh L11-render-golden.sh \
         L2-script-render-matrix.sh L3-managed-set.sh L4-syntax.sh L5-externals.sh \
         L6-file-golden.sh L7-behavior.sh L8-windows-seam.sh | LC_ALL=C sort)" \
     "$(ls "$REPO/tests/cases" | LC_ALL=C sort)"
