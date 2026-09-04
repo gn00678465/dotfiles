@@ -210,6 +210,13 @@ point, the layer stack, and the report.
   evidence report then files under a name that does not match
   `specs/<scope>/`, and Phase 5's "beside the evidence report" resolves to a
   different directory.
+- **The report's intent header is copied from the gate, never typed.**
+  `intent_status`, `intent_source` and the `spec_version: vN` it quotes are
+  facts the gate derives from the committed spec (an intent layer that
+  reads `spec_version`, `status` and the approval record from git). A header
+  typed from memory drifts from the spec — CLOSE refuses a report whose
+  `spec_version` differs from the spec's, so the drift surfaces there, but
+  the fix is to regenerate the header, not to edit it.
 - **A failing gate blocks done.** You are not finished while any layer
   fails; if genuinely blocked, report the failure verbatim as the outcome.
 
@@ -266,8 +273,11 @@ independent verification has finalized): it flips `status` to `shipped`,
 moves the spec to `specs/archive/<scope>/`, and commits — mechanically, fail
 closed. That commit is the last one before the merge, so the PR carries the
 shipped spec and the default branch never holds an `approved` one; `--check`
-run there treats any candidate as a skipped close. Never move or edit the
-spec files by hand in its place.
+run there treats any candidate as a skipped close. The script also reads the
+committed evidence report and refuses to close a spec whose `spec_version`
+the report does not carry: the evidence must have been produced against the
+version being shipped. Never move or edit the spec files by hand in its
+place.
 
 ## Anti-Gaming Rules (absolute, bind through every phase)
 

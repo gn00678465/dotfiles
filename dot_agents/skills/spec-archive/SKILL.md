@@ -38,7 +38,13 @@ touches only that copy. The script, fail closed:
 
 1. **Refuses** — spec missing or status line unparseable (rc 2); status not
    `approved` (rc 1); working tree dirty — archiving must be one atomic
-   commit (rc 1); already archived or already `shipped` (rc 1).
+   commit (rc 1); already archived or already `shipped` (rc 1); no
+   committed evidence report, or one whose header records a different
+   `spec_version` than the spec (rc 1) — the report is read from git at
+   `.scratch/<scope>/evidence.md` or `.gate/<scope>/evidence.md`, and its
+   header must quote `spec_version: vN` (the gate's intent layer prints it in
+   that form), so a report written against an earlier spec version cannot
+   close a later one.
 2. **Flips `status` to `shipped`** — the spec's one final mutation; after
    this commit the file is immutable.
 3. **`git mv specs/<scope> specs/archive/<scope>`** and commits

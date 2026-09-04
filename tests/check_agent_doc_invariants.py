@@ -196,6 +196,15 @@ def main() -> None:
     require(skill, "gate gathers ordering", "| Ordering |")
     require(evidence_t, "ordering field exists", "`ordering`:")
 
+    # 13. CLOSE reads the evidence report's `spec_version` from git and
+    #     refuses a mismatch — a promise the workflow and the skill both
+    #     state, so the script must actually carry the check, and the
+    #     evidence header's quoting form must be the one the script parses.
+    require(workflow, "close checks evidence version", "`spec_version`")
+    require(archiver_skill, "skill states the evidence version gate", "`spec_version: vN`")
+    require(archiver, "archiver parses the evidence version", "EVIDENCE_VERSION_RE")
+    require(archiver, "archiver refuses a version mismatch", "ev_version != v.group(1)")
+
     print(f"OK: {CHECKS} invariants hold")
 
 
