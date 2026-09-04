@@ -8,3 +8,7 @@ bin/
 
 # EnterWorktree 建立的隔離 worktree，內容是同 repo 的另一個 checkout
 .claude/worktrees/
+
+# python bytecode (tools/*.py are run in place)
+__pycache__/
+*.pyc
