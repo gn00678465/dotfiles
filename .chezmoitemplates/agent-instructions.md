@@ -12,4 +12,9 @@
 - A comment states the non-obvious reason at the owning boundary. Include a constraint or invalidation condition only when a maintainer needs it to know when the rationale or code stops being valid. Do not restate the operation, preserve intermediate attempts, or list speculative future work.
 - When a root cause took more than one round of changes to locate, minimize the final diff before handing off. Every changed line maps to the root-cause fix or the target behavior; anything else is exploration residue, such as hypothesis scaffolding, defensive fallbacks, duplicated logic, or redundant refreshes, and gets deleted or reverted. Keep the fix consistent with the established pattern for comparable features. Surviving non-obvious constraints (field semantics, state lifecycle, timing boundaries) take the comment above, or the next investigation repeats the same wrong assumption.
 
+## Writing
+
+- Write in Traditional Chinese following ASD-STE100. Use zhtw-mcp for non-Taiwan terms. This does not apply to code, identifiers, API names, or required technical terms.
+- Remove all mannered prose.
+
 {{ template "evidence-first-contract.md" . }}
