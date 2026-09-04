@@ -15,5 +15,6 @@
 ## Writing
 
 - Write in Traditional Chinese following ASD-STE100. Use zhtw-mcp for non-Taiwan terms. This does not apply to code, identifiers, API names, or required technical terms.
+- Remove all mannered prose.
 
 {{ template "evidence-first-contract.md" . }}
