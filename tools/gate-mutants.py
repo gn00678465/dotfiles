@@ -243,13 +243,13 @@ MUTANTS: list[Mutant] = [
     Mutant(
         name="posix-script-content-drift",
         path=".chezmoiscripts/run_onchange_before_30-install-brew-packages.sh.tmpl",
-        old="for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter; do",
+        old="for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli; do",
         new="for formula in mise fzf git-lfs ripgrep fd lazygit; do",
-        layer="L10",
+        layer="L2",
         rationale=(
-            "把 AGENTS.md 明文禁止修剪的 tree-sitter 拿掉 —— 改變了 Linux/macOS 的"
-            "既有行為（Must NOT #2）。L10 原本帶 --exclude=scripts，腳本內容從來"
-            "沒有跟 base 比對過，這個 mutant 一度可以存活整套測試"
+            "把 AGENTS.md 明文禁止修剪的 tree-sitter-cli 拿掉。原本由 L10 對 base ref"
+            "逐位元組比對擋下；L10 改成「差異須由本分支改過的來源檔解釋」之後，"
+            "同一條 branch 裡改過的腳本就解釋得掉自己，所以改由 L2 直接釘清單內容"
         ),
     ),
     Mutant(
