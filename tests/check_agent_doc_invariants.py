@@ -12,6 +12,7 @@ Usage: tests/check_agent_doc_invariants.py [repo-root]
 """
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -89,6 +90,7 @@ def count_numbered_rules(file: Path, heading: str, expected: int) -> None:
 
 
 def main() -> None:
+    global CHECKS
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else \
         Path(__file__).resolve().parent.parent
 
@@ -101,6 +103,9 @@ def main() -> None:
     evidence_t = root / "dot_agents/skills/verification-gate/assets/templates/evidence.md"
     archiver_skill = root / "dot_agents/skills/spec-archive/SKILL.md"
     archiver = root / "dot_agents/skills/spec-archive/scripts/spec-archive.py"
+    commit_skill = root / "dot_agents/skills/commit/SKILL.md"
+    entry_point_ref = root / "dot_agents/skills/verification-gate/references/entry-point.md"
+    docs = root / "docs/evidence-first.md"
 
     # 1. Layer-status vocabulary: SKILL.md and the evidence template must
     #    carry the same five states — a status one side names and the other
@@ -204,6 +209,127 @@ def main() -> None:
     require(archiver_skill, "skill states the evidence version gate", "`spec_version: vN`")
     require(archiver, "archiver parses the evidence version", "EVIDENCE_VERSION_RE")
     require(archiver, "archiver refuses a version mismatch", "ev_version != v.group(1)")
+
+    # 14. SPEC global-agent-instructions S2: shortening the contract must not
+    #     cost the properties it exists to guarantee. Each literal already
+    #     holds today (this is regression armor, not a new behaviour) — proven
+    #     non-vacuous once via a throwaway mutant on this same file, restored,
+    #     per SKILL.md's "prove a negative control is itself non-vacuous".
+    require(contract, "tests-first property survives", "committed before the implementation")
+    require(contract, "RED property survives", "observed failing first")
+    require(contract, "tier property survives", "Tier declared in the spec")
+    require(contract, "anti-gaming property survives", "fix the implementation, never the test")
+    require(contract, "degraded-evidence disclosure survives", "never silent")
+
+    # 15. SPEC global-agent-instructions S3: a gate backed by a committed,
+    #     approved spec that already authorizes this gate's intent/tier/setup
+    #     must reuse it rather than re-asking; a standalone gate with no
+    #     confirmable intent, or one needing authorization the spec never
+    #     granted, still asks.
+    require(skill, "gate reuses an already-authorized spec without re-asking",
+            "already supplies intent, tier, and this gate's setup")
+    require(skill, "gate still asks for unauthorized new work",
+            "needs a dependency or authorization the spec did not grant")
+
+    # 16. SPEC global-agent-instructions S4: the workflow names exactly where
+    #     the final evidence report is committed before CLOSE, and warns
+    #     against leaving both of spec-archive's candidate paths tracked —
+    #     the archiver treats that as ambiguous and refuses to guess.
+    require(workflow, "final evidence commit path stated", "`.scratch/<scope>/evidence.md`")
+    require(workflow, "ambiguous-evidence warning", "never track both at once")
+
+    # 17. SPEC global-agent-instructions S5: CLOSE happens before merge
+    #     everywhere it is described. The top-level diagram once said
+    #     "after merge: CLOSE", contradicting Phase 6's own heading.
+    forbid(workflow, "stale after-merge CLOSE timing removed", "after merge: CLOSE")
+    require(workflow, "CLOSE timing consistent with Phase 6", "before merge: CLOSE")
+
+    # 18. SPEC global-agent-instructions S6: the commit skill must not ask to
+    #     help run a command it already ran, and must not force an atomic
+    #     split purely because commit types differ when the groups cannot be
+    #     built or reverted independently anyway.
+    forbid(commit_skill, "no re-ask after commit already ran",
+           "是否需要協助執行上述 commit 指令")
+    require(commit_skill, "reports the already-run commit instead",
+            "commit 已於步驟 4 完成")
+    forbid(commit_skill, "no forced split on type difference alone",
+           "即使 score ≤ 8 也應進入步驟 4")
+    require(commit_skill, "split gated on independent buildability",
+            "無法各自建置或獨立還原")
+
+    # 19. SPEC global-agent-instructions S8: GREEN may run the affected tests
+    #     first (full suite only when it stays fast); the final gate always
+    #     runs every applicable layer regardless. The subjective "needs a
+    #     paragraph to explain, split it" complexity-budget criterion is
+    #     dropped as a named layer rather than kept unenforceable.
+    forbid(workflow, "GREEN no longer demands the full suite unconditionally",
+           "not just the new test")
+    require(workflow, "GREEN may run affected tests first",
+            "Run at least the affected tests")
+    forbid(skill, "complexity budget layer removed from the gate skill", "Complexity budget")
+    forbid(evidence_t, "complexity budget row removed from the evidence template",
+           "Complexity budget")
+
+    # 20. Gate 修正輪次 2/2, group B: S3's exception (an authorized spec is
+    #     reused, not re-confirmed) was only wired into the Acquisition
+    #     section. Five other unconditional "always confirm/ask" spots in the
+    #     same skill still contradict it.
+    require(skill, "scaffold reuses spec-authorized paths",
+            "unless the committed, approved spec's Setup plan already authorizes these paths")
+    require(skill, "inputs reuse an already-authorized spec before asking",
+            "Resolve these from a committed, approved spec when it already supplies them")
+    require(skill, "tier reuses the spec's declared tier before inferring",
+            "Use the committed, approved spec's declared tier when one exists")
+    require(skill, "entry-point writes reuse spec authorization",
+            "unless the committed, approved spec's Setup plan already authorizes this entry point by path")
+    require(skill, "toolchain setup reuses spec-authorized tools",
+            "unless the committed, approved spec's Setup plan already authorizes the tools to install")
+
+    # 21. Gate 修正輪次 2/2, group C: the skill and the entry-point reference
+    #     must say, in so many words, that intent/tier/version come from the
+    #     committed spec, and that intent_source must carry the exact
+    #     backtick-quoted `spec_version: vN` form the archiver's regex parses.
+    require(skill, "skill states intent/tier/version derive from the committed spec",
+            "derive `intent_status`, the tier, and the version citation from that spec")
+    require(skill, "skill states the parseable intent_source form", "`spec_version: vN`")
+    require(entry_point_ref, "entry-point states intent/tier/version derive from the committed spec",
+            "derive `intent`, `tier`, and the evidence header's version citation from it")
+    require(evidence_t, "evidence template documents the intent_source version-citation form",
+            "spec_version: vN")
+
+    # 22. Gate 修正輪次 2/2, group D: the commit skill's 注意事項 section still
+    #     carried the old unconditional split rule this SPEC replaced in
+    #     group 18 — a leftover that contradicts the new one right next to it.
+    forbid(commit_skill, "no leftover unconditional type-split rule in 注意事項",
+           "當提交符合一或多種提交類型時，應盡可能切成多個提交")
+
+    # 23. Gate 修正輪次 2/2, group E: docs/evidence-first.md must name this
+    #     scope's own gate entry point (it only named tools/gate.sh) and carry
+    #     the same ambiguous-evidence-path warning group 16 put in the
+    #     reference workflow.
+    require(docs, "docs name this scope's gate entry point", "gate-agent-instructions.py")
+    require(docs, "docs carry the ambiguous-evidence-path warning", "不得同時追蹤兩個路徑")
+
+    # 24. Gate 修正輪次 2/2, group A: the gate entry point itself must refuse
+    #     an unreachable --base (rc=2) before running any layer, and must
+    #     never print a passing headline in that case. This is the entry
+    #     point's own behaviour, checked by actually invoking it — the doc
+    #     invariants above assert what the docs promise, this asserts the
+    #     script keeps that promise.
+    gate_script = root / "tools/gate-agent-instructions.py"
+    if not gate_script.is_file():
+        die(2, f"missing gate entry point: {gate_script}")
+    r = subprocess.run(
+        [sys.executable, str(gate_script), "--base", "0" * 40],
+        cwd=root, capture_output=True, text=True, encoding="utf-8",
+    )
+    if r.returncode != 2:
+        die(1, f"gate-agent-instructions.py --base <unreachable> exited {r.returncode}, "
+               f"expected 2 (fail closed before running any layer)")
+    if "all layers green" in r.stdout:
+        die(1, "gate-agent-instructions.py printed a passing headline "
+               "despite an unreachable --base")
+    CHECKS += 1
 
     print(f"OK: {CHECKS} invariants hold")
 

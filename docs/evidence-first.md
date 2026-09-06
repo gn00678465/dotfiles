@@ -45,7 +45,7 @@ Evidence-first 是一份合約。它要求 repo 在變更完成時帶著五個�
 | 1 SPEC | 把需求寫成可執行的驗收條件：tier、scenarios、Must NOT、setup plan | `specs/<scope>/SPEC.md` | 路徑固定。`spec-archive` 只認這個路徑 |
 | 2 SPEC REVIEW | 給人看 SPEC，取得核准，逐字記錄，`status` 改為 `approved`，提交 | SPEC 的 Approval 一節 | `spec-archive` 拒絕非 `approved` 的 SPEC |
 | 3 IMPLEMENT | 每個行為：RED → GREEN → REFACTOR。測試先提交 | 測試與實作的 commit | gate 從 git 重建 RED 與 commit 順序 |
-| 4 VERIFY | 呼叫 `verification-gate` skill。`gate` 反覆修，`evidence` 只跑一次 | `.scratch/<scope>/evidence.md`（本 repo 的慣例） | gate 任一層失敗即擋住 done。intent 標頭由 gate 從 SPEC 導出 |
+| 4 VERIFY | 呼叫 `verification-gate` skill。`gate` 反覆修，`evidence` 只跑一次 | `.scratch/<scope>/evidence.md`（workflow Phase 4 規定，CLOSE 前提交） | gate 任一層失敗即擋住 done。intent 標頭由 gate 從 SPEC 導出 |
 | 5 INDEPENDENT VERIFICATION | Tier 3 選項。派 `verifier` agent，只給四項輸入，不給對話 | findings 與處置 | — |
 | 6 CLOSE | 呼叫 `spec-archive` skill。`status` 改為 `shipped`，搬到 `specs/archive/<scope>/`，提交。這是分支最後一個 commit，在合併之前 | `specs/archive/<scope>/SPEC.md` | 工作樹不乾淨、SPEC 未核准、evidence 缺少或版本不符，一律拒絕 |
 
@@ -74,9 +74,9 @@ sequenceDiagram
 |---|---|---|
 | SPEC | `specs/<scope>/SPEC.md` | 合約固定。範本在 `~/.agents/workflows/templates/spec.md` |
 | 封存後的 SPEC | `specs/archive/<scope>/SPEC.md` | 由 `spec-archive` 搬移，不可手動 |
-| Evidence | `.scratch/<scope>/evidence.md` | 本 repo 的慣例。放在 `specs/` 之外，因為封存會搬整個目錄 |
+| Evidence | `.scratch/<scope>/evidence.md` | 本 repo 的慣例。放在 `specs/` 之外，因為封存會搬整個目錄；`spec-archive` 也接受 `.gate/<scope>/evidence.md`，但不得同時追蹤兩個路徑——兩邊都有已提交的檔案會判定為 ambiguous，CLOSE 直接拒絕 |
 | Gate 產出 | `.gate/<scope>/` | 在 `.gitignore`。每次 gate 開頭清空 |
-| Gate 入口 | `tools/gate.sh` | 本 repo 的入口。其他 repo 由 `verification-gate` 建立 |
+| Gate 入口 | `tools/gate.sh`（windows-support）、`tools/gate-agent-instructions.py`（global-agent-instructions） | 本 repo 每個 scope 各自的入口，不共用彼此的 artifact 目錄。其他 repo 由 `verification-gate` 建立 |
 
 ## 6. 哪些是機械擋住的
 
@@ -86,9 +86,10 @@ sequenceDiagram
 |---|---|
 | `spec-archive` 拒絕：非 approved、樹不乾淨、已封存、evidence 缺少或 `spec_version` 不符 | 先核准再實作 |
 | `spec-archive --check` 在預設分支上遇到 approved 的 SPEC，exit 1 | RED 要親眼看到 |
-| `gate.sh` 任一層失敗即停，manifest 稽核確認每層都跑過 | 改實作不改測試 |
+| 各 scope 的 gate 入口任一層失敗即停，manifest 稽核確認每層都跑過 | 改實作不改測試 |
 | `gate-intent.sh` 從 SPEC 導出 intent 標頭 | evidence 只跑一次 |
 | `tests/check_agent_doc_invariants.py` 守住合約、workflow、skill 之間的承諾 | 未授權不動手 |
+| `gate-agent-instructions.py` 的 `--base` 不可達即 exit 2，不執行任何層 | — |
 
 右欄的每一條，在 windows-support 這次都至少漏過一次。要加約束，加在左欄。
 
@@ -101,8 +102,14 @@ python3 ~/.agents/skills/spec-archive/scripts/spec-archive.py --check
 # 封存（在 feature branch，gate 的 evidence 之後，合併之前）
 python3 ~/.agents/skills/spec-archive/scripts/spec-archive.py <scope>
 
-# 本 repo 的 gate 入口。evidence 的每個數字都來自它的同一次執行
+# 本 repo 的 gate 入口之一（windows-support）。屬於這個入口自己跑的層，
+# evidence 裡的數字才來自它的同一次執行；baseline、RED reconstruction
+# 與 lint/suite-health 之類的替代檢查是額外手動取得，各自在 evidence 裡
+# 標明來源，不是這行指令跑出來的
 sh tools/gate.sh
+
+# global-agent-instructions 的 gate 入口
+uv run --no-project python tools/gate-agent-instructions.py --base e0d3e0e721dd6a01120a9b516f9c9fcfa57ab751
 
 # 合約與 skill 之間的跨檔承諾
 python3 tests/check_agent_doc_invariants.py

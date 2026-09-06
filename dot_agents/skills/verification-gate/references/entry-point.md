@@ -14,6 +14,8 @@ whole report with it. Pin dev-tool versions (requirements-dev.txt,
 package.json devDependencies with exact versions, etc.) so the rerun uses the
 same gate.
 
+When a committed spec exists, derive `intent`, `tier`, and the evidence header's version citation from it rather than the conversation — quote the spec's `spec_version` verbatim in `intent_source` as `` `spec_version: vN` ``, the exact form `spec-archive` parses at CLOSE.
+
 Gate code itself must fail closed (see the checker note in SKILL.md): `set -e`
 at the top, no `|| true`, no `2>/dev/null`, and spell out the exit-code cases
 of any command whose codes are ambiguous. The classic trap is a

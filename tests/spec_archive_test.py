@@ -15,16 +15,20 @@ suite's own negative control — pointing it at a stub must go red).
 """
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
 ARCHIVER = Path(os.environ.get(
     "SPEC_ARCHIVE_UNDER_TEST",
-    Path(__file__).resolve().parent.parent
-    / "dot_agents/skills/spec-archive/scripts/spec-archive.py",
+    ROOT / "dot_agents/skills/spec-archive/scripts/spec-archive.py",
 ))
+EVIDENCE_TEMPLATE = ROOT / "dot_agents/skills/verification-gate/assets/templates/evidence.md"
+
+FIELD_LINE_RE = re.compile(r"^-\s*`([\w_]+)`:.*$", re.MULTILINE)
 
 FAILURES = 0
 PASSES = 0
@@ -65,6 +69,30 @@ def expect(desc: str, repo: Path, args: list[str], rc: int,
               + f", got rc {r.returncode}\n  stdout: {r.stdout.strip()}"
               + f"\n  stderr: {r.stderr.strip()}", file=sys.stderr)
     return r
+
+
+def real_evidence_header(spec_version: str) -> str:
+    """Build a header from the actual evidence template rather than a
+    hand-written string (SPEC global-agent-instructions S4): every field name
+    comes from `assets/templates/evidence.md` itself, so a future reshuffle of
+    that template breaks this test before it breaks CLOSE in production.
+    `intent_source`'s value follows the exact shape `tools/gate-intent.sh`
+    emits — the backtick-wrapped `spec_version: vN` embedded in prose is what
+    the archiver's regex actually greps for."""
+    text = EVIDENCE_TEMPLATE.read_text(encoding="utf-8")
+    header = text.split("\n## ", 1)[0]
+    lines: list[str] = []
+    for line in header.splitlines():
+        m = re.match(r"^(-\s*`([\w_]+)`:)", line)
+        if not m:
+            continue
+        field = m.group(2)
+        if field == "intent_source":
+            lines.append(f"{m.group(1)} 已提交的 SPEC `specs/foo/SPEC.md`"
+                         f"（`spec_version: {spec_version}`、`status: approved`）")
+        else:
+            lines.append(f"{m.group(1)} test-value")
+    return "\n".join(lines) + "\n"
 
 
 def check(desc: str, condition: bool) -> None:
@@ -153,6 +181,37 @@ def main() -> None:
         git(repo, "commit", "-qm", "qux without spec_version")
         expect("a spec without a spec_version line cannot be evaluated",
                repo, ["qux"], 2, stderr_has="spec_version")
+
+        # SPEC global-agent-instructions S4: fixtures built from the *real*
+        # evidence template, not a hand-written snippet unrelated to it.
+        header_fields = set(FIELD_LINE_RE.findall(
+            EVIDENCE_TEMPLATE.read_text(encoding="utf-8").split("\n## ", 1)[0]))
+        check("evidence template exposes the fields this harness relies on",
+              {"headline", "intent_source", "source_state"} <= header_fields)
+
+        quux = repo / "specs/quux/SPEC.md"
+        quux.parent.mkdir(parents=True)
+        quux.write_text("- `spec_version`: v3\n- `status`: approved\n\n## Approval\n",
+                        encoding="utf-8")
+        (repo / ".scratch/quux").mkdir(parents=True)
+        (repo / ".scratch/quux/evidence.md").write_text(
+            real_evidence_header("v3") + "\n## Baseline\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "quux via real template, matching version")
+        expect("real-template evidence with a matching version archives",
+               repo, ["quux"], 0, stdout_has="archived")
+
+        corge = repo / "specs/corge/SPEC.md"
+        corge.parent.mkdir(parents=True)
+        corge.write_text("- `spec_version`: v4\n- `status`: approved\n\n## Approval\n",
+                        encoding="utf-8")
+        (repo / ".scratch/corge").mkdir(parents=True)
+        (repo / ".scratch/corge/evidence.md").write_text(
+            real_evidence_header("v5") + "\n## Baseline\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "corge via real template, mismatched version")
+        expect("real-template evidence with a mismatched version is refused",
+               repo, ["corge"], 1, stderr_has="spec_version")
 
         # Happy path: one atomic commit, status flipped, spec moved.
         expect("approved spec on a clean tree archives", repo, ["foo"], 0,

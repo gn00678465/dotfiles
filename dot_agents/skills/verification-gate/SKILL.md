@@ -50,7 +50,7 @@ is one valid *source* of stated intent, never a required input.
 ## Commands
 
 - `scaffold`: create or repair the gate entry point and its helper scripts in
-  the target repository. Writes to product paths — always confirm first.
+  the target repository. Writes to product paths — confirm first, unless the committed, approved spec's Setup plan already authorizes these paths by name.
 - `gate`: run the layers against the change set and report results. Iterative;
   use while fixing. Does not write an evidence report.
 - `evidence`: run the entry point once and write the evidence report from that
@@ -62,7 +62,7 @@ wants a report, a handoff, or "prove it" → `evidence`.
 
 ## Inputs
 
-Resolve or ask for these before doing work:
+Resolve these from a committed, approved spec when it already supplies them; otherwise resolve or ask for these before doing work:
 
 - `change_set`: what to verify. Working tree, `<base>...HEAD`, a commit range,
   or a PR. Default: uncommitted changes if any exist, otherwise `main...HEAD`,
@@ -70,8 +70,7 @@ Resolve or ask for these before doing work:
 - `base`: the ref the change is measured against. Needed for the changed-unit
   list, the baseline run, and RED reconstruction.
 - `intent`: what the change was supposed to do. See Acquisition.
-- `tier`: `1`, `2`, or `3`. See Calibration. Infer and state it; the human may
-  override.
+- `tier`: `1`, `2`, or `3`. See Calibration. Use the committed, approved spec's declared tier when one exists; otherwise infer and state it, and the human may override.
 - `entry_point`: the single command that reruns every layer. Default: discover
   it in the repo, otherwise `scaffold` one.
 - `artifact_root`: default `.gate/`.
@@ -148,8 +147,13 @@ the reason fetching is the first move here and not the last resort.
 
 ### From the human — intent and authority
 
-Ask **once**, after git has been read, and ask with the derived answer already
-filled in so the human is confirming rather than composing:
+Skip this question entirely when a committed, approved spec at
+`specs/<scope>/SPEC.md` already supplies intent, tier, and this gate's setup
+(the tools and scope it needs) — reuse that authorization verbatim and say so
+in the report; re-asking would contradict the human's own approval. Ask only when the gate runs standalone with no confirmable intent, or needs a dependency or authorization the spec did not grant.
+
+Otherwise, ask **once**, after git has been read, and ask with the derived
+answer already filled in so the human is confirming rather than composing:
 
 > From git, this change does A, B, C. The commit messages say "<...>".
 > What was this change supposed to accomplish? Is there a spec, issue, or PR I
@@ -189,6 +193,8 @@ Record one of these in the report header. Never promote one silently:
 - `unconfirmed` — non-interactive run (CI, cron, headless). Intent derived from
   git only.
 - `absent` — git yields no usable intent and no one is available to ask.
+
+When a committed spec exists, derive `intent_status`, the tier, and the version citation from that spec — never retype them from memory — and quote the spec's `spec_version` verbatim in `intent_source` as `` `spec_version: vN` ``, the exact form `spec-archive` parses at CLOSE.
 
 `unconfirmed` and `absent` do not block the gate. Every executable layer runs
 regardless; those layers ask whether the code is self-consistent, which needs no
@@ -252,7 +258,6 @@ produces a number that looks like evidence and is not:
 | Coverage on changed lines | untested code paths | every changed/added **executable** line executed by a test; branch coverage where the tool supports it. Global % is vanity — changed-line coverage is the constraint. Define the fraction explicitly (see below) and **make the layer exit nonzero when its threshold is missed** — a layer that prints a percentage and exits 0 is a report, not a gate layer, and it will sit there green while coverage falls. Most ecosystems ship no command that does this; see `references/layers.md` |
 | Mutation testing | tests that assert nothing | **prefer the project's mutation tool** (mutmut, cosmic-ray, Stryker, PIT…), which generates mutants from the syntax tree and cannot silently skip one. No tool available? Manual mutation, per `references/mutation.md` — introduce 3–5 plausible bugs one at a time; the suite must kill every one; restore after. A hand-rolled runner must **prove it executed each mutant**: a runner that can report a kill it never ran inflates the score and no red gate will ever surface it |
 | Property-based tests | edge cases you didn't imagine | for parsing, math, serialization, anything with invariants (round-trip, idempotence, ordering) — add hypothesis/fast-check properties |
-| Complexity budget | unmaintainable output | new functions small and single-purpose; if a function needs a paragraph to explain, split it |
 | Real execution | "passes tests, doesn't run" | actually run the app/CLI/endpoint once on a realistic input, not only the test harness |
 | Supply chain & secrets | vulnerable/unnecessary deps, leaked credentials | when the dependency set changed: audit it (pip-audit / npm audit / govulncheck / cargo-audit) and check licenses; scan the diff for secrets; every new dependency must trace back to a justification in the intent record. Also eyeball the capability diff: did the change start using network / subprocess / filesystem / env it didn't before? |
 | Suite health | flaky or order-dependent tests | run the suite in randomized order (pytest-randomly etc.); repeat suspected flakes. Every EVIDENCE number rests on the suite being deterministic — a flaky suite quietly invalidates the report |
@@ -467,8 +472,7 @@ idioms, in `references/entry-point.md`:
 The entry point and its helpers live in **product paths** (`tools/`), not
 under `artifact_root` — a report citing a script that lives only in a scratch
 directory or in the conversation is not reproducible. This is the one place
-this skill writes outside its own artifact folder; confirm these writes with
-the user.
+this skill writes outside its own artifact folder; confirm these writes with the user, unless the committed, approved spec's Setup plan already authorizes this entry point by path.
 
 ## EVIDENCE — the only thing the human reads after code
 
@@ -643,9 +647,7 @@ build outputs is not evidence about the landing tree.
 If the project has no test runner, no linter, or no type checking, set up the
 minimal standard toolchain for the language **first** (see
 `references/layers.md`). A gate can't run on bare ground. Setup changes the
-user's environment — packages, config files, lockfiles — so confirm it before
-doing it, and record every environment change actually made in the evidence
-report. If the user forbids adding tooling, fall back to manual layers (manual
+user's environment — packages, config files, lockfiles — so confirm it before doing it, unless the committed, approved spec's Setup plan already authorizes the tools to install; either way, record every environment change actually made in the evidence report. If the user forbids adding tooling, fall back to manual layers (manual
 mutation, manual execution) and record the reduced confidence honestly.
 
 If the directory is not a git repository, say so and stop before claiming any

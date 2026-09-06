@@ -17,7 +17,8 @@
 - `report_language`: <!-- auto | en | zh-TW | ... -->
 - `intent_status`: <!-- confirmed | unconfirmed | absent -->
 - `intent_source`: <!-- human reply (verbatim) | spec file path | issue/PR ref |
-  commit messages only -->
+  commit messages only. When sourced from a spec, quote its version verbatim
+  as `spec_version: vN` — the exact form `spec-archive` parses at CLOSE -->
 - `ordering`: <!-- tests-first | implementation-first | mixed | unknown —
   whether each new test file was committed before the implementation it
   covers. One of the three facts the report leans on hardest, beside Baseline
@@ -132,7 +133,6 @@ another (see SKILL.md's layer dependencies) comes after it.
 | Changed-line coverage | <producer cmd> + <gate cmd> | every changed executable line covered; 0 unmapped | <covered>/<executable> changed executable lines; <n> not executable; **<n> executable with no coverage mapping** (list any misses; an unmapped count above zero caps what this layer can claim) |
 | Mutation | <tool or "manual"> | 0 surviving mutants that are not classified equivalent | <killed>/<total> killed; <n> survivors, each classified; baseline-under-load and kill-sample controls in Negative controls |
 | Property-based | <cmd> | all properties hold | <N> properties, <examples/property> examples each |
-| Complexity budget | <how checked> | <stated budget> | <observed> |
 | Real execution | <cmd> | <expected observable behaviour> | <observed output> |
 | Supply chain | <cmd> | 0 known vulns; every new dep justified | 0 known vulns; new deps: none (or list, each ↔ justification) |
 

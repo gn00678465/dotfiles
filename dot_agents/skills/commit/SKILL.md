@@ -132,7 +132,7 @@ python <skill-dir>/scripts/analyze_git.py
 | `4 ≤ score ≤ 8` | 詳細 | 生成含正文（Body）的 commit message |
 | `> 8` | 拆分 | **進入步驟 4，停止單一 commit 流程** |
 
-當 staged 變更**橫跨多種提交類型**（例如同時含 `feat` 與 `build`）時，即使 score ≤ 8 也應進入步驟 4。
+當 staged 變更**橫跨多種提交類型**，且各群**無法各自建置或獨立還原**時，才進入步驟 4；型別不同但可獨立建置與還原，不因此強制拆分。
 
 ### 步驟 4：原子化拆分提交
 
@@ -181,7 +181,7 @@ python <skill-dir>/scripts/analyze_git.py
 2. 結合 `git diff` 內容確認描述的精確性。
 3. **將完整的 Commit Message 覆寫至 `.git/COMMIT_EDITMSG`**：先依下方 [寫入 `.git/COMMIT_EDITMSG` 指引](#寫入-gitcommit_editmsg-指引) 完成寫入。
 4. 寫入完成後，執行 `git commit -F .git/COMMIT_EDITMSG`。
-5. **詢問使用者**：是否需要協助執行上述 commit 指令？
+5. **回報結果**：commit 已於步驟 4 完成，附上 commit SHA 與訊息摘要；不再詢問是否需要協助執行同一命令。
 
 #### 寫入 `.git/COMMIT_EDITMSG` 指引
 
@@ -278,8 +278,7 @@ fix(cart): 修正購物車金額計算錯誤
 
 - **僅 staged 狀態的變更會被考慮**；未 staged 的變更不會納入分析。建議先用 `git add` 選擇性地 stage 要提交的變更。
 - **Lock 檔案偵測範圍**：`package-lock.json`、`yarn.lock`、`pnpm-lock.yaml`、`bun.lockb`、`Cargo.lock`、`go.sum`、`poetry.lock`、`Gemfile.lock`、`composer.lock`。
-- 變更過於複雜時，優先拆分為多個獨立 commit。
-- 當提交符合一或多種提交類型時，應盡可能切成多個提交。
+- 變更過於複雜時，優先拆分為多個獨立 commit；橫跨多種提交類型時的拆分判準見步驟 3，不單獨因型別不同而拆分。
 
 ## 參考資料
 
