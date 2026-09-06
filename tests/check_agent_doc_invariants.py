@@ -101,6 +101,7 @@ def main() -> None:
     evidence_t = root / "dot_agents/skills/verification-gate/assets/templates/evidence.md"
     archiver_skill = root / "dot_agents/skills/spec-archive/SKILL.md"
     archiver = root / "dot_agents/skills/spec-archive/scripts/spec-archive.py"
+    commit_skill = root / "dot_agents/skills/commit/SKILL.md"
 
     # 1. Layer-status vocabulary: SKILL.md and the evidence template must
     #    carry the same five states — a status one side names and the other
@@ -204,6 +205,66 @@ def main() -> None:
     require(archiver_skill, "skill states the evidence version gate", "`spec_version: vN`")
     require(archiver, "archiver parses the evidence version", "EVIDENCE_VERSION_RE")
     require(archiver, "archiver refuses a version mismatch", "ev_version != v.group(1)")
+
+    # 14. SPEC global-agent-instructions S2: shortening the contract must not
+    #     cost the properties it exists to guarantee. Each literal already
+    #     holds today (this is regression armor, not a new behaviour) — proven
+    #     non-vacuous once via a throwaway mutant on this same file, restored,
+    #     per SKILL.md's "prove a negative control is itself non-vacuous".
+    require(contract, "tests-first property survives", "committed before the implementation")
+    require(contract, "RED property survives", "observed failing first")
+    require(contract, "tier property survives", "Tier declared in the spec")
+    require(contract, "anti-gaming property survives", "fix the implementation, never the test")
+    require(contract, "degraded-evidence disclosure survives", "never silent")
+
+    # 15. SPEC global-agent-instructions S3: a gate backed by a committed,
+    #     approved spec that already authorizes this gate's intent/tier/setup
+    #     must reuse it rather than re-asking; a standalone gate with no
+    #     confirmable intent, or one needing authorization the spec never
+    #     granted, still asks.
+    require(skill, "gate reuses an already-authorized spec without re-asking",
+            "already supplies intent, tier, and this gate's setup")
+    require(skill, "gate still asks for unauthorized new work",
+            "needs a dependency or authorization the spec did not grant")
+
+    # 16. SPEC global-agent-instructions S4: the workflow names exactly where
+    #     the final evidence report is committed before CLOSE, and warns
+    #     against leaving both of spec-archive's candidate paths tracked —
+    #     the archiver treats that as ambiguous and refuses to guess.
+    require(workflow, "final evidence commit path stated", "`.scratch/<scope>/evidence.md`")
+    require(workflow, "ambiguous-evidence warning", "never track both at once")
+
+    # 17. SPEC global-agent-instructions S5: CLOSE happens before merge
+    #     everywhere it is described. The top-level diagram once said
+    #     "after merge: CLOSE", contradicting Phase 6's own heading.
+    forbid(workflow, "stale after-merge CLOSE timing removed", "after merge: CLOSE")
+    require(workflow, "CLOSE timing consistent with Phase 6", "before merge: CLOSE")
+
+    # 18. SPEC global-agent-instructions S6: the commit skill must not ask to
+    #     help run a command it already ran, and must not force an atomic
+    #     split purely because commit types differ when the groups cannot be
+    #     built or reverted independently anyway.
+    forbid(commit_skill, "no re-ask after commit already ran",
+           "是否需要協助執行上述 commit 指令")
+    require(commit_skill, "reports the already-run commit instead",
+            "commit 已於步驟 4 完成")
+    forbid(commit_skill, "no forced split on type difference alone",
+           "即使 score ≤ 8 也應進入步驟 4")
+    require(commit_skill, "split gated on independent buildability",
+            "無法各自建置或獨立還原")
+
+    # 19. SPEC global-agent-instructions S8: GREEN may run the affected tests
+    #     first (full suite only when it stays fast); the final gate always
+    #     runs every applicable layer regardless. The subjective "needs a
+    #     paragraph to explain, split it" complexity-budget criterion is
+    #     dropped as a named layer rather than kept unenforceable.
+    forbid(workflow, "GREEN no longer demands the full suite unconditionally",
+           "not just the new test")
+    require(workflow, "GREEN may run affected tests first",
+            "run at least the affected tests")
+    forbid(skill, "complexity budget layer removed from the gate skill", "Complexity budget")
+    forbid(evidence_t, "complexity budget row removed from the evidence template",
+           "Complexity budget")
 
     print(f"OK: {CHECKS} invariants hold")
 
