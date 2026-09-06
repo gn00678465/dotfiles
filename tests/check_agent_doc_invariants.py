@@ -12,6 +12,7 @@ Usage: tests/check_agent_doc_invariants.py [repo-root]
 """
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -102,6 +103,8 @@ def main() -> None:
     archiver_skill = root / "dot_agents/skills/spec-archive/SKILL.md"
     archiver = root / "dot_agents/skills/spec-archive/scripts/spec-archive.py"
     commit_skill = root / "dot_agents/skills/commit/SKILL.md"
+    entry_point_ref = root / "dot_agents/skills/verification-gate/references/entry-point.md"
+    docs = root / "docs/evidence-first.md"
 
     # 1. Layer-status vocabulary: SKILL.md and the evidence template must
     #    carry the same five states — a status one side names and the other
@@ -265,6 +268,67 @@ def main() -> None:
     forbid(skill, "complexity budget layer removed from the gate skill", "Complexity budget")
     forbid(evidence_t, "complexity budget row removed from the evidence template",
            "Complexity budget")
+
+    # 20. Gate 修正輪次 2/2, group B: S3's exception (an authorized spec is
+    #     reused, not re-confirmed) was only wired into the Acquisition
+    #     section. Five other unconditional "always confirm/ask" spots in the
+    #     same skill still contradict it.
+    require(skill, "scaffold reuses spec-authorized paths",
+            "unless the committed, approved spec's Setup plan already authorizes these paths")
+    require(skill, "inputs reuse an already-authorized spec before asking",
+            "Resolve these from a committed, approved spec when it already supplies them")
+    require(skill, "tier reuses the spec's declared tier before inferring",
+            "Use the committed, approved spec's declared tier when one exists")
+    require(skill, "entry-point writes reuse spec authorization",
+            "unless the committed, approved spec's Setup plan already authorizes this entry point by path")
+    require(skill, "toolchain setup reuses spec-authorized tools",
+            "unless the committed, approved spec's Setup plan already authorizes the tools to install")
+
+    # 21. Gate 修正輪次 2/2, group C: the skill and the entry-point reference
+    #     must say, in so many words, that intent/tier/version come from the
+    #     committed spec, and that intent_source must carry the exact
+    #     backtick-quoted `spec_version: vN` form the archiver's regex parses.
+    require(skill, "skill states intent/tier/version derive from the committed spec",
+            "derive `intent_status`, the tier, and the version citation from that spec")
+    require(skill, "skill states the parseable intent_source form", "`spec_version: vN`")
+    require(entry_point_ref, "entry-point states intent/tier/version derive from the committed spec",
+            "derive `intent`, `tier`, and the evidence header's version citation from it")
+    require(evidence_t, "evidence template documents the intent_source version-citation form",
+            "spec_version: vN")
+
+    # 22. Gate 修正輪次 2/2, group D: the commit skill's 注意事項 section still
+    #     carried the old unconditional split rule this SPEC replaced in
+    #     group 18 — a leftover that contradicts the new one right next to it.
+    forbid(commit_skill, "no leftover unconditional type-split rule in 注意事項",
+           "當提交符合一或多種提交類型時，應盡可能切成多個提交")
+
+    # 23. Gate 修正輪次 2/2, group E: docs/evidence-first.md must name this
+    #     scope's own gate entry point (it only named tools/gate.sh) and carry
+    #     the same ambiguous-evidence-path warning group 16 put in the
+    #     reference workflow.
+    require(docs, "docs name this scope's gate entry point", "gate-agent-instructions.py")
+    require(docs, "docs carry the ambiguous-evidence-path warning", "不得同時追蹤兩個路徑")
+
+    # 24. Gate 修正輪次 2/2, group A: the gate entry point itself must refuse
+    #     an unreachable --base (rc=2) before running any layer, and must
+    #     never print a passing headline in that case. This is the entry
+    #     point's own behaviour, checked by actually invoking it — the doc
+    #     invariants above assert what the docs promise, this asserts the
+    #     script keeps that promise.
+    gate_script = root / "tools/gate-agent-instructions.py"
+    if not gate_script.is_file():
+        die(2, f"missing gate entry point: {gate_script}")
+    r = subprocess.run(
+        [sys.executable, str(gate_script), "--base", "0" * 40],
+        cwd=root, capture_output=True, text=True, encoding="utf-8",
+    )
+    if r.returncode != 2:
+        die(1, f"gate-agent-instructions.py --base <unreachable> exited {r.returncode}, "
+               f"expected 2 (fail closed before running any layer)")
+    if "all layers green" in r.stdout:
+        die(1, "gate-agent-instructions.py printed a passing headline "
+               "despite an unreachable --base")
+    CHECKS += 1
 
     print(f"OK: {CHECKS} invariants hold")
 
