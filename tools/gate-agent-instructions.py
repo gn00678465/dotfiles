@@ -132,8 +132,11 @@ def main() -> None:
 
     manifest_file = art / "layers-manifest"
     ran_file = art / "layers-ran"
-    manifest_file.write_text("\n".join(MANIFEST) + "\n", encoding="utf-8")
-    ran_file.write_text("\n".join(ran) + "\n", encoding="utf-8")
+    # 明確以 LF 寫入：Windows 上 Path.write_text 預設會把 \n 轉成 \r\n，
+    # 而 gate-manifest-audit.sh 的 `read -r` 與 `grep -qxF` 是逐位元組比對，
+    # CRLF 會讓兩邊的層名稱永遠對不上（見本次 gate 修正輪次 1 的紅燈）。
+    manifest_file.write_text("\n".join(MANIFEST) + "\n", encoding="utf-8", newline="\n")
+    ran_file.write_text("\n".join(ran) + "\n", encoding="utf-8", newline="\n")
 
     audit = subprocess.run(
         [sh, "tools/gate-manifest-audit.sh", str(manifest_file), str(ran_file)],
