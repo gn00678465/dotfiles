@@ -1,169 +1,239 @@
 # AGENTS.md
 
-Chezmoi dotfiles source repository.
+Chezmoi dotfiles source repository. Targets: Linux, macOS, and native Windows.
 
-## Contract invariants
+## Daily dotfiles workflow
 
-`tests/check_agent_doc_invariants.py` guards the cross-file promises between
-the evidence-first contract, the workflow reference (`dot_agents/workflows/`),
-and the `verification-gate` / `spec-archive` skills (status vocabularies,
-report fields, shared tier and anti-gaming definitions). Run it after editing
-any of those files; rc 1 = invariant broken, rc 2 = the check itself broke.
-`tests/spec_archive_test.py` holds the spec-archive script's persisted
-negative controls — run it after touching that script.
+Keep shared configuration in this repository. Preserve user settings outside
+the managed scope. Use templates for platform differences, as specified below.
+
+Use `chezmoi -S <repo>` for this checkout. Replace `<repo>` with its absolute
+path. The default source directory can point to a different checkout.
+In the commands below, `<target>` is a destination path, such as `~/.zshrc`.
+
+1. Inspect changes with `git diff` and `chezmoi -S <repo> status`.
+   Use `chezmoi -S <repo> source-path <target>` to find its source file.
+2. Edit the source file here, or use `chezmoi -S <repo> edit <target>`.
+   For a new target, use `chezmoi -S <repo> add <target>`.
+   To import local edits to a managed file, use
+   `chezmoi -S <repo> re-add <target>`. This command skips templates;
+   edit their source directly. Review the source diff after each import.
+3. Inspect rendered content with `chezmoi -S <repo> cat <target>` and
+   pending changes with `chezmoi -S <repo> diff`. Run the affected tests.
+   Preview a full apply with `chezmoi -S <repo> apply --dry-run --verbose`.
+4. Apply the requested scope with `chezmoi -S <repo> apply <target>`.
+   Omit `<target>` only for a full apply, which can also run install scripts.
+   The Windows host approval requirement below still applies.
+   Check the remaining differences after apply.
+5. Review `git diff` before committing and pushing the source changes
+   within the user's requested scope. To receive changes, pull the source
+   with Git, then repeat the preview and apply steps. `chezmoi update`
+   combines pull and apply; the same apply restrictions apply to it.
+
+To stop managing a file while keeping its local copy, use
+`chezmoi -S <repo> forget <target>`.
+
+## Required checks
+
+Run `tests/check_agent_doc_invariants.py` after changes to the evidence-first
+contract, `dot_agents/workflows/`, or the `verification-gate` and `spec-archive`
+skills. It checks shared status values, report fields, tier definitions, and
+anti-gaming rules. Exit code 1 means an invariant failed. Exit code 2 means
+the check failed to run correctly.
+
+Run `tests/spec_archive_test.py` after changes to the spec-archive script.
+It checks cases that the script must reject.
 
 ## Platform selection
 
-`.chezmoitemplates/platform.toml` is the **only** place that decides what OS this
-is. Callers do `{{- $p := includeTemplate "platform.toml" . | fromToml -}}` and
-read `$p.os` / `$p.arch` / `$p.isWindows` / `$p.isPosix` / `$p.brewPrefix`.
-Do not write `eq .chezmoi.os "..."` anywhere else -- there are three target
-platforms now, and scattered platform knowledge is how one of them gets missed.
+Use `.chezmoitemplates/platform.toml` as the only source of OS decisions.
+Callers use `{{- $p := includeTemplate "platform.toml" . | fromToml -}}`
+and read `$p.os`, `$p.arch`, `$p.isWindows`, `$p.isPosix`, or `$p.brewPrefix`.
+Do not use `eq .chezmoi.os "..."` elsewhere.
 
-That partial also owns the `osOverride` / `archOverride` test seam, which is what
-lets a single Linux machine render all three platforms. There is no macOS
-hardware and the Windows host may not be applied to, so that seam is the only
-route to evidence for two of the three. `tests/cases/L8` validates the seam
-itself against the real Windows chezmoi.
+The partial defines `osOverride` and `archOverride` for tests.
+Use them to render all three platforms on Linux. No macOS hardware is
+available. `tests/cases/L8` checks the overrides with Windows chezmoi.
 
-`.chezmoitemplates/versions.toml` holds the values that both the POSIX and the
-Windows copy of a script need (the neovim pin, the LazyVim starter URL, the
-marker filename), so bumping one cannot silently leave the other behind.
+Do not run chezmoi apply against the current Windows host's actual user
+environment without explicit user approval. Template rendering, tests in
+redirected environments, and Windows Sandbox tests are permitted.
+
+Use `.chezmoitemplates/versions.toml` for values shared by POSIX and Windows
+scripts: the neovim version, LazyVim starter URL, and marker filename.
 
 ## Install scripts (`.chezmoiscripts/`)
 
-Linux, **macOS** and **native Windows** are all targets.
+Wrap each complete script in a platform guard. On other platforms, render
+it empty. Chezmoi skips empty scripts. A non-empty `.sh` on Windows stops
+apply with `%1 is not a valid Win32 application`.
+Do not use `.chezmoiignore` for platform isolation: it removes the script
+from all platforms. See `docs/research/windows-native-support.md`, section 1.
 
-**Cross-platform isolation has exactly one mechanism: render the script empty.**
-chezmoi silently skips a script whose rendered content is blank (both OSes,
-measured), and a non-empty `.sh` on Windows aborts the entire apply with
-`%1 is not a valid Win32 application` (also measured). So every script is wrapped
-whole in a platform guard. `.chezmoiignore` is not a substitute: ignoring a
-script removes it from every platform, not just the wrong one. See
-`docs/research/windows-native-support.md` 1.
+Chezmoi runs `.ps1` through `pwsh -NoLogo -File` on Linux and Windows.
+PowerShell scripts also need platform guards.
 
-chezmoi runs `.ps1` through `pwsh -NoLogo -File` on **both** Linux and Windows
-(measured via `chezmoi dump-config` on each), so an unguarded `.ps1` would be
-attempted on POSIX too.
+Keep the Windows `.ps1` interpreter configuration in `.chezmoi.toml.tmpl`.
+The `[interpreters.ps1]` block permits scripts under `ExecutionPolicy Restricted`
+for the spawned process only. It sets `-NoProfile` to prevent loading
+the profile that this repository installs. Chezmoi writes rendered scripts
+to `%TEMP%`. The configuration from `chezmoi init` applies to scripts in the
+same `init --apply` run. Do not call `Set-ExecutionPolicy` from `init.ps1`.
+See `docs/research/windows-native-support.md`, section 1.6.
 
-**`.chezmoi.toml.tmpl` owns the Windows `.ps1` interpreter.** chezmoi writes each
-rendered script to `%TEMP%` and hands it to that interpreter, and a fresh Windows
-defaults to `ExecutionPolicy Restricted` -- which pwsh 7 obeys as well, so the
-first `run_onchange_before_` script is refused and the whole apply aborts before
-any file lands. The `[interpreters.ps1]` block there fixes it for the process
-chezmoi spawns, without touching the machine's policy; it also adds `-NoProfile`,
-because chezmoi's default args do not, and the profile in question is the one this
-repo installs. That config is generated by `chezmoi init` and is already in effect
-for the scripts of that same `init --apply` (measured). Do not "fix" this by
-calling `Set-ExecutionPolicy` from `init.ps1`. See
-`docs/research/windows-native-support.md` 1.6.
+Keep the POSIX and Windows scripts consistent:
 
-Keep the POSIX and Windows halves in sync:
+- `05-wsl-user-runtime-dir`: Guard with `.isWSL`. Run
+  `loginctl enable-linger` once so logind creates `/run/user/<uid>` at boot.
+  WSL exports `XDG_RUNTIME_DIR` but does not create the directory through PAM.
+  On chezmoi v2.72.0, this caused `update`, `git`, and `cd` to fail with
+  `mkdir /run/user/1000: permission denied`; `apply` used a different path.
+  Do not add an `XDG_RUNTIME_DIR` fallback to `.zshrc`. It would cover only
+  processes started from zsh.
+- `10-install-packages`: Install Linux OS prerequisites only:
+  `zsh git curl` and Homebrew installer requirements. Do not add tools here.
+- `30-install-brew-packages`: Keep the POSIX tool list here so Linux and
+  macOS receive the same tools. Add new tools here and to
+  `30-install-winget-packages` for Windows.
+- `30-install-winget-packages`: Do not add `Microsoft.PowerShell` or `Git.Git`.
+  They belong in `init.ps1`: chezmoi needs git to clone and pwsh 7 to run scripts.
+- `35-install-ps-modules`: Install Windows PowerShell Gallery modules that
+  winget does not provide. The current module is PSFzf.
+- `40-git-lfs`: Keep `run_onchange_after_` on both platforms.
+  `git lfs install` must follow `create_empty_dot_gitconfig` so it writes
+  `~/.gitconfig`, not the managed `~/.config/git/config`.
+- `50-neovim`: Install neovim through mise at the version in
+  `versions.toml`. Read the script's version comment before an update.
+  Clone the LazyVim starter from `main` once into `~/.config/nvim`, then
+  remove its `.git`. This clone has no pinned ref or checksum, as on POSIX
+  before Windows support. It and the `.oh-my-zsh` tarball are exceptions
+  to the external download pinning rule.
+- `50-neovim`: Before installation, move existing `~/.config/nvim`,
+  `~/.local/share/nvim`, `~/.local/state/nvim`, and `~/.cache/nvim` to `.bak`.
+  Do not delete them. The `.chezmoi-lazyvim-starter` marker prevents repeated
+  backups of the user's configuration. Windows backs up three directories:
+  `stdpath("state")` and `stdpath("log")` share `stdpath("data")`.
+- `50-neovim`: Keep `run_before_` on both platforms. The clone must precede
+  managed files under `private_dot_config/nvim/` because git requires an
+  empty target. Plain `run_` also restores neovim after user removal.
+  `run_onchange_` would require clearing both `scriptState` and `entryState`
+  to repeat an unchanged script. Do not use `exact`; unmanaged files remain
+  available for the user to edit.
+- `60-pwsh-profile`: Resolve `$PROFILE.CurrentUserAllHosts` at run time and
+  write a one-line loader there. Documents can be redirected to OneDrive;
+  the target cannot be computed by a chezmoi path template. Keep the logic
+  in `.chezmoitemplates/pwsh-profile-loader.ps1` so tests need no real profile.
 
-- `05-wsl-user-runtime-dir` (WSL only, guarded by `.isWSL` not by OS) runs
-  `loginctl enable-linger` once. WSL exports `XDG_RUNTIME_DIR=/run/user/<uid>` into
-  every process but never creates the directory (no PAM session, so logind does not
-  either), and chezmoi `MkdirAll`s it before spawning any child process -- so
-  `chezmoi update` / `git` / `cd` die with `mkdir /run/user/1000: permission denied`
-  while `apply` still works (measured on v2.72.0; scripts go through a different
-  path). Lingering makes logind create the dir at boot. Do not "fix" this with a
-  fallback `XDG_RUNTIME_DIR` in `.zshrc`: that only covers zsh-launched processes.
-- `10-install-packages` (apt, Linux only) holds OS prerequisites only: `zsh git curl` plus what the Homebrew installer needs. Do not add tools here.
-- `30-install-brew-packages` (brew, both OS) is the single list for tools (`mise fzf git-lfs`, ...). New tools go here so macOS gets them too.
-- `40-git-lfs` is `run_onchange_after_` on purpose: `git lfs install` must run after `create_empty_dot_gitconfig` so it writes `~/.gitconfig`, not chezmoi-owned `~/.config/git/config`.
-- `50-neovim` clones the LazyVim starter from `main` with **no pinned ref and no
-  checksum**. That is the second exemption to the "pin every external download" rule
-  (the first is the `.oh-my-zsh` tarball); it predates the Windows work on POSIX, and
-  the Windows script introduces the same unpinned clone. Pinning it would change what
-  POSIX machines fetch, so it is recorded rather than changed.
-- `50-neovim` installs neovim through mise (not brew, and pinned to an explicit version -- see the comment there before bumping) and clones the LazyVim starter into `~/.config/nvim` once, then deletes its `.git`. Any pre-existing `~/.config/nvim`, `~/.local/share/nvim`, `~/.local/state/nvim` or `~/.cache/nvim` is moved to `.bak` first, never deleted; the `.chezmoi-lazyvim-starter` marker it leaves behind is what stops a re-run from doing that to the user's own config. It is `run_before_` on purpose, on both counts: `before` because `git clone` refuses a non-empty target, so the starter must land before chezmoi applies the files it owns under `private_dot_config/nvim/` on top of it; plain `run_` (not `run_onchange_`) because the script is idempotent and a neovim the user removed must come back on the next `apply` -- with `run_onchange_` it only re-ran when its own hash changed, and chezmoi records that hash in both `scriptState` and `entryState`, so a reinstall meant deleting both by hand (measured). Anything the source tree does not name stays the user's to edit in place -- nothing here is `exact`.
-- `30-install-winget-packages` (winget, Windows only) is the Windows counterpart of
-  `30-install-brew-packages`. New tools go in **both**. `Microsoft.PowerShell` and
-  `Git.Git` are deliberately absent: chezmoi needs git to clone and pwsh 7 to run
-  any `.ps1`, so those two belong to `init.ps1`.
-- `35-install-ps-modules` (Windows only) is for PowerShell Gallery modules, which
-  winget does not carry. Currently just PSFzf (the fzf-tab equivalent).
-- `40-git-lfs` and `50-neovim` each have a `.ps1` twin. `50-neovim.ps1` backs up
-  **three** directories, not four: on Windows `stdpath("state")` and
-  `stdpath("log")` are the same directory as `stdpath("data")`.
-- `60-pwsh-profile` (Windows only) writes a one-line loader into whatever
-  `$PROFILE.CurrentUserAllHosts` resolves to at run time, because Documents can be
-  redirected to OneDrive and a chezmoi target path cannot be computed by template.
-  Its logic lives in `.chezmoitemplates/pwsh-profile-loader.ps1` so it can be
-  tested without writing to a real user profile.
-- Anything a Windows script needs on PATH must go through
-  `.chezmoitemplates/windows-path.ps1` first -- the Windows analogue of
-  `brew shellenv`, plus the fact that Windows PATH is a process-start snapshot
-  and will not show what the previous script just installed.
-- `init.ps1` is **ASCII-only, comments included**. Windows PowerShell 5.1 decodes a
-  BOM-less `.ps1` with the ANSI code page, and a mangled comment is a parse error.
-  The same applies to `tests/sandbox/_probe.ps1`. Scripts under `.chezmoiscripts/`
-  are not affected: pwsh 7 reads them as UTF-8.
-- `tree-sitter-cli` in `30-install-brew-packages` is not a standalone tool: nvim-treesitter's `main` branch shells out to `tree-sitter build` for every parser, so it is a LazyVim dependency. Do not prune it, and do not "simplify" it back to `tree-sitter`: since 0.27 that formula installs only the library, and with no CLI on PATH LazyVim installs mason's GitHub prebuilt binary instead -- which needs glibc 2.39 and fails on every parser on Debian 12 (2.36), measured. The brew bottle runs against brew's own glibc. mason prepends its bin dir inside nvim, so a machine that already has mason's copy must delete `~/.local/share/nvim/mason/packages/tree-sitter-cli` before brew's is picked up.
-- **A C compiler is part of that dependency too**, and on Windows the choice is not free: `BrechtSanders.WinLibs.POSIX.UCRT` (gcc) is in `30-install-winget-packages` because nvim-treesitter's requirement check **rejects zig** -- measured, with `zig version` returning 0.16.0 on PATH at the time, so this is not a PATH-visibility problem. `zig.zig` was removed; it was only ever there to be that compiler. See `docs/research/windows-native-support.md` 10.1.
-- **`.gitattributes` forces LF checkout, and that is load-bearing.** Git for Windows defaults to `core.autocrlf=true`, so without it a fresh Windows clones the source tree as CRLF and chezmoi renders those `\r` straight into managed config files -- measured, via a stray `\r` on one key of `~/.codex/config.toml`. The `modify_` rewriters compare lines literally and do not strip CR, so this is not cosmetic. Pinned by `git check-attr eol` assertions in `tests/cases/L3`, not by grepping the file.
-- Anything needing a brew binary inside a script must `eval "$(<prefix>/bin/brew shellenv)"` first; chezmoi runs scripts without the interactive shell PATH.
+Before a Windows script uses an installed binary, include
+`.chezmoitemplates/windows-path.ps1`. The process PATH does not reflect
+tools installed by a preceding script.
+
+Before a script uses a brew binary, run
+`eval "$(<prefix>/bin/brew shellenv)"`. Chezmoi scripts do not inherit
+the interactive shell PATH.
+
+Keep `init.ps1` and `tests/sandbox/_probe.ps1` ASCII-only, including comments.
+Windows PowerShell 5.1 reads BOM-less scripts with the ANSI code page;
+incorrectly decoded comments can cause parse errors. Scripts under
+`.chezmoiscripts/` use pwsh 7, which reads UTF-8.
+
+Keep `tree-sitter-cli` in the brew package list. LazyVim's nvim-treesitter
+`main` branch runs `tree-sitter build` for each parser. Since version 0.27,
+the `tree-sitter` formula supplies only the library. Without the CLI,
+LazyVim installs mason's prebuilt binary, which requires glibc 2.39 and
+fails on Debian 12 with glibc 2.36. The brew bottle uses brew's glibc.
+Mason places its bin directory first on PATH inside nvim. An existing mason
+copy at `~/.local/share/nvim/mason/packages/tree-sitter-cli` must be removed
+before nvim can use brew's copy.
+
+Keep `BrechtSanders.WinLibs.POSIX.UCRT` (gcc) in the Windows package list.
+LazyVim also needs a C compiler. The nvim-treesitter requirement check
+rejected zig even with version 0.16.0 on PATH. Do not restore `zig.zig`
+as its compiler. See `docs/research/windows-native-support.md`, section 10.1.
+
+Keep LF checkout rules in `.gitattributes`. Git for Windows with
+`core.autocrlf=true` otherwise checks out CRLF, which chezmoi copies into
+managed files. The `modify_` templates compare literal lines and do not
+remove CR. `tests/cases/L3` checks this with `git check-attr eol`.
 
 ## `modify_` files
 
-Both `modify_` sources are **modify-templates** (they start with
-`{{- /* chezmoi:modify-template */ -}}`), not scripts. chezmoi execs a `modify_`
-script, which fails outright on Windows; a modify-template is rendered by chezmoi
-itself and works everywhere from one implementation. Do not turn either of them
-back into a shell script.
+Keep both sources as modify-templates, starting with
+`{{- /* chezmoi:modify-template */ -}}`. Chezmoi renders them on all platforms.
+Do not convert them to shell scripts: chezmoi executes those, which fails
+on Windows.
 
-**Known limitation, inherited from the `awk` original**: the codex rewriter assumes
-every managed key sits on **one line**, is written as a **bare key**, and lives under
-a plain `[tui]` header. Shapes that break that assumption turn valid TOML into invalid
-TOML -- a multi-line `status_line` array (the managed value
-*is* an 8-element array, so a reformat is the likely trigger), `[[tui]]`, `["tui"]`,
-an inline `tui = { ... }`, and a quoted `"status_line" =`. The list in
-`KNOWN_LIMITATION` is **the shapes we know about, not a proof there are no others** --
-the fifth turned up after the first four had been written up as exhaustive.
-All of them are byte-identical to the pre-port `awk`
-implementation, so this is preserved behaviour, not a regression; fixing it would
-change POSIX output. They are pinned in `tools/gate-properties.py`'s
-`KNOWN_LIMITATION` list, checked for byte-identity with the original only, so a
-future drift away from that parity still fails the gate.
+The codex rewriter inherits limitations from the original `awk` version.
+Each managed key must be a bare key on one line under a plain `[tui]` header.
+Known inputs that produce invalid TOML include:
+
+- A multiline `status_line` array. The managed array has eight elements.
+- `[[tui]]` or `["tui"]` headers.
+- An inline `tui = { ... }` table.
+- A quoted `"status_line" =` key.
+
+This list is not exhaustive. `KNOWN_LIMITATION` in `tools/gate-properties.py`
+checks only byte identity with the original output for these cases.
+It does not establish correct TOML handling.
+
+Preserve these outputs in unrelated tasks. A user request to fix a listed
+defect authorizes the corresponding behavior change. Update its tests and
+this limitation list together. Other applicable approval requirements
+still apply.
 
 ## Tests
 
-`tests/run.sh` (POSIX sh + chezmoi, no other dependencies). `tests/run.sh L3 L6`
-runs selected layers. Layers: L1 platform partial, L2 script render matrix,
-L3 managed target set, L4 syntax, L5 externals, L6 file-level goldens (the
-data-preservation cases), L7 behaviour (real script runs in a redirected
-environment), L8 real-Windows seam validation, L11 verbatim render goldens (`init.ps1`, `_probe.ps1`, the
-Windows scripts). L9 is the end-to-end run in a throwaway machine -- see
-`tests/sandbox/README.md`. Windows: `_probe.ps1` in Windows Sandbox, **local mode** (`prepare.sh` + `sandbox.wsb`, tests an
-unpushed tree) and **remote mode** (one `irm | iex` line inside any Sandbox,
-tests a pushed branch; nothing survives the Sandbox closing except what the
-probe prints). Linux: `_probe.sh`, launched by `docker.sh` (debian:12 container,
-one command, no systemd so the linger / `chezmoi update` checks SKIP) or `wsl.sh`
-(a fresh `chezmoi-probe` WSL distro with systemd -- the only place the WSL
-runtime-dir fix can be shown to work). Unlike the Windows one it keeps going
-after the first install: second apply, `chezmoi git`, remove-and-reinstall
-neovim, because that is where this repo's real bugs were.
+For routine changes, run affected tests and the required checks above.
+Run the full gate when the evidence-first contract applies or the user
+requests full verification. Report checks that could not run.
 
-L4, L7 and L8 skip cleanly without WSL interop. Everything else runs anywhere.
+`tests/run.sh` needs POSIX sh and chezmoi. Select layers with, for example,
+`tests/run.sh L3 L6`.
 
-`tools/gate.sh` is the verification gate the evidence-first contract hands off
-to: it runs the suite plus suite-health repeats and shuffles, property cases
-(`gate-properties.py`), hand-written mutants (`gate-mutants.py`), supply-chain
-resolution of every external and winget ID (`gate-supply-chain.py`),
-changed-line coverage, a source-state check before and after, and an intent
-layer (`gate-intent.sh`) that derives the evidence report's `intent_status` /
-`intent_source` header lines from the committed SPEC -- the report copies them
-verbatim, and `spec-archive` refuses to close a spec whose `spec_version` the
-report does not quote. Every layer
-goes through `run_layer` so a failure is the layer's exit code, never `tee`'s;
-`gate-manifest-audit.sh` fails the gate if a layer declared in the manifest did
-not actually run. Artifacts land in `.gate/<scope>/` (ignored by git).
+| Layer | Check |
+| --- | --- |
+| L1 | Platform partial |
+| L2 | Script render matrix |
+| L3 | Managed targets and LF attributes |
+| L4 | Syntax |
+| L5 | Externals |
+| L6 | Expected file output, including data preservation |
+| L7 | Script behavior in a redirected environment |
+| L8 | Platform overrides with Windows chezmoi |
+| L11 | Exact rendered output for `init.ps1`, `_probe.ps1`, and Windows scripts |
+
+L4, L7, and L8 skip without WSL interop. The other listed layers do not
+require it.
+
+L9 tests installation in a disposable environment. See
+`tests/sandbox/README.md`:
+
+- Windows: Run `_probe.ps1` in Windows Sandbox. Local mode uses `prepare.sh`
+  and `sandbox.wsb` to test an unpushed tree. Remote mode uses `irm | iex`
+  inside Sandbox to test a pushed branch. Only printed output remains
+  after Sandbox closes.
+- Linux: Run `_probe.sh` through `docker.sh` or `wsl.sh`.
+  Docker uses `debian:12` without systemd, so linger and `chezmoi update`
+  checks skip. The fresh `chezmoi-probe` WSL distro uses systemd to test
+  the runtime directory fix. Both Linux probes also test a second apply,
+  `chezmoi git`, and neovim removal and reinstallation.
+
+`tools/gate.sh` runs the suite, repeated and shuffled suite runs, property
+cases, hand-written mutants, external and winget ID resolution, changed-line
+coverage, and source-state checks before and after execution.
+
+`gate-intent.sh` derives `intent_status` and `intent_source` from the committed
+SPEC. Copy these headers verbatim into the evidence report.
+`spec-archive` rejects a report that does not quote the SPEC's `spec_version`.
+
+Run every layer through `run_layer` to preserve its exit code instead of
+`tee`'s. `gate-manifest-audit.sh` fails if a declared layer did not run.
+Gate artifacts go in `.gate/<scope>/`, which git ignores.
 
 ## Evidence-first artifacts
 
-Specs live at `specs/<scope>/SPEC.md`, the path the contract fixes for every
-workflow because `spec-archive` reads it there at CLOSE. The evidence report for
-a shipped change is committed at `.scratch/<scope>/evidence.md` -- outside
-`specs/` on purpose, since `spec-archive` moves the whole `specs/<scope>/`
-directory. `windows-support` is the first change to have gone through the full
-SPEC v1..v7 → gate → evidence → archive path; its report is the worked example.
+Store specs at `specs/<scope>/SPEC.md`. The CLOSE step reads this fixed path.
+Commit the final evidence report at `.scratch/<scope>/evidence.md`.
+Keep it outside `specs/` because `spec-archive` moves the entire spec directory.
+The `windows-support` report is the worked example of specification,
+verification, evidence, and archive steps.
