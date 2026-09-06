@@ -132,7 +132,7 @@ python <skill-dir>/scripts/analyze_git.py
 | `4 ≤ score ≤ 8` | 詳細 | 生成含正文（Body）的 commit message |
 | `> 8` | 拆分 | **進入步驟 4，停止單一 commit 流程** |
 
-當 staged 變更**橫跨多種提交類型**（例如同時含 `feat` 與 `build`）時，即使 score ≤ 8 也應進入步驟 4。
+當 staged 變更**橫跨多種提交類型**，且各群**無法各自建置或獨立還原**時，才進入步驟 4；型別不同但可獨立建置與還原，不因此強制拆分。
 
 ### 步驟 4：原子化拆分提交
 
@@ -181,7 +181,7 @@ python <skill-dir>/scripts/analyze_git.py
 2. 結合 `git diff` 內容確認描述的精確性。
 3. **將完整的 Commit Message 覆寫至 `.git/COMMIT_EDITMSG`**：先依下方 [寫入 `.git/COMMIT_EDITMSG` 指引](#寫入-gitcommit_editmsg-指引) 完成寫入。
 4. 寫入完成後，執行 `git commit -F .git/COMMIT_EDITMSG`。
-5. **詢問使用者**：是否需要協助執行上述 commit 指令？
+5. **回報結果**：commit 已於步驟 4 完成，附上 commit SHA 與訊息摘要；不再詢問是否需要協助執行同一命令。
 
 #### 寫入 `.git/COMMIT_EDITMSG` 指引
 

@@ -12,7 +12,7 @@ SPEC → SPEC REVIEW (human approves spec, not code)
      → per behavior: RED → GREEN → REFACTOR
      → verification-gate: `gate` (iterate while fixing) → `evidence` (final, once)
      → Tier 3 option: independent verification (`verifier` agent)
-     → after merge: CLOSE (`spec-archive` skill)
+     → before merge: CLOSE (`spec-archive` skill)
 ```
 
 ## Phase 1 — SPEC
@@ -148,8 +148,7 @@ the implementation. A test you never saw fail proves nothing.
 
 ### GREEN — minimal implementation
 
-Write the least code that makes the failing test pass. Run the **full
-suite**, not just the new test. Commit at green.
+Write the least code that makes the failing test pass. Run at least the affected tests; run the full suite too when it stays fast enough. Commit at green. The final gate (Phase 4) always runs every applicable layer regardless — a partial run passing here does not stand in for that.
 
 ### REFACTOR — clean up under green, assertions frozen
 
@@ -219,6 +218,7 @@ point, the layer stack, and the report.
   the fix is to regenerate the header, not to edit it.
 - **A failing gate blocks done.** You are not finished while any layer
   fails; if genuinely blocked, report the failure verbatim as the outcome.
+- Commit the final report at `.scratch/<scope>/evidence.md` before CLOSE. `spec-archive` also accepts `.gate/<scope>/evidence.md`, but never track both at once — a tracked file at each path is ambiguous, and CLOSE refuses to guess which one is this change's evidence.
 
 ## Phase 5 — INDEPENDENT VERIFICATION (Tier 3 option)
 

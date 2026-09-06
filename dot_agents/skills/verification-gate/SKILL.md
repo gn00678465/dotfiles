@@ -148,8 +148,13 @@ the reason fetching is the first move here and not the last resort.
 
 ### From the human — intent and authority
 
-Ask **once**, after git has been read, and ask with the derived answer already
-filled in so the human is confirming rather than composing:
+Skip this question entirely when a committed, approved spec at
+`specs/<scope>/SPEC.md` already supplies intent, tier, and this gate's setup
+(the tools and scope it needs) — reuse that authorization verbatim and say so
+in the report; re-asking would contradict the human's own approval. Ask only when the gate runs standalone with no confirmable intent, or needs a dependency or authorization the spec did not grant.
+
+Otherwise, ask **once**, after git has been read, and ask with the derived
+answer already filled in so the human is confirming rather than composing:
 
 > From git, this change does A, B, C. The commit messages say "<...>".
 > What was this change supposed to accomplish? Is there a spec, issue, or PR I
@@ -252,7 +257,6 @@ produces a number that looks like evidence and is not:
 | Coverage on changed lines | untested code paths | every changed/added **executable** line executed by a test; branch coverage where the tool supports it. Global % is vanity — changed-line coverage is the constraint. Define the fraction explicitly (see below) and **make the layer exit nonzero when its threshold is missed** — a layer that prints a percentage and exits 0 is a report, not a gate layer, and it will sit there green while coverage falls. Most ecosystems ship no command that does this; see `references/layers.md` |
 | Mutation testing | tests that assert nothing | **prefer the project's mutation tool** (mutmut, cosmic-ray, Stryker, PIT…), which generates mutants from the syntax tree and cannot silently skip one. No tool available? Manual mutation, per `references/mutation.md` — introduce 3–5 plausible bugs one at a time; the suite must kill every one; restore after. A hand-rolled runner must **prove it executed each mutant**: a runner that can report a kill it never ran inflates the score and no red gate will ever surface it |
 | Property-based tests | edge cases you didn't imagine | for parsing, math, serialization, anything with invariants (round-trip, idempotence, ordering) — add hypothesis/fast-check properties |
-| Complexity budget | unmaintainable output | new functions small and single-purpose; if a function needs a paragraph to explain, split it |
 | Real execution | "passes tests, doesn't run" | actually run the app/CLI/endpoint once on a realistic input, not only the test harness |
 | Supply chain & secrets | vulnerable/unnecessary deps, leaked credentials | when the dependency set changed: audit it (pip-audit / npm audit / govulncheck / cargo-audit) and check licenses; scan the diff for secrets; every new dependency must trace back to a justification in the intent record. Also eyeball the capability diff: did the change start using network / subprocess / filesystem / env it didn't before? |
 | Suite health | flaky or order-dependent tests | run the suite in randomized order (pytest-randomly etc.); repeat suspected flakes. Every EVIDENCE number rests on the suite being deterministic — a flaky suite quietly invalidates the report |

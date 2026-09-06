@@ -261,7 +261,7 @@ def main() -> None:
     forbid(workflow, "GREEN no longer demands the full suite unconditionally",
            "not just the new test")
     require(workflow, "GREEN may run affected tests first",
-            "run at least the affected tests")
+            "Run at least the affected tests")
     forbid(skill, "complexity budget layer removed from the gate skill", "Complexity budget")
     forbid(evidence_t, "complexity budget row removed from the evidence template",
            "Complexity budget")
