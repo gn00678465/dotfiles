@@ -1,7 +1,7 @@
 # SPEC — 精簡全域代理指示並修正驗證交接 (Tier 2)
 
 - `spec_version`: v2
-- `status`: approved
+- `status`: shipped
 - `tier`: 2
 - `scope`: global-agent-instructions
 - `base_ref`: `e0d3e0e721dd6a01120a9b516f9c9fcfa57ab751`
