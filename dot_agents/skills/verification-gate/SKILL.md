@@ -50,7 +50,7 @@ is one valid *source* of stated intent, never a required input.
 ## Commands
 
 - `scaffold`: create or repair the gate entry point and its helper scripts in
-  the target repository. Writes to product paths — always confirm first.
+  the target repository. Writes to product paths — confirm first, unless the committed, approved spec's Setup plan already authorizes these paths by name.
 - `gate`: run the layers against the change set and report results. Iterative;
   use while fixing. Does not write an evidence report.
 - `evidence`: run the entry point once and write the evidence report from that
@@ -62,7 +62,7 @@ wants a report, a handoff, or "prove it" → `evidence`.
 
 ## Inputs
 
-Resolve or ask for these before doing work:
+Resolve these from a committed, approved spec when it already supplies them; otherwise resolve or ask for these before doing work:
 
 - `change_set`: what to verify. Working tree, `<base>...HEAD`, a commit range,
   or a PR. Default: uncommitted changes if any exist, otherwise `main...HEAD`,
@@ -70,8 +70,7 @@ Resolve or ask for these before doing work:
 - `base`: the ref the change is measured against. Needed for the changed-unit
   list, the baseline run, and RED reconstruction.
 - `intent`: what the change was supposed to do. See Acquisition.
-- `tier`: `1`, `2`, or `3`. See Calibration. Infer and state it; the human may
-  override.
+- `tier`: `1`, `2`, or `3`. See Calibration. Use the committed, approved spec's declared tier when one exists; otherwise infer and state it, and the human may override.
 - `entry_point`: the single command that reruns every layer. Default: discover
   it in the repo, otherwise `scaffold` one.
 - `artifact_root`: default `.gate/`.
@@ -194,6 +193,8 @@ Record one of these in the report header. Never promote one silently:
 - `unconfirmed` — non-interactive run (CI, cron, headless). Intent derived from
   git only.
 - `absent` — git yields no usable intent and no one is available to ask.
+
+When a committed spec exists, derive `intent_status`, the tier, and the version citation from that spec — never retype them from memory — and quote the spec's `spec_version` verbatim in `intent_source` as `` `spec_version: vN` ``, the exact form `spec-archive` parses at CLOSE.
 
 `unconfirmed` and `absent` do not block the gate. Every executable layer runs
 regardless; those layers ask whether the code is self-consistent, which needs no
@@ -471,8 +472,7 @@ idioms, in `references/entry-point.md`:
 The entry point and its helpers live in **product paths** (`tools/`), not
 under `artifact_root` — a report citing a script that lives only in a scratch
 directory or in the conversation is not reproducible. This is the one place
-this skill writes outside its own artifact folder; confirm these writes with
-the user.
+this skill writes outside its own artifact folder; confirm these writes with the user, unless the committed, approved spec's Setup plan already authorizes this entry point by path.
 
 ## EVIDENCE — the only thing the human reads after code
 
@@ -647,9 +647,7 @@ build outputs is not evidence about the landing tree.
 If the project has no test runner, no linter, or no type checking, set up the
 minimal standard toolchain for the language **first** (see
 `references/layers.md`). A gate can't run on bare ground. Setup changes the
-user's environment — packages, config files, lockfiles — so confirm it before
-doing it, and record every environment change actually made in the evidence
-report. If the user forbids adding tooling, fall back to manual layers (manual
+user's environment — packages, config files, lockfiles — so confirm it before doing it, unless the committed, approved spec's Setup plan already authorizes the tools to install; either way, record every environment change actually made in the evidence report. If the user forbids adding tooling, fall back to manual layers (manual
 mutation, manual execution) and record the reduced confidence honestly.
 
 If the directory is not a git repository, say so and stop before claiming any

@@ -74,9 +74,9 @@ sequenceDiagram
 |---|---|---|
 | SPEC | `specs/<scope>/SPEC.md` | 合約固定。範本在 `~/.agents/workflows/templates/spec.md` |
 | 封存後的 SPEC | `specs/archive/<scope>/SPEC.md` | 由 `spec-archive` 搬移，不可手動 |
-| Evidence | `.scratch/<scope>/evidence.md` | 本 repo 的慣例。放在 `specs/` 之外，因為封存會搬整個目錄 |
+| Evidence | `.scratch/<scope>/evidence.md` | 本 repo 的慣例。放在 `specs/` 之外，因為封存會搬整個目錄；`spec-archive` 也接受 `.gate/<scope>/evidence.md`，但不得同時追蹤兩個路徑——兩邊都有已提交的檔案會判定為 ambiguous，CLOSE 直接拒絕 |
 | Gate 產出 | `.gate/<scope>/` | 在 `.gitignore`。每次 gate 開頭清空 |
-| Gate 入口 | `tools/gate.sh` | 本 repo 的入口。其他 repo 由 `verification-gate` 建立 |
+| Gate 入口 | `tools/gate.sh`（windows-support）、`tools/gate-agent-instructions.py`（global-agent-instructions） | 本 repo 每個 scope 各自的入口，不共用彼此的 artifact 目錄。其他 repo 由 `verification-gate` 建立 |
 
 ## 6. 哪些是機械擋住的
 

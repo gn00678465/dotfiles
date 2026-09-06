@@ -67,6 +67,15 @@ def require_tool(name: str) -> str:
     return path
 
 
+def verify_base_reachable(base: str) -> None:
+    r = subprocess.run(["git", "cat-file", "-e", f"{base}^{{commit}}"],
+                        cwd=REPO, capture_output=True, text=True)
+    if r.returncode != 0:
+        die(2, f"--base {base} does not resolve to a commit reachable in this "
+               f"repository (git cat-file -e {base}^{{commit}} failed): "
+               f"{r.stderr.strip()}")
+
+
 def resolve_base(explicit: str | None) -> str:
     if explicit:
         return explicit
@@ -89,6 +98,7 @@ def main() -> None:
     args = ap.parse_args()
 
     base = resolve_base(args.base)
+    verify_base_reachable(base)
     sh = require_tool("sh")
     py = sys.executable
 

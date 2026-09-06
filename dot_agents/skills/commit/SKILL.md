@@ -278,8 +278,7 @@ fix(cart): 修正購物車金額計算錯誤
 
 - **僅 staged 狀態的變更會被考慮**；未 staged 的變更不會納入分析。建議先用 `git add` 選擇性地 stage 要提交的變更。
 - **Lock 檔案偵測範圍**：`package-lock.json`、`yarn.lock`、`pnpm-lock.yaml`、`bun.lockb`、`Cargo.lock`、`go.sum`、`poetry.lock`、`Gemfile.lock`、`composer.lock`。
-- 變更過於複雜時，優先拆分為多個獨立 commit。
-- 當提交符合一或多種提交類型時，應盡可能切成多個提交。
+- 變更過於複雜時，優先拆分為多個獨立 commit；橫跨多種提交類型時的拆分判準見步驟 3，不單獨因型別不同而拆分。
 
 ## 參考資料
 

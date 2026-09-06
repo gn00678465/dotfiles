@@ -90,6 +90,7 @@ def count_numbered_rules(file: Path, heading: str, expected: int) -> None:
 
 
 def main() -> None:
+    global CHECKS
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else \
         Path(__file__).resolve().parent.parent
 

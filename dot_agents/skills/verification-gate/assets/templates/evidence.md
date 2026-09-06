@@ -17,7 +17,8 @@
 - `report_language`: <!-- auto | en | zh-TW | ... -->
 - `intent_status`: <!-- confirmed | unconfirmed | absent -->
 - `intent_source`: <!-- human reply (verbatim) | spec file path | issue/PR ref |
-  commit messages only -->
+  commit messages only. When sourced from a spec, quote its version verbatim
+  as `spec_version: vN` — the exact form `spec-archive` parses at CLOSE -->
 - `ordering`: <!-- tests-first | implementation-first | mixed | unknown —
   whether each new test file was committed before the implementation it
   covers. One of the three facts the report leans on hardest, beside Baseline
