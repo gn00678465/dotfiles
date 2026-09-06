@@ -6,15 +6,15 @@
 
 - Implement against observed callers, runtime behavior, and contracts. Fix the owning source and direct dependents; restructure when the architecture conflicts with the fix.
 - Prefer one established path. Add configuration, fallbacks, compatibility, caches, or abstractions only for an observed contract.
-- Represent actionable outcomes as durable states. Give multiple writers one owner and an atomic boundary; make retries idempotent and external waits finite.
-- Persist required state before best-effort side effects. Required side-effect failure fails the operation; otherwise log and reconcile it. Propagate unexpected failures at a recovery boundary.
+- Represent an outcome that must survive a restart or concurrent writers as a durable state with one owner and an atomic boundary; retries idempotent, waits finite. Skip this when no such recovery is required.
+- When a step has a required side effect, persist it before any best-effort one; failure of the required effect fails the operation, otherwise log and reconcile.
 - Test causal explanations against alternatives. When attempts stop producing evidence, instrument the fault. Match claim scope to current evidence; missing evidence stays unknown.
-- A comment states the non-obvious reason at the owning boundary. Include a constraint or invalidation condition only when a maintainer needs it to know when the rationale or code stops being valid. Do not restate the operation, preserve intermediate attempts, or list speculative future work.
-- When a root cause took more than one round of changes to locate, minimize the final diff before handing off. Every changed line maps to the root-cause fix or the target behavior; anything else is exploration residue, such as hypothesis scaffolding, defensive fallbacks, duplicated logic, or redundant refreshes, and gets deleted or reverted. Keep the fix consistent with the established pattern for comparable features. Surviving non-obvious constraints (field semantics, state lifecycle, timing boundaries) take the comment above, or the next investigation repeats the same wrong assumption.
+- A comment states the non-obvious reason at the owning boundary, plus a constraint or invalidation condition only when a maintainer needs it. Do not restate the operation or list speculative work.
+- After a multi-round root-cause fix, minimize the diff: keep only lines mapping to the fix or the target behavior, delete exploration residue, and fold repeated explanations into one comment.
 
 ## Writing
 
-- Write in Traditional Chinese following ASD-STE100. Use zhtw-mcp for non-Taiwan terms. This does not apply to code, identifiers, API names, or required technical terms.
+- Write in Traditional Chinese following ASD-STE100. Query zhtw-mcp, when installed, for an uncertain Taiwan term; otherwise use best judgement — never block, install, or claim an unrun check. Code, identifiers, API names, and required technical terms are exempt.
 - Remove all mannered prose.
 
 {{ template "evidence-first-contract.md" . }}

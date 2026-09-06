@@ -1,4 +1,4 @@
-{{- /* managed-by: chezmoi | source: .chezmoitemplates/evidence-first-contract.md | v0.6 */ -}}
+{{- /* managed-by: chezmoi | source: .chezmoitemplates/evidence-first-contract.md | v0.7 */ -}}
 <!-- evidence-first:contract -->
 <workflow name="evidence-first" role="contract">
 
@@ -6,56 +6,44 @@
 
 Applies when the user asks for high-assurance work ("prove it works", "TDD",
 "I won't read the code") or the change touches money, auth, data loss,
-concurrency, or a public API. For routine changes, write good tests directly
-and ignore this contract. A project's own AGENTS.md / CLAUDE.md overrides
-this file on any conflict — but an override is never silent: say so once,
-and the evidence report carries `contract: overridden by <path>`.
+concurrency, or a public API. Routine changes: write good tests, skip this
+contract. A project's own AGENTS.md / CLAUDE.md overrides this file on any
+conflict — say so once; the evidence report then carries
+`contract: overridden by <path>`.
 
-Any workflow may produce the change — /tdd, spec-kitty, manual work; when no
-tool fits, follow the reference implementation at
-`{{ .chezmoi.homeDir }}/.agents/workflows/evidence-first.md`. Whatever runs,
-the repository must end up carrying these five properties, because the
-verification step reads them from git, never from this conversation:
+Any workflow may produce the change — /tdd, spec-kitty, manual work; when none
+fits, follow the reference implementation at
+`{{ .chezmoi.homeDir }}/.agents/workflows/evidence-first.md`. The repo must
+carry these properties — verification reads them from git, never the
+conversation:
 
 ```
 SPEC → approve+commit → RED → GREEN (per behavior) → gate → evidence
 ```
 
 1. **Intent on record.** A spec the human approved BEFORE implementation,
-   committed to the repo at `specs/<scope>/SPEC.md` — that path binds every
-   workflow, not just the reference one, because the CLOSE step's tooling
-   reads it there and nowhere else — with scenarios with concrete inputs and
-   outputs, Must NOT constraints, and a declared tier. Approval is a structured act bound
-   to one spec version — not a parsed phrase: the approving words are quoted
-   verbatim into the spec's own approval record (words, date, version bound)
-   and committed with it, so the gate reads `confirmed` from git, never from
-   the conversation. An answer to a question is not an approval: if you
-   cannot quote the words that approved THIS spec — whichever workflow's
-   artifact carries it — you do not have approval. No human available →
-   proceed, and record `approval: not obtained`.
-2. **Tests committed before the implementation they cover.**
-3. **Every new test observed failing first (RED).** A test you never saw
-   fail proves nothing.
-4. **Tier declared in the spec** — 1 trivial / 2 normal / 3 high stakes
-   (the domains above). Tier 3 adds a failure model: how this change can
-   hurt, each mode mapped to a check.
-5. **Anti-gaming held throughout** — the one property nothing can verify
-   after the fact: fix the implementation, never the test (a wrong-looking
-   test is a spec conversation); change test or implementation, run, then
-   the other; mock boundaries, not logic; coverage is a detector, not a
-   target; report only checks that ran.
+   committed at `specs/<scope>/SPEC.md` — CLOSE reads it only there — with
+   scenarios, Must NOT constraints, and a declared tier. Approval is a
+   structured act bound to one spec version: quote the approving words
+   verbatim into the spec's own approval record and commit them together. An
+   answer to a question is not an approval. No human available → proceed,
+   record `approval: not obtained`.
+2. Tests committed before the implementation they cover.
+3. Every new test observed failing first (RED) — a test never seen to fail
+   proves nothing.
+4. Tier declared in the spec — 1 trivial / 2 normal / 3 high stakes (the
+   domains above); tier 3 adds a failure model mapping each harm to a check.
+5. Anti-gaming held throughout: fix the implementation, never the test;
+   change test or implementation, run, then the other; mock boundaries, not
+   logic; coverage is a detector, not a target; report only checks that ran.
 
-Handoff: when the change is green, invoke the `verification-gate` skill —
-`gate` iteratively while fixing, `evidence` exactly once after the last
-edit. Hand it the base ref, the tier, and the committed spec path as the
-intent record. The skill owns the layers and the report; never run them by
-hand in its place. **A failing gate blocks done.** Tier 3 may add
-independent verification: dispatch the `verifier` agent; orchestration
-rules are in the reference implementation.
+Handoff: once green, invoke `verification-gate` — `gate` while fixing,
+`evidence` once at the end — with the base ref, tier, and spec path as
+intent. The skill owns the layers and report. A failing gate blocks done.
+Tier 3 may dispatch the `verifier` agent.
 
-Skipping a property is not fatal, but never silent: the gate records
-intent, ordering, and RED status in the evidence report, so every shortcut
-becomes a visible downgrade the human can price — not a hidden one.
+Skipping a property is never silent: the gate records intent, ordering, and
+RED status, turning every shortcut into a downgrade the human can price.
 
 </workflow>
 <!-- /evidence-first:contract -->
