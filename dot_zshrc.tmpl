@@ -9,9 +9,15 @@ fi
 # ---- PATH ---------------------------------------------------------------
 export PATH="$HOME/.local/bin:$PATH"
 
-{{ if $p.isPosix }}
+{{ if ne $p.brewPrefix "" }}
 # homebrew setup
 eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
+{{ else if eq $p.pkgManager "pacman" }}
+# omarchy: OMARCHY_PATH and PATH come from its own env-bootstrap (POSIX sh
+# syntax, so zsh can source it). Its bash-only rc file is deliberately not loaded.
+[ -r /etc/omarchy.conf ] && . /etc/omarchy.conf
+: "${OMARCHY_PATH:=/usr/share/omarchy}"
+[ -r "$OMARCHY_PATH/default/bash/env-bootstrap" ] && . "$OMARCHY_PATH/default/bash/env-bootstrap"
 {{ end }}
 
 # ---- Oh My Zsh ----------------------------------------------------------
