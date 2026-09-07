@@ -65,12 +65,16 @@ pacman_si() {
 echo "pacman -Si via $where; packages:$(printf ' %s' $pkgs)"
 rc=0
 for p in $pkgs; do
-    if out=$(pacman_si "$p" 2>&1 | tr -d '\0\r'); then
+    # The exit status must be pacman's own. `pacman_si | tr` would return tr's
+    # status and turn every unknown name into an "ok" (the negative control
+    # caught exactly that), so strip wsl.exe's NUL/CR bytes in a second step.
+    if raw=$(pacman_si "$p" 2>&1); then
+        out=$(printf '%s' "$raw" | tr -d '\0\r')
         repo=$(printf '%s\n' "$out" | sed -n 's/^Repository *: *//p' | head -1)
         ver=$(printf '%s\n' "$out" | sed -n 's/^Version *: *//p' | head -1)
         printf 'ok   %-16s %s %s\n' "$p" "$repo" "$ver"
     else
-        printf 'FAIL %-16s %s\n' "$p" "$(printf '%s' "$out" | head -1)"
+        printf 'FAIL %-16s %s\n' "$p" "$(printf '%s' "$raw" | tr -d '\0\r' | head -1)"
         rc=1
     fi
 done
