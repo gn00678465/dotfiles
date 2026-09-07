@@ -350,7 +350,14 @@ if [ $arch = 1 ]; then
     # one the script must print the manual command instead of failing.
     c_shell() {
         _z=$(command -v zsh) || { echo 'zsh not on PATH'; return 1; }
-        grep -qx "$_z" /etc/shells || { echo "$_z not in /etc/shells"; return 1; }
+        # Same resolution default-shell does: /etc/shells lists /usr/bin/zsh,
+        # `command -v` says /usr/sbin/zsh; they are one file (merged /usr).
+        _real=$(readlink -f "$_z"); _ok=""
+        while IFS= read -r _c; do
+            case "$_c" in /*) ;; *) continue ;; esac
+            [ "$(readlink -f "$_c" 2>/dev/null)" = "$_real" ] && { _ok=$_c; break; }
+        done < /etc/shells
+        [ -n "$_ok" ] || { echo "no /etc/shells entry resolves to $_real"; return 1; }
         _s=$(getent passwd "$(id -un)" | cut -d: -f7)
         case "$_s" in
             */zsh) echo "login shell: $_s" ;;
@@ -371,11 +378,15 @@ if [ $arch = 1 ]; then
         echo "$_v via $(command -v nvim) ($(pacman -Q neovim 2>/dev/null))"
     }
     check 'nvim runs (pacman neovim; the mise pin does not apply on Arch)' c_nvim_pacman
+    # Ownership asked of pacman, not read off the path: on Arch /usr/sbin is a
+    # symlink to /usr/bin and `command -v` reports /usr/sbin/tree-sitter
+    # (measured), so a /usr/bin/* pattern would reject pacman's own binary.
     c_treesitter_pacman() {
         _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
-        case "$_ts" in /usr/bin/*) ;; *) echo "tree-sitter is $_ts, not pacman's"; return 1 ;; esac
+        _owner=$(pacman -Qo "$(readlink -f "$_ts")" 2>&1) || { echo "not a pacman file: $_owner"; return 1; }
+        case "$_owner" in *tree-sitter-cli*) ;; *) echo "owned by something else: $_owner"; return 1 ;; esac
         _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
-        echo "$_v at $_ts"
+        echo "$_v at $_ts ($_owner)"
     }
     check "tree-sitter CLI is pacman's and runs" c_treesitter_pacman
 else
