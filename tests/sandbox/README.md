@@ -106,5 +106,36 @@ sudo sh -c 'echo ":WSLInterop:M::MZ::/init:PF" > /proc/sys/fs/binfmt_misc/regist
 ```
 
 第一次在全新 WSL distro 的實跑：33 PASS / 0 FAIL / 1 SKIP（`chezmoi update` 在本機模式沒有
-remote 可拉）。`XDG_RUNTIME_DIR=/run/user/1000` 確實被 WSL 塞進來、`05-wsl-user-runtime-dir`
+remote 可拉）。
+
+---
+
+# L9（Arch）：既有的 omarchy WSL distro
+
+`_probe.sh` 依 `/etc/os-release` 的 `ID` 分支：在 Arch 上改問 pacman 的問題（前置套件
+與工具都用 `pacman -Q` 逐一確認、沒有 `/home/linuxbrew`、`~/.config/nvim` 是 omarchy
+出廠的設定且沒有被搬進 `.bak`、登入 zsh 有 `OMARCHY_PATH` 與 `omarchy-version`、
+`~/.config/git/config` 等於 `chezmoi cat`、`git lfs env` 有 filter），並用真實的 chezmoi
+驗證 `platform.toml` 在 Arch 上算出 `distro=arch`、`pkgManager=pacman`、`brewPrefix` 空
+（測試用的 `distroOverride` 接縫只是替身，SPEC M4）。「刪掉 neovim 再裝回」在 Arch 上是
+SKIP：neovim 是 pacman 套件，探針不移除套件。
+
+啟動器是 `omarchy.sh`，對象**不是**用完即丟的環境，而是你留著做驗證、之後會重建的
+`omarchy` distro：
+
+```sh
+tests/sandbox/omarchy.sh                   # 本機模式：HEAD（git archive，只帶已提交的內容）
+tests/sandbox/omarchy.sh --branch <name>   # 遠端模式：跑 GitHub 上那個分支的 init.sh
+tests/sandbox/omarchy.sh --distro <name>   # 換一個 Arch distro（預設 omarchy）
+```
+
+它只做三件事：把來源樹與探針用管線送進 distro（`git archive | wsl.exe -- tar`，不掛
+DrvFs），以該 distro 的預設使用者跑探針，再把 `/out` 用管線拉回 `.gate/l9-omarchy/`。
+它自己不跑 pacman、不碰 `$HOME`；探針的 `chezmoi init --apply` 是唯一的系統變更。
+前提：預設使用者有免密碼 sudo（omarchy 的 WSL 映像有），因為安裝腳本沒有 tty。
+可以從 Git Bash 或另一個 WSL distro 執行，兩邊都只需要 `wsl.exe`。
+
+兩個實測過的坑，都在啟動器的註解裡：`wsl.exe -- sh -c '...'` 會先經過 distro 的登入
+shell 展開 `$ID`、`$@`（所以指令改走 stdin），以及 Git Bash 會把 `/src/dotfiles` 這種參數
+改寫成 Windows 路徑（所以 `MSYS_NO_PATHCONV` 只套在 `wsl.exe` 那一層）。`XDG_RUNTIME_DIR=/run/user/1000` 確實被 WSL 塞進來、`05-wsl-user-runtime-dir`
 把 linger 開起來、目錄存在、`chezmoi git` 能跑——原本壞掉的那條路徑在乾淨的機器上證明修好了。

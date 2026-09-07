@@ -44,10 +44,20 @@ for _c in /mnt/c/Windows/system32/wsl.exe /c/Windows/system32/wsl.exe; do
 done
 [ -n "$WSL" ] || WSL=$(command -v wsl.exe 2>/dev/null || true)
 [ -n "$WSL" ] || { echo "omarchy.sh: wsl.exe not found (needs WSL interop)" >&2; exit 2; }
+# Git Bash (MSYS) rewrites POSIX-looking arguments of native executables into
+# Windows paths: `tar -x -C /src/dotfiles` reached the distro as
+# `C:/Program Files/Git/src/dotfiles` (measured). Both variables are ignored
+# outside MSYS. Scoped to wsl.exe: exporting them would break git and tar
+# on the Git Bash side (`git -C /d/...` stops resolving, measured).
+wslx() { MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$WSL" "$@"; }
 # wsl.exe prints UTF-16 with NULs; every read of it goes through this.
-w() { "$WSL" "$@" 2>&1 | tr -d '\0\r'; }
-run_root() { "$WSL" -d "$NAME" -u root -- sh -c "$1"; }
-run_user() { "$WSL" -d "$NAME" -- sh -c "$1"; }
+w() { wslx "$@" 2>&1 | tr -d '\0\r'; }
+# Commands go in through stdin, not `sh -c '...'`: wsl.exe hands everything
+# after `--` to the distro's login shell as one string, which expands `$ID`
+# and `$@` before the inner sh ever runs (measured: `sh -c 'printf %s "$ID"'`
+# printed nothing). A script on stdin is never re-parsed by that shell.
+run_root() { printf '%s\n' "$1" | wslx -d "$NAME" -u root -- sh; }
+run_user() { printf '%s\n' "$1" | wslx -d "$NAME" -- sh; }
 
 w --list --quiet | grep -qx "$NAME" || { echo "omarchy.sh: no WSL distro named $NAME" >&2; exit 2; }
 distro_id=$(run_user '. /etc/os-release && printf %s "$ID"' | tr -d '\0\r')
@@ -74,15 +84,15 @@ run_root "rm -rf /src /out && mkdir -p /src/dotfiles /out && chown -R '$user' /s
 if [ -z "$branch" ]; then
     # Committed content only (git archive), like prepare.sh: what runs is this
     # commit, not the working tree.
-    git -C "$REPO" archive HEAD | "$WSL" -d "$NAME" -- tar -x -C /src/dotfiles
+    git -C "$REPO" archive HEAD | wslx -d "$NAME" -- tar -x -C /src/dotfiles
 fi
-"$WSL" -d "$NAME" -- sh -c 'cat > /src/_probe.sh' < "$REPO/tests/sandbox/_probe.sh"
+wslx -d "$NAME" -- sh -c 'cat > /src/_probe.sh' < "$REPO/tests/sandbox/_probe.sh"
 
 # LANG pinned to a locale every image has; wsl.exe forwards the caller's LANG
 # otherwise (see wsl.sh).
 rc=0
-"$WSL" -d "$NAME" -- env LANG=C.UTF-8 LC_ALL=C.UTF-8 sh /src/_probe.sh ${branch:+--branch "$branch"} || rc=$?
+wslx -d "$NAME" -- env LANG=C.UTF-8 LC_ALL=C.UTF-8 sh /src/_probe.sh ${branch:+--branch "$branch"} || rc=$?
 
-"$WSL" -d "$NAME" -- tar -c -C /out . | tar -x -C "$OUT"
+wslx -d "$NAME" -- tar -c -C /out . | tar -x -C "$OUT"
 echo "omarchy.sh: probe exit $rc; results in $OUT/results.tsv"
 exit "$rc"

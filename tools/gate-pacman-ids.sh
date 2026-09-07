@@ -38,11 +38,10 @@ pkgs="$(render_list run_onchange_before_10-install-packages.sh.tmpl) $(render_li
 pkgs=$(printf '%s\n' $pkgs | LC_ALL=C sort -u | tr '\n' ' ')
 [ -n "$(printf '%s' "$pkgs" | tr -d ' ')" ] || { echo "gate-pacman-ids: rendered package lists are empty" >&2; exit 1; }
 
+WSL=""
 if command -v pacman >/dev/null 2>&1; then
-    runner="pacman -Si"
     where="this host"
 else
-    WSL=""
     for _c in /mnt/c/Windows/system32/wsl.exe /c/Windows/system32/wsl.exe; do
         [ -x "$_c" ] && { WSL=$_c; break; }
     done
@@ -51,14 +50,22 @@ else
         echo "SKIPPED: no pacman on this host and no WSL distro named $DISTRO -- package names NOT verified"
         exit 0
     fi
-    runner="$WSL -d $DISTRO -- pacman -Si"
     where="WSL distro $DISTRO"
 fi
+# Git Bash rewrites POSIX-looking arguments of native executables; the
+# override is scoped to the wsl.exe call (see tests/sandbox/omarchy.sh).
+pacman_si() {
+    if [ -n "$WSL" ]; then
+        MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' "$WSL" -d "$DISTRO" -- pacman -Si "$1"
+    else
+        pacman -Si "$1"
+    fi
+}
 
 echo "pacman -Si via $where; packages:$(printf ' %s' $pkgs)"
 rc=0
 for p in $pkgs; do
-    if out=$($runner "$p" 2>&1 | tr -d '\0\r'); then
+    if out=$(pacman_si "$p" 2>&1 | tr -d '\0\r'); then
         repo=$(printf '%s\n' "$out" | sed -n 's/^Repository *: *//p' | head -1)
         ver=$(printf '%s\n' "$out" | sed -n 's/^Version *: *//p' | head -1)
         printf 'ok   %-16s %s %s\n' "$p" "$repo" "$ver"
