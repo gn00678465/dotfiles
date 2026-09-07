@@ -1,6 +1,6 @@
 # SPEC — ArchLinux（omarchy）支援
 
-- `spec_version`: v1
+- `spec_version`: v2
 - `status`: draft
 - `tier`: 3
 - `scope`: archlinux-support
@@ -242,21 +242,26 @@ S19 在 omarchy 內必須逐條成立：
 
 ---
 
-## 8. 待使用者決定（exploration frontier）
+## 8. 已決定事項（exploration round 1）
 
-| # | 決策 | 建議 | 替代 |
+| # | 決策 | 結果 | 未採用的替代 |
 |---|---|---|---|
 | D1 | `50-neovim` 在 Arch 上的行為 | **A**：渲染成空，信任 `omarchy-nvim`；本 repo 的 `completion.lua` 疊加 | B：與 POSIX 相同（備份 omarchy 設定、clone starter、mise 釘版本）；C：執行期偵測 `pacman -Q omarchy-nvim`，存在才跳過 |
-| D2 | Tier | **3** | 2（不派 verifier，省一輪獨立驗證） |
-| D3 | omarchy 上的 shell | **zsh 為登入 shell，`.zshrc`/`.zprofile` 載入 omarchy `env-bootstrap`** | 保留 bash：`default-shell` 與 zsh 檔案在 Arch 上渲染成空／忽略 |
-| D4 | `~/.config/git/config` | **全檔接管，覆寫 omarchy 的版本** | Arch 上忽略此檔，保留 omarchy 的設定 |
+| D2 | Tier | **3** | 2（不派 verifier） |
+| D3 | omarchy 上的 shell | **zsh 為登入 shell，`.zshrc`/`.zprofile` 載入 omarchy `env-bootstrap`** | 保留 bash |
+| D4 | `~/.config/git/config` | **全檔接管，覆寫 omarchy 的版本** | Arch 上忽略此檔 |
+
+§0、§2、§3、§5 的內容以這四項為前提，v1 與 v2 之間沒有其他變更。
 
 ---
 
 ## Approval
 
-（尚無。v1 為草稿。）
+（尚無。v2 待核准。）
 
 ## Revisions
 
 - 2026-09-07 — v1 草稿。依研究文件 §6 選項二撰寫；D1–D4 待決。
+- 2026-09-07 — exploration round 1：使用者以結構化提問選擇 D1=A、D2=Tier 3、
+  D3=zsh + env-bootstrap、D4=全檔接管（四項皆為建議選項）。§8 改為已決定事項，
+  版本升為 v2。
