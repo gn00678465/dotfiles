@@ -5,7 +5,13 @@ verbatim output.
 
 - `final_source_state`: `0cae96dba468c22f9eb21474083e14aee2068fe7`
 - `final_verdict`: blocked（round 1；宣告的降級：WSL 相依的層改由使用者以清單接手獨立重跑，
-  見 evidence §Honest notes。沒有任何一輪得到 passed。）
+  見 evidence §Honest notes。沒有任何一輪由 verifier 代理得到 passed。）
+- `human_rerun`: 使用者在 WSL `dev` 的獨立 clone（`~/verify/dotfiles`，ext4）於 commit
+  `09ac0b7`（產品檔案與 `0cae96d` 相同，只差 L7 測試修正與 evidence）完整重跑 entry point：
+  `gate: 全部通過`、13 層留下記號、suite 753/0 ×3、properties 329 案例、mutants 39/39 killed、
+  supply-chain 通過、pacman-ids 12/12、來源狀態前後相同（`worktree=clean`）。使用者另在
+  重建的 omarchy 上跑 L9 local（36/0/2）與 remote（36/0/1）並手動完成 `chsh`。這是人工執行的
+  重現，不是代理的獨立攻擊；它證明閘門可由第二人在第二個 checkout 重現同一組數字。
 - `rounds_run`: 1 (cap 2)；未跑第二輪：阻塞原因是代理沙盒的權限，換一個 context 不會改變。
 - `verifier`: Claude Code `verifier` agent（與 builder 同一模型家族）；fresh context per
   round: yes。Correlation broken: task context. Not broken: model.

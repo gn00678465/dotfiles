@@ -269,6 +269,9 @@ run 2 之後到最終 commit 之間的變更只有測試與 gate 工具（`3ea61
   （清單已交付：在 WSL `dev` 的乾淨 clone 重跑 entry point；重建 omarchy 後跑
   `tests/sandbox/omarchy.sh`；推送後以 `--branch` 驗 `chezmoi update`；互動式 `chsh`；
   裸機／正式安裝的 omarchy）。這是宣告的降級，不是通過。
+- 使用者的獨立重跑（`~/verify/dotfiles`，commit `09ac0b7`，機器閒置時）：`gate: 全部通過`，
+  suite 753/0 三輪、properties 329、mutants 39/39、supply-chain 通過、pacman-ids 12/12、
+  來源狀態前後相同。第一次嘗試（`0cae96d`、與 L9 同時執行）在 L7 撞名案例失敗，即下一條。
 - CLOSE 之後的一個測試修正：使用者在 WSL `dev` 獨立重跑 entry point（`0cae96d`），suite 層在
   L7 的 Windows 撞名案例再次失敗（與 L9 同時執行、pwsh.exe 啟動超過 30 秒的視窗）。改成在
   wrapper 裡以同名 function 蓋掉 `Get-Date`，時間戳固定、不再依賴牆上時鐘；L7 在 WSL 連跑兩次
