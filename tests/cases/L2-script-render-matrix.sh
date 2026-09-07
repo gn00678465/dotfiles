@@ -235,6 +235,18 @@ assert_contains "40-git-lfs 在 arch 上仍執行 git lfs install --skip-repo" "
 assert_contains "40-git-lfs 在 linux 上先載入 brew shellenv" "$_lfs_linux" 'brew shellenv'
 unset _lfs_arch _lfs_linux
 
+# default-shell 在 Arch 上要把 `command -v zsh` 的結果對回 /etc/shells 裡的條目。
+# L9 在 omarchy 實跑抓到的：Arch 的 /usr/sbin 是 /usr/bin 的 symlink，而 PATH 讓
+# `command -v zsh` 回 /usr/sbin/zsh，/etc/shells 只列 /usr/bin/zsh 與 /bin/zsh，於是
+# 腳本判定「不在 /etc/shells」、印出把 /usr/sbin/zsh 加進去的錯誤建議，登入 shell
+# 永遠不會改（D3 沒有達成）。這段只在 pacman 平台渲染，Debian 的輸出不變（Must NOT #1）。
+_ds_arch=$(render_file arch .chezmoiscripts/run_after_default-shell.sh.tmpl)
+_ds_linux=$(render_file linux .chezmoiscripts/run_after_default-shell.sh.tmpl)
+assert_contains "default-shell 在 arch 上用 readlink -f 把 zsh 對回 /etc/shells 的條目" "$_ds_arch" 'readlink -f'
+assert_contains "default-shell 在 arch 上逐行讀 /etc/shells" "$_ds_arch" '< /etc/shells'
+assert_not_contains "default-shell 在 linux 上沒有這段（渲染不變）" "$_ds_linux" 'readlink -f'
+unset _ds_arch _ds_linux
+
 # ---------- .chezmoi.toml.tmpl：直譯器設定 ----------
 # L9 第一次真實執行的根因：chezmoi 把 .ps1 寫到 %TEMP% 再交給直譯器，而全新
 # Windows 的預設 ExecutionPolicy 是 Restricted，pwsh 7 也受它管（本機實測），
