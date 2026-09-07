@@ -276,3 +276,6 @@ run 2 之後到最終 commit 之間的變更只有測試與 gate 工具（`3ea61
   `0cae96d` 那一輪，使用者的獨立重跑應改用這個 commit。
 - 已知的既有缺陷（未修，見 Dismissed concerns）：`.zwc` 讓已使用過 zsh 的機器第二次以後的
   `chezmoi apply --no-tty` 中止；修法會動到所有 POSIX 平台的 externals，超出本 SPEC 範圍。
+  使用者決定另開任務處理。
+- 裸機／正式安裝的 omarchy（`/usr/share/omarchy` 路徑）：使用者目前只有 WSL 重建的方案，
+  沒有裸機可測；§Structural blind spot 的第一條維持為未證實。
