@@ -1,5 +1,18 @@
 {{- $p := includeTemplate "platform.toml" . | fromToml -}}
 {{ if eq $p.os "linux" -}}
+{{ if eq $p.pkgManager "pacman" -}}
+#!/bin/sh
+# OS-level prerequisites only, Arch flavour: zsh for default-shell, git/curl for
+# chezmoi and the externals, base-devel for the C compiler nvim-treesitter
+# needs. The tools themselves are in 30-install-pacman-packages, the pacman
+# twin of the brew list. No Homebrew on Arch (SPEC archlinux-support Must NOT #4).
+set -eu
+
+{{ template "pacman-install.sh" . }}
+for pkg in zsh git curl base-devel; do
+    pacman_install_missing "$pkg"
+done
+{{ else -}}
 #!/bin/sh
 # OS-level prerequisites only: zsh/git/curl plus what the Homebrew installer
 # needs on Linux. Everything else (fzf, mise, git-lfs, ...) is a brew formula
@@ -31,4 +44,5 @@ else
     echo "chezmoi: sudo not available. Run as root: apt-get install -y$missing" >&2
     exit 1
 fi
+{{ end -}}
 {{ end -}}

@@ -1,0 +1,15 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{ if eq $p.pkgManager "pacman" -}}
+#!/bin/sh
+# pacman twin of 30-install-brew-packages: the same tools from Arch's own repos
+# (all in `extra`, no AUR), plus neovim itself. On Arch neovim is a pacman
+# package, not a mise pin, and the LazyVim config comes from omarchy's
+# omarchy-nvim package, so 50-neovim renders empty here (SPEC archlinux-support
+# D1). Keep this list and the brew list in sync; L2 compares them.
+set -eu
+
+{{ template "pacman-install.sh" . }}
+for pkg in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim; do
+    pacman_install_missing "$pkg"
+done
+{{ end -}}

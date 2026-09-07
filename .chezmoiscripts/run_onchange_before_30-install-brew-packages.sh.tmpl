@@ -1,5 +1,5 @@
 {{- $p := includeTemplate "platform.toml" . | fromToml -}}
-{{ if $p.isPosix -}}
+{{ if ne $p.brewPrefix "" -}}
 #!/bin/zsh
 # brew packages shared by Linux and macOS. Add new tools here, not to
 # 10-install-packages (apt, Linux only).
