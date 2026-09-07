@@ -230,8 +230,13 @@ PSEOF
     # 形狀必須一致，否則同一份 SPEC 在兩個平台上代表不同的事。
     rm -f "$_bw/local/nvim/.chezmoi-lazyvim-starter"
     printf 'GEN4\n' > "$_bw/local/nvim/gen-marker.txt"
-    _seed_stamp_collisions "$_bw/local/nvim"
-    if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_bn\\run.ps1" 2>&1); then
+    # 撞名不靠牆上的時鐘：pwsh.exe 經 WSL interop 啟動的時間不可預測（6 秒的視窗
+    # 在 gate 的 suite-health-repeat 撞不到，30 秒的視窗在使用者同時跑 L9 時也撞不到）。
+    # 改成在 wrapper 裡用同名 function 蓋掉 Get-Date（function 優先於 cmdlet，子 scope
+    # 看得到），腳本算出的時間戳固定為 20000101000000，測試只種這一個目錄。
+    mkdir -p "$_bw/local/nvim.bak.20000101000000"
+    { printf 'function Get-Date { param([string] $Format) "20000101000000" }\n'; cat "$_bw/run.ps1"; } > "$_bw/run4.ps1"
+    if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_bn\\run4.ps1" 2>&1); then
         _pass "Windows 50-neovim 第四次執行成功"
     else _fail "Windows 50-neovim 第四次執行成功" "$(printf '%s' "$_out" | tr -d '\r')"; fi
     assert_eq "Windows: 撞名時來源被搬進既有備份裡（accepted risk，位置變深一層）" "1" \

@@ -173,6 +173,8 @@ entry point 裡（需要那個 distro，且會變更它），所以數字不屬�
 | run 1（乾淨的 omarchy，第一次安裝） | `52492d7` | PASS=34 FAIL=2 SKIP=2 | 兩個 FAIL：(a) `zsh is a valid login shell`：`command -v zsh` 回 `/usr/sbin/zsh`，不在 `/etc/shells`（產品缺陷，`51fc692` 修正）；(b) `tree-sitter CLI is pacman's`：探針用 `/usr/bin/*` 比對路徑，omarchy 回 `/usr/sbin/*`（探針缺陷，`0a9ddcb` 修正）。其餘全部通過，含 M4 接縫、M2 nvim 未搬動、`/home/linuxbrew` 不存在、OMARCHY_PATH、git config、git lfs、treesitter 編出 lua parser、第二次 apply 無提示、`chezmoi git`、linger。SKIP：`chezmoi update`（local 模式無 remote）、移除 neovim 再裝回（Arch 不移除套件）。 |
 | run 2（同一台，已裝過一次） | `0a9ddcb` | PASS=35 FAIL=1 SKIP=2 | 上述兩條改為 PASS（`/bin/zsh` 在 /etc/shells、`/usr/bin/tree-sitter is owned by tree-sitter-cli`）。新的 FAIL：`second chezmoi apply completes without a prompt`，見 Dismissed concerns。 |
 
+| run 3（使用者重建 omarchy 後、乾淨機器；使用者自行執行） | `f2bb435`（產品檔案與 `0cae96d` 相同） | PASS=36 FAIL=0 SKIP=2 | 使用者回報的 SUMMARY 行；SKIP 仍是 `chezmoi update`（local 模式）與移除 neovim。這是 S19 表十四列在同一輪全部成立的那一次。 |
+
 run 2 之後到最終 commit 之間的變更只有測試與 gate 工具（`3ea61a7`、`e2f16ad`、`0cae96d`），
 產品檔案（`.chezmoiscripts/`、`.chezmoitemplates/`、`dot_*`）與 run 2 相同。
 結果檔：`.gate/l9-omarchy/results.tsv`（run 2；run 1 的表在執行時印到主控台，本檔引用的
@@ -265,5 +267,10 @@ run 2 之後到最終 commit 之間的變更只有測試與 gate 工具（`3ea61
   （清單已交付：在 WSL `dev` 的乾淨 clone 重跑 entry point；重建 omarchy 後跑
   `tests/sandbox/omarchy.sh`；推送後以 `--branch` 驗 `chezmoi update`；互動式 `chsh`；
   裸機／正式安裝的 omarchy）。這是宣告的降級，不是通過。
+- CLOSE 之後的一個測試修正：使用者在 WSL `dev` 獨立重跑 entry point（`0cae96d`），suite 層在
+  L7 的 Windows 撞名案例再次失敗（與 L9 同時執行、pwsh.exe 啟動超過 30 秒的視窗）。改成在
+  wrapper 裡以同名 function 蓋掉 `Get-Date`，時間戳固定、不再依賴牆上時鐘；L7 在 WSL 連跑兩次
+  53/53。這個 commit 只動 `tests/cases/L7-behavior.sh` 與本檔，產品檔案不變；上表的數字仍是
+  `0cae96d` 那一輪，使用者的獨立重跑應改用這個 commit。
 - 已知的既有缺陷（未修，見 Dismissed concerns）：`.zwc` 讓已使用過 zsh 的機器第二次以後的
   `chezmoi apply --no-tty` 中止；修法會動到所有 POSIX 平台的 externals，超出本 SPEC 範圍。
