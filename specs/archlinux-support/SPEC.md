@@ -1,7 +1,7 @@
 # SPEC — ArchLinux（omarchy）支援
 
 - `spec_version`: v2
-- `status`: draft
+- `status`: approved
 - `tier`: 3
 - `scope`: archlinux-support
 - `base_ref`: `4ddc1b5`（`origin/main`，PR #16 合併點）
@@ -257,7 +257,10 @@ S19 在 omarchy 內必須逐條成立：
 
 ## Approval
 
-（尚無。v2 待核准。）
+- 2026-09-07 — approves v2 — 「核准 SPEC v2」（AskUserQuestion 結構化提問，問題
+  明示 `specs/archlinux-support/SPEC.md`、commit `2b12938`，並列出 Setup plan 授權
+  範圍：分支提交節奏、新增測試檔案、在 WSL distro `omarchy` 內執行
+  `chezmoi init --apply`）。
 
 ## Revisions
 
