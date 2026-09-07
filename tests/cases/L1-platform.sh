@@ -7,11 +7,12 @@
 _platform_fields='{{- $p := includeTemplate "platform.toml" . | fromToml -}}
 {{ $p.os }}|{{ $p.arch }}|{{ $p.isWindows }}|{{ $p.isPosix }}|{{ $p.brewPrefix }}|{{ $p.distro }}|{{ $p.pkgManager }}'
 
-# S2：既有平台。linux fixture 在這台主機上沒有 .chezmoi.osRelease.id（Windows
-# 主機的 osRelease 是空 map，SPEC F2），distro 為空、pkgManager 退回 apt ——
-# 與 Arch 支援之前的行為等價。darwin/windows 兩欄皆空。
+# S2：既有平台。linux fixture 釘 distroOverride = "debian"：沒有它，這一欄會是
+# 渲染主機自己的 /etc/os-release（Windows 主機是空、Ubuntu 主機是 ubuntu，gate 第一次
+# 在 WSL 跑就抓到），測試結果不能隨主機而變。debian 走 apt，與 Arch 支援之前的
+# 行為等價。darwin/windows 兩欄皆空。
 assert_eq "linux/amd64 的平台事實" \
-    'linux|amd64|false|true|/home/linuxbrew/.linuxbrew||apt' \
+    'linux|amd64|false|true|/home/linuxbrew/.linuxbrew|debian|apt' \
     "$(render linux "$_platform_fields")"
 
 assert_eq "darwin/arm64 的平台事實（Apple Silicon 的 brew prefix）" \
