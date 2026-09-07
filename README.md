@@ -1,15 +1,16 @@
 # dotfiles
 
-用 chezmoi 管理開發環境，Linux / macOS / native Windows 三個平台。
+用 chezmoi 管理開發環境：Linux（Debian 系與 Arch）、macOS、native Windows。
 
-| | Linux / macOS | Windows |
-|---|---|---|
-| Shell | zsh + Oh My Zsh | PowerShell 7 |
-| Prompt | Powerlevel10k | oh-my-posh（powerlevel10k_rainbow） |
-| 補全／建議 | zsh-autosuggestions + zsh-syntax-highlighting | PSReadLine（內建） |
-| 模糊搜尋 | fzf + fzf-tab | fzf + PSFzf |
-| 套件 | apt（前置）+ Homebrew | winget |
-| 版本管理 | mise | mise |
+| | Linux（Debian 系）/ macOS | Arch（omarchy） | Windows |
+|---|---|---|---|
+| Shell | zsh + Oh My Zsh | zsh + Oh My Zsh，並載入 omarchy 的 `env-bootstrap` | PowerShell 7 |
+| Prompt | Powerlevel10k | Powerlevel10k | oh-my-posh（powerlevel10k_rainbow） |
+| 補全／建議 | zsh-autosuggestions + zsh-syntax-highlighting | 同左 | PSReadLine（內建） |
+| 模糊搜尋 | fzf + fzf-tab | fzf + fzf-tab | fzf + PSFzf |
+| 套件 | apt（前置）+ Homebrew | pacman（不裝 Homebrew） | winget |
+| 版本管理 | mise | mise（pacman） | mise |
+| neovim | mise 釘版本 + LazyVim starter | pacman 的 neovim，沿用 omarchy 出廠的 LazyVim 設定 | mise 釘版本 + LazyVim starter |
 
 ---
 
@@ -48,6 +49,29 @@ sh -c "$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/<branc
 branch 合併刪除後要回 main：`chezmoi cd && git checkout main`。
 
 已經裝過的機器重跑 `init.sh` 不會重新 clone，`--branch` 會被忽略；要換 branch 用下面的方式。
+
+### Arch / omarchy
+
+同一行 `init.sh`。發行版由 `/etc/os-release` 的 `ID` 決定，Arch 走 pacman，不裝
+Homebrew：
+
+| 時機 | 做什麼 | 問什麼 |
+|---|---|---|
+| `run_onchange_before_10-install-packages` | `pacman -S --needed` 裝 `zsh git curl base-devel` | `sudo` 密碼 |
+| `run_onchange_before_30-install-pacman-packages` | 裝 `mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim`（omarchy 出廠大多已裝） | `sudo` 密碼（快取通常還在） |
+| `run_after_default-shell` | 改登入 shell 為 zsh | **你自己的**密碼 |
+
+只用 `pacman -S --needed --noconfirm`，不做 `-Sy` 或 `-Syu`；套件資料庫過期時腳本
+會停下來並提示先更新系統（omarchy：*Update > Omarchy*）。
+
+在 omarchy 上要知道的三件事：
+
+- neovim 是 pacman 套件，`~/.config/nvim` 沿用 omarchy 出廠的 `omarchy-nvim`
+  設定，這個 repo 只把 `lua/plugins/completion.lua` 疊上去；不會備份或搬動它。
+- `~/.zshrc` 與 `~/.zprofile` 會載入 omarchy 的 `env-bootstrap`，所以 `OMARCHY_PATH`
+  與 `omarchy-*` 指令在 zsh 裡照常可用；omarchy 的 bash 專用 `rc` 不載入。
+- `~/.config/git/config` 由這個 repo 全檔接管，omarchy 安裝時寫入的 alias 與
+  `init.defaultbranch=master` 會被取代。`omarchy reinstall configs` 不會碰這個檔案。
 
 ---
 

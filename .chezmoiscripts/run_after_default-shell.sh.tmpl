@@ -7,7 +7,20 @@ zsh_path="$(command -v zsh || true)"
 if [ -z "$zsh_path" ]; then
     exit 0
 fi
-
+{{ if eq $p.pkgManager "pacman" }}
+# Arch merges /usr/sbin into /usr/bin and its default PATH lists /usr/sbin
+# first, so `command -v zsh` reports /usr/sbin/zsh (omarchy, measured) while
+# /etc/shells lists /usr/bin/zsh and /bin/zsh. pam_shells compares strings,
+# so hand chsh the /etc/shells entry that resolves to the same file.
+zsh_real="$(readlink -f "$zsh_path")"
+while IFS= read -r candidate; do
+    case "$candidate" in /*) ;; *) continue ;; esac
+    if [ "$(readlink -f "$candidate" 2>/dev/null)" = "$zsh_real" ]; then
+        zsh_path="$candidate"
+        break
+    fi
+done < /etc/shells
+{{ end }}
 current="$(getent passwd "$(id -un)" | cut -d: -f7)"
 if [ "$current" = "$zsh_path" ]; then
     exit 0            # already converged: silent no-op

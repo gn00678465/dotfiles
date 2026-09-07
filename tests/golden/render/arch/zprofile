@@ -1,4 +1,3 @@
-{{- $p := includeTemplate "platform.toml" . | fromToml -}}
 # mise shims for non-interactive login shells (see mise docs: shims for
 # non-interactive, `mise activate` for interactive).
 # ~/.local/bin is NOT on the default login PATH, so prepend it before probing.
@@ -7,16 +6,11 @@ export PATH="$HOME/.local/bin:$PATH"
 # mise is installed by brew, so brew has to come first. `typeset -U path` keeps
 # the entries unique when .zshrc runs shellenv again for interactive shells.
 typeset -U path
-{{ if ne $p.brewPrefix "" -}}
-eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
-{{ else if eq $p.pkgManager "pacman" -}}
 # omarchy: same env-bootstrap as .zshrc, so login shells (ssh, zsh -l) also
 # find OMARCHY_PATH, omarchy-* and the mise shims.
 [ -r /etc/omarchy.conf ] && . /etc/omarchy.conf
 : "${OMARCHY_PATH:=/usr/share/omarchy}"
 [ -r "$OMARCHY_PATH/default/bash/env-bootstrap" ] && . "$OMARCHY_PATH/default/bash/env-bootstrap"
-{{ end -}}
-
 if (( $+commands[mise] )); then
   eval "$(mise activate zsh --shims)"
 fi

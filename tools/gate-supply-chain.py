@@ -39,7 +39,7 @@ FIXTURES = REPO / "tests" / "fixtures"
 # 六個組合，不是四個：每個平台的渲染只吐出屬於它自己的那一個 cc-statusline asset，
 # 少一個組合就等於那個 asset 的 pin 從來沒有被下載驗證過。
 OS_CONFIGS = [
-    "os-linux.toml", "os-linux-arm64.toml",
+    "os-linux.toml", "os-linux-arm64.toml", "os-arch.toml",
     "os-darwin-arm64.toml", "os-darwin-amd64.toml",
     "os-windows.toml", "os-windows-arm64.toml",
 ]
@@ -55,7 +55,7 @@ SECRET_PATTERNS = [
 # 這些 host 是這個 repo 本來就在用的下載來源。新出現的 host 會被列出來，
 # 讓 evidence report 的讀者知道這次改動讓來源樹多對外聯絡了誰。
 COMMAND_LITERALS = [
-    "winget", "brew", "apt-get", "mise", "git", "chsh", "dpkg-query",
+    "winget", "brew", "apt-get", "pacman", "mise", "git", "chsh", "dpkg-query",
     "Install-PSResource", "Add-AppxPackage", "Invoke-WebRequest", "Invoke-RestMethod",
     "oh-my-posh", "git-lfs", "sudo", "curl",
 ]

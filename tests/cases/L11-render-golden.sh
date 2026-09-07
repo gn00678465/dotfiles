@@ -91,6 +91,30 @@ assert_eq "golden/render/windows 的檔案集合" \
 
 unset _s _t _name _GOLDEN_RENDER
 
+# ---------- C2. Arch 專屬產物的 golden 快照（SPEC archlinux-support S14）----------
+# Arch 的 .zshrc/.zprofile 是唯一與 linux 不同的受管檔案：brew shellenv 換成
+# omarchy 的 env-bootstrap。與 C 同一種強度：變更偵測器，不是正確性 oracle；
+# 「在 omarchy 上真的找得到 omarchy-*」由 L9 證明。
+_GOLDEN_ARCH="$GOLDEN/render/arch"
+for _pair in ".zshrc|zshrc" ".zprofile|zprofile"; do
+    _t=${_pair%%|*}; _name=${_pair##*|}
+    if [ ! -f "$_GOLDEN_ARCH/$_name" ]; then
+        _fail "golden 存在：arch/$_name" "$_GOLDEN_ARCH/$_name 不存在"
+        continue
+    fi
+    _render_to arch "$_t" "$TMP/render-arch-$_name" "golden arch/$_name" || continue
+    assert_bytes_eq "golden：$_t 的 arch 渲染沒有悄悄改變" \
+        "$_GOLDEN_ARCH/$_name" "$TMP/render-arch-$_name"
+    _c=$(cat "$TMP/render-arch-$_name")
+    assert_contains "arch / $_t 載入 omarchy 的 env-bootstrap（M6）" "$_c" 'default/bash/env-bootstrap'
+    assert_not_contains "arch / $_t 不載入 bash 專用的 default/bash/rc（M7）" "$_c" 'default/bash/rc'
+    assert_contains "arch / $_t 讀 /etc/omarchy.conf（dev 模式的 OMARCHY_PATH）" "$_c" '/etc/omarchy.conf'
+done
+assert_eq "golden/render/arch 的檔案集合" \
+    "$(printf 'zprofile\nzshrc\n')" \
+    "$(ls "$_GOLDEN_ARCH" 2>/dev/null | LC_ALL=C sort)"
+unset _pair _t _name _c _GOLDEN_ARCH
+
 # ---------- D. 不經 chezmoi 算繪的兩支 Windows 檔案 ----------
 # L11-C 只涵蓋「chezmoi 會渲染的東西」。init.ps1 是自舉腳本（使用者直接 irm | iex
 # 執行，不經 chezmoi），sandbox 探針同理，兩者都落在這個機制的邊界之外，而它們正好
@@ -249,7 +273,25 @@ _script_brew=$(render_file linux .chezmoiscripts/run_onchange_before_30-install-
     | sed -n 's/^for formula in \(.*\); do$/\1/p' | tr ' ' '\n' | LC_ALL=C sort)
 assert_not_blank "Linux 探針讀得到 brew 清單" "$_probe_brew"
 assert_eq "Linux 探針的 brew 清單與 30-install-brew-packages 完全相同" "$_script_brew" "$_probe_brew"
-unset _probe_sh _probe_apt _script_apt _probe_brew _script_brew
+
+# Arch（SPEC archlinux-support S18）：探針的兩份 pacman 清單也要等於腳本的清單。
+_probe_pac=$(sed -n "s/^pacman_packages='\(.*\)'$/\1/p" "$REPO/tests/sandbox/_probe.sh" | tr ' ' '\n' | LC_ALL=C sort)
+_script_pac=$(render_file arch .chezmoiscripts/run_onchange_before_10-install-packages.sh.tmpl \
+    | sed -n 's/^for pkg in \(.*\); do$/\1/p' | tr ' ' '\n' | LC_ALL=C sort)
+assert_not_blank "Linux 探針讀得到 pacman 前置套件清單" "$_probe_pac"
+assert_eq "Linux 探針的 pacman 前置清單與 10-install-packages（arch）完全相同" "$_script_pac" "$_probe_pac"
+_probe_pac_tools=$(sed -n "s/^pacman_tools='\(.*\)'$/\1/p" "$REPO/tests/sandbox/_probe.sh" | tr ' ' '\n' | LC_ALL=C sort)
+_script_pac_tools=$(render_file arch .chezmoiscripts/run_onchange_before_30-install-pacman-packages.sh.tmpl \
+    | sed -n 's/^for pkg in \(.*\); do$/\1/p' | tr ' ' '\n' | LC_ALL=C sort)
+assert_not_blank "Linux 探針讀得到 pacman 工具清單" "$_probe_pac_tools"
+assert_eq "Linux 探針的 pacman 工具清單與 30-install-pacman-packages 完全相同" "$_script_pac_tools" "$_probe_pac_tools"
+# S19 的 omarchy 專屬義務：這幾條少一條，L9 就答不了對應的 M2/M3/M4/M6 問題。
+assert_contains "探針在 Arch 上檢查 ~/.config/nvim 沒有被搬進 .bak（M2）" "$_probe_sh" 'omarchy nvim config was left in place'
+assert_contains "探針在 Arch 上檢查沒有 /home/linuxbrew（M3）" "$_probe_sh" 'no Homebrew on Arch'
+assert_contains "探針在 Arch 上用真實 chezmoi 驗證 osRelease 接縫（M4）" "$_probe_sh" 'osRelease.id'
+assert_contains "探針在 Arch 上檢查登入 zsh 有 OMARCHY_PATH（M6）" "$_probe_sh" 'OMARCHY_PATH'
+assert_contains "探針在 Arch 上不移除 pacman 的 neovim（Must NOT #8）" "$_probe_sh" "skip 'a removed neovim is reinstalled by the next apply'"
+unset _probe_sh _probe_apt _script_apt _probe_brew _script_brew _probe_pac _script_pac _probe_pac_tools _script_pac_tools
 
 # 測試層自己也會被刪掉。gate 的 manifest 稽核管的是 **gate 的層**，不是測試層；
 # 而 tests/run.sh 在指定的層檔案不存在時是 exit 0（`1..0`）。L1/L2/L3/L5/L6/L7/L11
@@ -258,7 +300,7 @@ unset _probe_sh _probe_apt _script_apt _probe_brew _script_brew
 # L8 是 SPEC 對 M8 唯一指名的程序（接縫與真實 Windows 行為是否一致），而這份報告
 # 每一條 Windows 與 macOS 的主張都是經由那個接縫推導出來的。
 assert_eq "測試層的檔案集合" \
-    "$(printf '%s\n' L1-platform.sh L11-render-golden.sh \
+    "$(printf '%s\n' L1-platform.sh L10-regression.sh L11-render-golden.sh \
         L2-script-render-matrix.sh L3-managed-set.sh L4-syntax.sh L5-externals.sh \
         L6-file-golden.sh L7-behavior.sh L8-windows-seam.sh | LC_ALL=C sort)" \
     "$(ls "$REPO/tests/cases" | LC_ALL=C sort)"

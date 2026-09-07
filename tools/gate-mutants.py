@@ -407,6 +407,47 @@ MUTANTS: list[Mutant] = [
         layer="L6",
         rationale="空的 [tui] 讓 slice 得到 nil，concat 解參考它 → 整個 apply 以非零結束",
     ),
+    # ---- archlinux-support ----
+    Mutant(
+        name="platform-pkgmanager-swapped",
+        path=".chezmoitemplates/platform.toml",
+        old='{{-   $pkgManager = (eq $distro "arch") | ternary "pacman" "apt" -}}',
+        new='{{-   $pkgManager = (eq $distro "arch") | ternary "apt" "pacman" -}}',
+        layer="L1",
+        rationale="ternary 的兩個分支寫反：Debian 走 pacman、Arch 走 apt，10-install-packages 在第一支腳本就中止",
+    ),
+    Mutant(
+        name="neovim-guard-isposix",
+        path=".chezmoiscripts/run_before_50-neovim.sh.tmpl",
+        old='{{ if ne $p.brewPrefix "" -}}',
+        new='{{ if $p.isPosix -}}',
+        layer="L2",
+        rationale="50-neovim 的守衛退回 isPosix：Arch 上會執行，把 omarchy-nvim 的設定搬進 .bak 再 clone starter（M2）",
+    ),
+    Mutant(
+        name="pacman-syu",
+        path=".chezmoitemplates/pacman-install.sh",
+        old="        sudo pacman -S --needed --noconfirm $missing && return 0",
+        new="        sudo pacman -Syu --needed --noconfirm $missing && return 0",
+        layer="L2",
+        rationale="apply 順手做全系統升級（Must NOT #5）",
+    ),
+    Mutant(
+        name="pacman-list-drops-neovim",
+        path=".chezmoiscripts/run_onchange_before_30-install-pacman-packages.sh.tmpl",
+        old="for pkg in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim; do",
+        new="for pkg in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli; do",
+        layer="L2",
+        rationale="Arch 的 neovim 由 pacman 來（50-neovim 是空的）；清單漏掉它，純 Arch 上就沒有 nvim",
+    ),
+    Mutant(
+        name="zshrc-omarchy-block-gone",
+        path="dot_zshrc.tmpl",
+        old='{{ else if eq $p.pkgManager "pacman" }}',
+        new='{{ else if eq $p.pkgManager "never" }}',
+        layer="L11",
+        rationale="Arch 的 .zshrc 少了 env-bootstrap 區塊：OMARCHY_PATH 與 omarchy-* 在 zsh 裡消失（M6）",
+    ),
 ]
 
 

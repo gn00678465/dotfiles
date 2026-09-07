@@ -14,9 +14,13 @@
 # 這裡把那條路徑釘成 characterization test：先把接下來幾秒的時間戳目錄全部建好，
 # 腳本算出來的名字必然已被佔用。這樣做不是宣告它是對的行為，而是讓「有人改了備份
 # 命名的形狀」不會無聲通過 —— 資料仍然沒有被刪，只是位置被埋深了一層。
+# 撞名視窗要蓋過腳本從啟動到 mv 的整段時間。原本只種 0–6 秒，Windows 那一半經
+# WSL interop 啟動 pwsh.exe 常常超過 6 秒，於是同一個 suite 連跑兩次時第二次撞不到
+# （archlinux-support 的 gate 在 suite-health-repeat 層實際抓到：753 條裡這兩條變紅）。
+# 種到 30 秒只是讓撞名一定發生，斷言本身不變。
 _seed_stamp_collisions() { # base-path
     _i=0
-    while [ "$_i" -le 6 ]; do
+    while [ "$_i" -le 30 ]; do
         mkdir -p "$1.bak.$(date -d "+$_i second" +%Y%m%d%H%M%S 2>/dev/null || date +%Y%m%d%H%M%S)"
         _i=$((_i + 1))
     done
@@ -226,8 +230,13 @@ PSEOF
     # 形狀必須一致，否則同一份 SPEC 在兩個平台上代表不同的事。
     rm -f "$_bw/local/nvim/.chezmoi-lazyvim-starter"
     printf 'GEN4\n' > "$_bw/local/nvim/gen-marker.txt"
-    _seed_stamp_collisions "$_bw/local/nvim"
-    if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_bn\\run.ps1" 2>&1); then
+    # 撞名不靠牆上的時鐘：pwsh.exe 經 WSL interop 啟動的時間不可預測（6 秒的視窗
+    # 在 gate 的 suite-health-repeat 撞不到，30 秒的視窗在使用者同時跑 L9 時也撞不到）。
+    # 改成在 wrapper 裡用同名 function 蓋掉 Get-Date（function 優先於 cmdlet，子 scope
+    # 看得到），腳本算出的時間戳固定為 20000101000000，測試只種這一個目錄。
+    mkdir -p "$_bw/local/nvim.bak.20000101000000"
+    { printf 'function Get-Date { param([string] $Format) "20000101000000" }\n'; cat "$_bw/run.ps1"; } > "$_bw/run4.ps1"
+    if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_bn\\run4.ps1" 2>&1); then
         _pass "Windows 50-neovim 第四次執行成功"
     else _fail "Windows 50-neovim 第四次執行成功" "$(printf '%s' "$_out" | tr -d '\r')"; fi
     assert_eq "Windows: 撞名時來源被搬進既有備份裡（accepted risk，位置變深一層）" "1" \

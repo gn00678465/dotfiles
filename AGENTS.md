@@ -1,6 +1,7 @@
 # AGENTS.md
 
-Chezmoi dotfiles source repository. Targets: Linux, macOS, and native Windows.
+Chezmoi dotfiles source repository. Targets: Linux (Debian family and Arch,
+with omarchy as the Arch reference), macOS, and native Windows.
 
 ## Daily dotfiles workflow
 
@@ -46,14 +47,25 @@ It checks cases that the script must reject.
 
 ## Platform selection
 
-Use `.chezmoitemplates/platform.toml` as the only source of OS decisions.
-Callers use `{{- $p := includeTemplate "platform.toml" . | fromToml -}}`
-and read `$p.os`, `$p.arch`, `$p.isWindows`, `$p.isPosix`, or `$p.brewPrefix`.
-Do not use `eq .chezmoi.os "..."` elsewhere.
+Use `.chezmoitemplates/platform.toml` as the only source of OS and
+distribution decisions. Callers use
+`{{- $p := includeTemplate "platform.toml" . | fromToml -}}` and read
+`$p.os`, `$p.arch`, `$p.isWindows`, `$p.isPosix`, `$p.brewPrefix`,
+`$p.distro`, or `$p.pkgManager`. Do not use `eq .chezmoi.os "..."` or
+`.chezmoi.osRelease` elsewhere.
 
-The partial defines `osOverride` and `archOverride` for tests.
-Use them to render all three platforms on Linux. No macOS hardware is
-available. `tests/cases/L8` checks the overrides with Windows chezmoi.
+`$p.distro` is `.chezmoi.osRelease.id` on Linux and empty elsewhere.
+`$p.pkgManager` is `pacman` when `$p.distro` is `arch`, `apt` on other Linux,
+and empty on macOS and Windows. `$p.brewPrefix` is empty on Windows and Arch.
+A non-empty `$p.brewPrefix` is the only signal that a platform uses Homebrew.
+Guard Homebrew scripts and the `brew shellenv` lines with
+`ne $p.brewPrefix ""`, not with `$p.isPosix`.
+
+The partial defines `osOverride`, `archOverride`, and `distroOverride` for
+tests. Use them to render all platforms on one host. No macOS hardware is
+available. `tests/cases/L8` checks the OS overrides with Windows chezmoi.
+`tests/sandbox/omarchy.sh` checks that real chezmoi on Arch reaches the same
+`distro` and `pkgManager` values as the `os-arch` fixture.
 
 Do not run chezmoi apply against the current Windows host's actual user
 environment without explicit user approval. Template rendering, tests in
@@ -90,18 +102,35 @@ Keep the POSIX and Windows scripts consistent:
   `mkdir /run/user/1000: permission denied`; `apply` used a different path.
   Do not add an `XDG_RUNTIME_DIR` fallback to `.zshrc`. It would cover only
   processes started from zsh.
-- `10-install-packages`: Install Linux OS prerequisites only:
-  `zsh git curl` and Homebrew installer requirements. Do not add tools here.
-- `30-install-brew-packages`: Keep the POSIX tool list here so Linux and
-  macOS receive the same tools. Add new tools here and to
-  `30-install-winget-packages` for Windows.
+- `10-install-packages`: Install Linux OS prerequisites only. The apt branch
+  installs `zsh git curl` and Homebrew installer requirements. The pacman
+  branch installs `zsh git curl base-devel`. Do not add tools here.
+- `30-install-brew-packages`: Keep the POSIX tool list here so Debian and
+  macOS receive the same tools. Add new tools here, to
+  `30-install-pacman-packages` for Arch, and to `30-install-winget-packages`
+  for Windows.
+- `30-install-pacman-packages`: The pacman tool list. It equals the brew list
+  plus `neovim`, because Arch installs neovim through pacman. `tests/cases/L2`
+  compares the two lists. All names are in the official `core` and `extra`
+  repositories; do not add AUR packages. Both pacman scripts include
+  `.chezmoitemplates/pacman-install.sh`, which runs only
+  `pacman -S --needed --noconfirm`. Do not add `-Sy`, `-Syu`, `-R`, or
+  `--overwrite`. A stale package database stops the script with a message.
+  `tools/gate-pacman-ids.sh` resolves every name with `pacman -Si`.
 - `30-install-winget-packages`: Do not add `Microsoft.PowerShell` or `Git.Git`.
   They belong in `init.ps1`: chezmoi needs git to clone and pwsh 7 to run scripts.
 - `35-install-ps-modules`: Install Windows PowerShell Gallery modules that
   winget does not provide. The current module is PSFzf.
 - `40-git-lfs`: Keep `run_onchange_after_` on both platforms.
   `git lfs install` must follow `create_empty_dot_gitconfig` so it writes
-  `~/.gitconfig`, not the managed `~/.config/git/config`.
+  `~/.gitconfig`, not the managed `~/.config/git/config`. The `brew shellenv`
+  line renders only when `$p.brewPrefix` is non-empty; on Arch, git-lfs comes
+  from pacman and is on PATH.
+- `50-neovim`: Renders empty on Arch. Arch installs neovim through pacman,
+  and omarchy supplies its LazyVim configuration in `~/.config/nvim` through
+  the `omarchy-nvim` package. The script must not back up, move, or replace
+  that directory. The managed `lua/plugins/completion.lua` is applied on top
+  of it. The `versions.toml` neovim pin does not apply to Arch.
 - `50-neovim`: Install neovim through mise at the version in
   `versions.toml`. Read the script's version comment before an update.
   Clone the LazyVim starter from `main` once into `~/.config/nvim`, then
@@ -131,6 +160,14 @@ tools installed by a preceding script.
 Before a script uses a brew binary, run
 `eval "$(<prefix>/bin/brew shellenv)"`. Chezmoi scripts do not inherit
 the interactive shell PATH.
+
+On Arch, `dot_zshrc.tmpl` and `dot_zprofile.tmpl` load omarchy's
+`default/bash/env-bootstrap` instead of `brew shellenv`. It uses POSIX sh
+syntax and sets `OMARCHY_PATH` and PATH. Do not load `default/bash/rc`; it is
+bash-only. `/etc/omarchy.conf` is read first because a dev-link install keeps
+omarchy in `~/.local/share/omarchy` instead of `/usr/share/omarchy`.
+`~/.config/git/config` is fully managed on all platforms; on omarchy, this
+replaces the file that the omarchy installer wrote.
 
 Keep `init.ps1` and `tests/sandbox/_probe.ps1` ASCII-only, including comments.
 Windows PowerShell 5.1 reads BOM-less scripts with the ANSI code page;
@@ -200,13 +237,20 @@ requests full verification. Report checks that could not run.
 | L6 | Expected file output, including data preservation |
 | L7 | Script behavior in a redirected environment |
 | L8 | Platform overrides with Windows chezmoi |
-| L11 | Exact rendered output for `init.ps1`, `_probe.ps1`, and Windows scripts |
+| L10 | Regression against the SPEC base ref: the six pre-Arch fixtures render byte-identical |
+| L11 | Exact rendered output for `init.ps1`, `_probe.ps1`, Windows scripts, and Arch zsh files |
 
 L4, L7, and L8 skip without WSL interop. The other listed layers do not
-require it.
+require it. The `native-wsl` assertions in L2 need a Linux host.
 
 L9 tests installation in a disposable environment. See
 `tests/sandbox/README.md`:
+
+- Arch: Run `tests/sandbox/omarchy.sh`. It runs `_probe.sh` inside the
+  user's existing `omarchy` WSL distro, which is not disposable. The
+  launcher copies the source tree in through a pipe, runs the probe, and
+  copies `/out` back to `.gate/l9-omarchy/`. It never runs pacman itself.
+  The probe does not remove packages on Arch.
 
 - Windows: Run `_probe.ps1` in Windows Sandbox. Local mode uses `prepare.sh`
   and `sandbox.wsb` to test an unpushed tree. Remote mode uses `irm | iex`
@@ -218,9 +262,12 @@ L9 tests installation in a disposable environment. See
   the runtime directory fix. Both Linux probes also test a second apply,
   `chezmoi git`, and neovim removal and reinstallation.
 
-`tools/gate.sh` runs the suite, repeated and shuffled suite runs, property
-cases, hand-written mutants, external and winget ID resolution, changed-line
-coverage, and source-state checks before and after execution.
+`tools/gate.sh --scope <scope>` runs the suite, repeated and shuffled suite
+runs, property cases, hand-written mutants, external, winget, and pacman
+package name resolution, changed-line coverage, and source-state checks
+before and after execution. The scope names `specs/<scope>/SPEC.md` and the
+`.gate/<scope>/` output directory. It can be omitted only when `specs/` holds
+one SPEC outside `archive/`.
 
 `gate-intent.sh` derives `intent_status` and `intent_source` from the committed
 SPEC. Copy these headers verbatim into the evidence report.

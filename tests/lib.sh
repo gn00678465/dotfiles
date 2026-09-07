@@ -154,6 +154,6 @@ render_file() { # os path-relative-to-repo
 # 六個組合，不是四個。cc-statusline 有六個 release asset，而每個平台的渲染只會吐出
 # 對應它自己那一個 —— 少渲染一個組合，就等於那個 asset 的 checksum 從來沒有被任何
 # 檢查看過。win32-arm64 與 linux-arm64-musl 原本就是這樣漏掉的。
-ALL_OSES='linux linux-arm64 darwin-arm64 darwin-amd64 windows windows-arm64'
-POSIX_OSES='linux linux-arm64 darwin-arm64 darwin-amd64'
+ALL_OSES='linux linux-arm64 arch darwin-arm64 darwin-amd64 windows windows-arm64'
+POSIX_OSES='linux linux-arm64 arch darwin-arm64 darwin-amd64'
 WINDOWS_OSES='windows windows-arm64'

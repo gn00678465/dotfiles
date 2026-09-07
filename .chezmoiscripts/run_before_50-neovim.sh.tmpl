@@ -1,6 +1,6 @@
 {{- $p := includeTemplate "platform.toml" . | fromToml -}}
 {{- $v := includeTemplate "versions.toml" . | fromToml -}}
-{{ if $p.isPosix -}}
+{{ if ne $p.brewPrefix "" -}}
 #!/bin/zsh
 # Neovim (via mise) + the LazyVim starter config.
 # `before`, because `git clone` refuses a non-empty target and chezmoi owns

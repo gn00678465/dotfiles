@@ -3,5 +3,6 @@
 # 這是本 repo 取得 macOS 證據的唯一手段（沒有實體 mac）。
 [data]
     osOverride = "linux"
+    distroOverride = "debian"
     archOverride = "amd64"
     isWSL = false

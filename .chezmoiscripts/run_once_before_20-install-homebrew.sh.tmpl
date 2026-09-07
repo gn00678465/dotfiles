@@ -1,5 +1,5 @@
 {{- $p := includeTemplate "platform.toml" . | fromToml -}}
-{{ if $p.isPosix -}}
+{{ if ne $p.brewPrefix "" -}}
 #!/bin/zsh
 # Runs after 10-install-packages, which installs zsh itself plus Homebrew's
 # Linux build requirements.

@@ -6,8 +6,9 @@
 # then, so git writes there and not into chezmoi-owned ~/.config/git/config.
 # That is also why [filter "lfs"] is deliberately absent from that file.
 set -euo pipefail
-
+{{ if ne $p.brewPrefix "" }}
 eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
+{{- end }}
 
 if ! command -v git-lfs &>/dev/null; then
   exit 0
