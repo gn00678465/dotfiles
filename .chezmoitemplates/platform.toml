@@ -3,7 +3,7 @@
 
       {{- $p := includeTemplate "platform.toml" . | fromToml -}}
 
-  然後讀 $p.os / $p.arch / $p.isWindows / $p.isPosix / $p.brewPrefix。
+  然後讀 $p.os / $p.arch / $p.isWindows / $p.isPosix / $p.brewPrefix / $p.distro / $p.pkgManager。
   不要在別的地方寫 `eq .chezmoi.os "..."` 或自己拼 brew prefix —— 這個 repo 現在有
   三個目標平台，平台知識散開就會出現「某一支腳本忘了跟上」的那種錯。
 
@@ -20,10 +20,24 @@
 {{- $arch := .chezmoi.arch -}}
 {{- if hasKey . "osOverride" -}}{{- $os = .osOverride -}}{{- end -}}
 {{- if hasKey . "archOverride" -}}{{- $arch = .archOverride -}}{{- end -}}
-{{- /* Windows 沒有 brew。這裡留空字串而不是任何路徑，好讓忘了守 isWindows 的
-       呼叫端拼出明顯壞掉的字串，而不是一條看似合理、實際不存在的路徑。 */ -}}
-{{- $brewPrefix := "" -}}
+{{- /* 發行版：chezmoi 只在 Linux 讀 /etc/os-release；其他平台 .chezmoi.osRelease
+       是空 map，所以兩層 hasKey 都要擋。distroOverride 是第三個測試接縫，性質同上：
+       這個 repo 的渲染主機不是 Arch，Arch 的證據只能靠它取得。 */ -}}
+{{- $distro := "" -}}
+{{- if and (eq $os "linux") (hasKey .chezmoi "osRelease") -}}
+{{-   if hasKey .chezmoi.osRelease "id" -}}{{- $distro = .chezmoi.osRelease.id -}}{{- end -}}
+{{- end -}}
+{{- if hasKey . "distroOverride" -}}{{- $distro = .distroOverride -}}{{- end -}}
+{{- /* Linux 的系統套件管理員。沒認出來的發行版退回 apt，與 Arch 支援之前的行為相同。 */ -}}
+{{- $pkgManager := "" -}}
 {{- if eq $os "linux" -}}
+{{-   $pkgManager = (eq $distro "arch") | ternary "pacman" "apt" -}}
+{{- end -}}
+{{- /* Windows 與 Arch 沒有 brew。這裡留空字串而不是任何路徑，好讓忘了守的呼叫端
+       拼出明顯壞掉的字串，而不是一條看似合理、實際不存在的路徑。「brewPrefix 非空」
+       就是「這個平台用 brew」的唯一訊號。 */ -}}
+{{- $brewPrefix := "" -}}
+{{- if eq $pkgManager "apt" -}}
 {{-   $brewPrefix = "/home/linuxbrew/.linuxbrew" -}}
 {{- else if eq $os "darwin" -}}
 {{-   $brewPrefix = (eq $arch "arm64") | ternary "/opt/homebrew" "/usr/local" -}}
@@ -33,3 +47,5 @@ arch = {{ $arch | quote }}
 isWindows = {{ eq $os "windows" }}
 isPosix = {{ ne $os "windows" }}
 brewPrefix = {{ $brewPrefix | quote }}
+distro = {{ $distro | quote }}
+pkgManager = {{ $pkgManager | quote }}
