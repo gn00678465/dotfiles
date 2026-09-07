@@ -106,7 +106,7 @@
 | Must NOT #5 只用 `-S --needed --noconfirm` | `L2`（兩支腳本不含 `pacman -Sy`）；mutant `pacman-syu` | pass |
 | Must NOT #6 不用 .chezmoiignore 做平台隔離 | `L10`（.chezmoiignore 渲染不變）；`L2` 結構性不變式 | pass |
 | Must NOT #7 無未釘版本的外部下載 | `L5`（26 條）；gate `supply-chain`（11 個帶 checksum 的 external，0 個新增或變更） | pass |
-| Must NOT #8 omarchy 內只做 init --apply | 啟動器只做 mkdir/chown、複製、tar；探針在 Arch 上 SKIP 移除 neovim（`L11` 釘住） | pass |
+| Must NOT #8 omarchy 內只做 init --apply | 啟動器以 root 只處理 `/src` 與 `/out`（只在帶有自己的 marker 時才重建，外人的目錄一律拒絕）、複製來源、tar 取回；探針在 Arch 上 SKIP 移除 neovim（`L11` 釘住） | pass |
 | Must NOT #9 不改測試求綠、不報未跑的檢查 | 每次測試改動的理由在 commit 訊息與本檔 Honest notes | pass |
 | Must NOT #10 不在 main 提交 | 分支 `feat/archlinux-support`，`git log 4ddc1b5..HEAD` 全在此分支 | pass |
 | D3 互動式 `chsh` 後的登入 zsh（探針無 tty，只能驗到手動提示） | 使用者在 omarchy 終端機執行 `chsh -s /bin/zsh` 後回報：`echo $SHELL $OMARCHY_PATH; omarchy-version` → `/bin/zsh /home/omarchy/.local/share/omarchy` / `dev (f0020448)`；p10k 首次載入抓取 gitstatusd ok | pass（人工） |
@@ -239,7 +239,8 @@ run 2 之後到最終 commit 之間的變更只有測試與 gate 工具（`3ea61
   `.zshrc` 的 env-bootstrap 區塊同時涵蓋兩條路徑，但只有 dev 路徑被 L9 證明。
 - 純 Arch（沒有 omarchy）不在本次範圍：50-neovim 在 Arch 上是空的，不會 clone LazyVim starter。
 - macOS 仍無實機；darwin 的證據全部經由 `osOverride` 接縫。
-- `chezmoi update`（remote 模式）在 omarchy 上沒有跑（local 模式無 remote）。
+- `chezmoi update`（remote 模式）在建置端的兩輪 L9 沒有跑（local 模式無 remote）；使用者的 run 4
+  （remote 模式）已通過，見 §Real execution。
 - omarchy 的 migrations 是否會改動本 repo 管理的檔案：未逐一讀取。
 
 ## Honest notes
@@ -277,6 +278,15 @@ run 2 之後到最終 commit 之間的變更只有測試與 gate 工具（`3ea61
   wrapper 裡以同名 function 蓋掉 `Get-Date`，時間戳固定、不再依賴牆上時鐘；L7 在 WSL 連跑兩次
   53/53。這個 commit 只動 `tests/cases/L7-behavior.sh` 與本檔，產品檔案不變；上表的數字仍是
   `0cae96d` 那一輪，使用者的獨立重跑應改用這個 commit。
+- 第二位審查者（Codex，唯讀檢視分支）回報 10 條 finding，全部是驗證工具的 fail-open 形狀或
+  文件不一致，沒有產品行為缺陷；已於 CLOSE 之後逐條修正（測試與工具，產品檔案不變）：
+  omarchy 啟動器對非自己建立的 `/src`／`/out` 一律拒絕（marker 檔）、結果匯出改走檔案並檢查
+  傳送端退出碼；L10 保留 apply 與渲染的退出碼，失敗即 `_fail` 而不比對；`gate-pacman-ids`
+  對兩支腳本各自要求渲染成功且清單非空，並要求 Repository 為 core/extra；探針的 LFS 斷言改看
+  `filter.lfs.process` 的值、`nvim --version` 與兩次 headless 執行都檢查退出碼、`completion.lua`
+  與 `chezmoi cat` 比對內容；L2 補上 `pacman -R` 與 `--overwrite` 的禁止斷言；本檔的遠端
+  `chezmoi update` 敘述與 Must NOT #8 的啟動器描述同步。上表 Gate 的數字仍是 `0cae96d` 那一輪；
+  這批修正後 L2/L10/L11 與 pacman-ids 在本機重跑（見 commit 訊息）。
 - 已知的既有缺陷（未修，見 Dismissed concerns）：`.zwc` 讓已使用過 zsh 的機器第二次以後的
   `chezmoi apply --no-tty` 中止；修法會動到所有 POSIX 平台的 externals，超出本 SPEC 範圍。
   使用者決定另開任務處理。

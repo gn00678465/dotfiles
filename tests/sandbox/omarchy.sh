@@ -79,8 +79,17 @@ else
 fi
 
 # Root only creates the two directories the probe expects and hands them to
-# the user; everything after this runs as the user.
-run_root "rm -rf /src /out && mkdir -p /src/dotfiles /out && chown -R '$user' /src /out"
+# the user; everything after this runs as the user. /src and /out are replaced
+# only when a previous run of this launcher made them (marker file): this is
+# the user's distro, not a throwaway rootfs, so a /src or /out that belongs to
+# someone else is a hard stop, never an rm -rf.
+_owned=$(run_root 'for d in /src /out; do if [ -e "$d" ] && [ ! -e "$d/.chezmoi-probe" ]; then echo "FOREIGN $d"; fi; done' | tr -d '\0\r')
+if [ -n "$_owned" ]; then
+    echo "omarchy.sh: refusing to replace a directory this launcher did not create: $_owned" >&2
+    echo "omarchy.sh: remove it yourself inside $NAME, or point the probe elsewhere" >&2
+    exit 2
+fi
+run_root "rm -rf /src /out && mkdir -p /src/dotfiles /out && touch /src/.chezmoi-probe /out/.chezmoi-probe && chown -R '$user' /src /out"
 if [ -z "$branch" ]; then
     # Committed content only (git archive), like prepare.sh: what runs is this
     # commit, not the working tree.
@@ -93,6 +102,14 @@ wslx -d "$NAME" -- sh -c 'cat > /src/_probe.sh' < "$REPO/tests/sandbox/_probe.sh
 rc=0
 wslx -d "$NAME" -- env LANG=C.UTF-8 LC_ALL=C.UTF-8 sh /src/_probe.sh ${branch:+--branch "$branch"} || rc=$?
 
-wslx -d "$NAME" -- tar -c -C /out . | tar -x -C "$OUT"
+# Through a file, not a pipe: a pipe's status is the local tar's, and a sender
+# that fails after emitting a valid archive would be reported as success.
+if ! wslx -d "$NAME" -- tar -c -C /out . > "$OUT/out.tar"; then
+    echo "omarchy.sh: exporting /out from $NAME failed" >&2
+    rm -f "$OUT/out.tar"
+    exit 2
+fi
+tar -x -C "$OUT" -f "$OUT/out.tar" && rm -f "$OUT/out.tar"
+[ -s "$OUT/results.tsv" ] || { echo "omarchy.sh: no results.tsv came back" >&2; exit 2; }
 echo "omarchy.sh: probe exit $rc; results in $OUT/results.tsv"
 exit "$rc"

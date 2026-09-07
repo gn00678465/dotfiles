@@ -28,15 +28,23 @@ done
 # a package added to a script is checked here without anyone editing this file.
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/gate-pacman.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT INT TERM
+# Each script must render, and each must yield a list: a render failure or a
+# missing `for pkg in` line is a hard failure, not an empty contribution to a
+# merged list (that shape let one whole script go unverified).
 render_list() { # script
-    chezmoi --source "$REPO" --config "$REPO/tests/fixtures/os-arch.toml" \
-        --destination "$TMP/dest" --persistent-state "$TMP/state.boltdb" --no-tty \
-        execute-template < "$REPO/.chezmoiscripts/$1" \
-        | sed -n 's/^for pkg in \(.*\); do$/\1/p' | head -1
+    if ! _out=$(chezmoi --source "$REPO" --config "$REPO/tests/fixtures/os-arch.toml" \
+            --destination "$TMP/dest" --persistent-state "$TMP/state.boltdb" --no-tty \
+            execute-template < "$REPO/.chezmoiscripts/$1" 2>&1); then
+        echo "gate-pacman-ids: render failed for $1: $_out" >&2
+        return 1
+    fi
+    _list=$(printf '%s\n' "$_out" | sed -n 's/^for pkg in \(.*\); do$/\1/p' | head -1)
+    [ -n "$(printf '%s' "$_list" | tr -d ' ')" ] || { echo "gate-pacman-ids: no 'for pkg in' list in $1" >&2; return 1; }
+    printf '%s' "$_list"
 }
-pkgs="$(render_list run_onchange_before_10-install-packages.sh.tmpl) $(render_list run_onchange_before_30-install-pacman-packages.sh.tmpl)"
-pkgs=$(printf '%s\n' $pkgs | LC_ALL=C sort -u | tr '\n' ' ')
-[ -n "$(printf '%s' "$pkgs" | tr -d ' ')" ] || { echo "gate-pacman-ids: rendered package lists are empty" >&2; exit 1; }
+pre=$(render_list run_onchange_before_10-install-packages.sh.tmpl) || exit 1
+tools=$(render_list run_onchange_before_30-install-pacman-packages.sh.tmpl) || exit 1
+pkgs=$(printf '%s\n' $pre $tools | LC_ALL=C sort -u | tr '\n' ' ')
 
 WSL=""
 if command -v pacman >/dev/null 2>&1; then
@@ -72,7 +80,13 @@ for p in $pkgs; do
         out=$(printf '%s' "$raw" | tr -d '\0\r')
         repo=$(printf '%s\n' "$out" | sed -n 's/^Repository *: *//p' | head -1)
         ver=$(printf '%s\n' "$out" | sed -n 's/^Version *: *//p' | head -1)
-        printf 'ok   %-16s %s %s\n' "$p" "$repo" "$ver"
+        # SPEC F4 / AGENTS.md: official core/extra only, no AUR and no third-party
+        # repo (omarchy's own pkgs.omarchy.org is enabled on that machine, so a
+        # name resolving there would otherwise pass unnoticed).
+        case "$repo" in
+            core|extra) printf 'ok   %-16s %s %s\n' "$p" "$repo" "$ver" ;;
+            *) printf 'FAIL %-16s repository "%s" is not core/extra\n' "$p" "$repo"; rc=1 ;;
+        esac
     else
         printf 'FAIL %-16s %s\n' "$p" "$(printf '%s' "$raw" | tr -d '\0\r' | head -1)"
         rc=1

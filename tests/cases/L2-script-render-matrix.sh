@@ -194,6 +194,8 @@ assert_contains "10-install-packages 在 arch 上用 pacman -S --needed --noconf
 assert_not_contains "10-install-packages 在 arch 上沒有 apt-get" "$_ten_arch" 'apt-get'
 assert_not_contains "10-install-packages 在 arch 上沒有 dpkg-query" "$_ten_arch" 'dpkg-query'
 assert_not_contains "10-install-packages 在 arch 上沒有 pacman -Sy（部分升級／全系統升級都不准）" "$_ten_arch" 'pacman -Sy'
+assert_not_contains "10-install-packages 在 arch 上沒有 pacman -R（不移除套件）" "$_ten_arch" 'pacman -R'
+assert_not_contains "10-install-packages 在 arch 上沒有 --overwrite" "$_ten_arch" '--overwrite'
 assert_not_contains "10-install-packages 在 linux 上沒有 pacman" "$_ten_linux" 'pacman'
 # 前置套件清單只看 for pkg 那一行：base-devel 給 nvim-treesitter 的 C compiler，
 # zsh 給 default-shell，git/curl 是 chezmoi 與 external 的前提。
@@ -211,6 +213,8 @@ assert_eq "pacman 工具清單 = brew 工具清單 + neovim" "$_brew_list neovim
 assert_contains "pacman 清單裝的是 tree-sitter-cli（CLI）" "$_pac_list" 'tree-sitter-cli'
 assert_contains "30-install-pacman-packages 用 -S --needed --noconfirm" "$_pac" 'pacman -S --needed --noconfirm'
 assert_not_contains "30-install-pacman-packages 沒有 pacman -Sy" "$_pac" 'pacman -Sy'
+assert_not_contains "30-install-pacman-packages 沒有 pacman -R" "$_pac" 'pacman -R'
+assert_not_contains "30-install-pacman-packages 沒有 --overwrite" "$_pac" '--overwrite'
 unset _brew _brew_list _pac _pac_list
 
 # S9：Arch 上任何渲染結果都不得出現 brew（Must NOT #4）。

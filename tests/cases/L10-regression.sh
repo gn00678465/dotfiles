@@ -38,18 +38,28 @@ else
             --no-tty "$@"
     }
     # 測試用的 --config 本來就不是 .chezmoi.toml.tmpl 產生的，chezmoi 每次都會
-    # 提醒一次；那是預期中的，濾掉，其他任何輸出都算錯誤。
-    _apply_filtered() { # source tag os
-        _cm_src "$1" "$2" "$3" apply --exclude=scripts,externals 2>&1 \
-            | grep -v 'config file template has changed' || true
+    # 提醒一次；那是預期中的，濾掉，其他任何輸出都算錯誤。退出碼另外保留：
+    # 一個安靜地以非零結束的 apply 留下的是半棵樹，兩邊都半棵也會「相同」。
+    _apply_filtered() { # source tag os -> stdout: filtered output; return: apply's rc
+        _cm_src "$1" "$2" "$3" apply --exclude=scripts,externals > "$TMP/l10-apply.out" 2>&1
+        _arc=$?
+        grep -v 'config file template has changed' "$TMP/l10-apply.out" || true
+        return "$_arc"
+    }
+    # 渲染同理：失敗就 _fail 並跳過比對，不讓兩份錯誤訊息互相「相等」。
+    _render_or_fail() { # source tag os file outfile label
+        if ! _cm_src "$1" "$2" "$3" execute-template < "$4" > "$5" 2>"$TMP/l10-r-err"; then
+            _fail "$6" "$(cat "$TMP/l10-r-err")"
+            return 1
+        fi
     }
 
     for _os in linux linux-arm64 darwin-arm64 darwin-amd64 windows windows-arm64; do
         # ---- S15：檔案樹 ----
-        _base_out=$(_apply_filtered "$_base_src" base "$_os")
-        _new_out=$(_apply_filtered "$REPO" new "$_os")
-        if [ -n "$_base_out" ]; then _fail "$_os：base ref apply 無錯誤" "$_base_out"; else _pass "$_os：base ref apply 無錯誤"; fi
-        if [ -n "$_new_out" ]; then _fail "$_os：目前來源 apply 無錯誤" "$_new_out"; else _pass "$_os：目前來源 apply 無錯誤"; fi
+        _base_out=$(_apply_filtered "$_base_src" base "$_os"); _base_rc=$?
+        _new_out=$(_apply_filtered "$REPO" new "$_os"); _new_rc=$?
+        if [ "$_base_rc" -ne 0 ] || [ -n "$_base_out" ]; then _fail "$_os：base ref apply 無錯誤（rc=$_base_rc）" "$_base_out"; else _pass "$_os：base ref apply 無錯誤"; fi
+        if [ "$_new_rc" -ne 0 ] || [ -n "$_new_out" ]; then _fail "$_os：目前來源 apply 無錯誤（rc=$_new_rc）" "$_new_out"; else _pass "$_os：目前來源 apply 無錯誤"; fi
         _diff=$(diff -r "$TMP/l10-dest-base-$_os" "$TMP/l10-dest-new-$_os" 2>&1) || true
         assert_eq "$_os：套用結果與 base ref 逐位元組相同（S15）" "" "$_diff"
 
@@ -61,17 +71,17 @@ else
                 _fail "$_os：腳本 $_s 仍存在" "base ref 有這支腳本，目前來源沒有"
                 continue
             fi
-            _cm_src "$_base_src" base "$_os" execute-template < "$_f" > "$TMP/l10-r-base" 2>&1 || true
-            _cm_src "$REPO" new "$_os" execute-template < "$REPO/.chezmoiscripts/$_s" > "$TMP/l10-r-new" 2>&1 || true
+            _render_or_fail "$_base_src" base "$_os" "$_f" "$TMP/l10-r-base" "$_os：$_s 在 base ref 渲染成功" || continue
+            _render_or_fail "$REPO" new "$_os" "$REPO/.chezmoiscripts/$_s" "$TMP/l10-r-new" "$_os：$_s 在目前來源渲染成功" || continue
             assert_bytes_eq "$_os：$_s 的渲染與 base ref 逐位元組相同（S16）" "$TMP/l10-r-base" "$TMP/l10-r-new"
         done
         for _t in .chezmoiignore .chezmoiexternal.toml.tmpl .chezmoi.toml.tmpl; do
             # .chezmoi.toml.tmpl 會把 .chezmoi.sourceDir 寫進 sourceDir = ...，兩邊的
             # source 路徑本來就不同，那一行濾掉；其餘位元組仍逐一比對。
-            _cm_src "$_base_src" base "$_os" execute-template < "$_base_src/$_t" 2>&1 \
-                | grep -v '^sourceDir = ' > "$TMP/l10-r-base" || true
-            _cm_src "$REPO" new "$_os" execute-template < "$REPO/$_t" 2>&1 \
-                | grep -v '^sourceDir = ' > "$TMP/l10-r-new" || true
+            _render_or_fail "$_base_src" base "$_os" "$_base_src/$_t" "$TMP/l10-r-base-raw" "$_os：$_t 在 base ref 渲染成功" || continue
+            _render_or_fail "$REPO" new "$_os" "$REPO/$_t" "$TMP/l10-r-new-raw" "$_os：$_t 在目前來源渲染成功" || continue
+            grep -v '^sourceDir = ' "$TMP/l10-r-base-raw" > "$TMP/l10-r-base" || true
+            grep -v '^sourceDir = ' "$TMP/l10-r-new-raw" > "$TMP/l10-r-new" || true
             assert_bytes_eq "$_os：$_t 的渲染與 base ref 逐位元組相同（S16）" "$TMP/l10-r-base" "$TMP/l10-r-new"
         done
 

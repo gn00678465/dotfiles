@@ -270,6 +270,8 @@ if [ $arch = 1 ]; then
         [ -f "$_cfg/lua/plugins/omarchy-theme-hotreload.lua" ] || { echo 'omarchy plugin missing: the config was replaced'; return 1; }
         [ ! -e "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'starter marker present: 50-neovim ran'; return 1; }
         [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
+        _want=$(chezmoi cat "$_cfg/lua/plugins/completion.lua" 2>&1) || { echo "chezmoi cat failed: $_want"; return 1; }
+        [ "$_want" = "$(cat "$_cfg/lua/plugins/completion.lua")" ] || { echo 'our override differs from chezmoi cat'; return 1; }
         echo "$_cfg"
     }
     check 'omarchy nvim config was left in place, with our override on top (M2)' c_nvim_omarchy
@@ -339,10 +341,13 @@ if [ $arch = 1 ]; then
     check '~/.config/git/config is the managed file (D4)' c_git_config
 
     # 40-git-lfs without the brew shellenv line: git-lfs comes from pacman.
+    # `git lfs env` prints the filter.lfs.* keys even when they are unset (with
+    # empty values), so the assertion is on the value `git lfs install` writes.
     c_lfs() {
         _e=$(git lfs env 2>&1) || { echo "git lfs env failed: $_e"; return 1; }
-        printf '%s' "$_e" | grep -q 'filter.lfs' || { echo "no filter.lfs in: $_e"; return 1; }
-        echo 'filter.lfs configured'
+        printf '%s\n' "$_e" | grep -q 'filter\.lfs\.process = "git-lfs filter-process"' \
+            || { echo "filter.lfs.process not set to git-lfs filter-process: $(printf '%s\n' "$_e" | grep 'filter.lfs' | tr '\n' ' ')"; return 1; }
+        echo 'filter.lfs.process = git-lfs filter-process'
     }
     check 'git lfs filter is configured (40-git-lfs, pacman git-lfs)' c_lfs
 
@@ -374,7 +379,9 @@ if [ $arch = 1 ]; then
     # Arch: neovim and tree-sitter-cli are pacman packages; the mise pin in
     # versions.toml does not apply (rolling release, SPEC §7).
     c_nvim_pacman() {
-        _v=$(nvim --version 2>&1 | head -1) || { echo "nvim failed: $_v"; return 1; }
+        # nvim's own exit status, not head's.
+        _all=$(nvim --version 2>&1) || { echo "nvim --version failed: $_all"; return 1; }
+        _v=$(printf '%s\n' "$_all" | head -1)
         echo "$_v via $(command -v nvim) ($(pacman -Q neovim 2>/dev/null))"
     }
     check 'nvim runs (pacman neovim; the mise pin does not apply on Arch)' c_nvim_pacman
@@ -415,8 +422,12 @@ echo
 echo 'probe: running nvim Lazy! sync + nvim-treesitter install lua (the Linux M12)'
 echo 'probe: this usually takes 3-10 minutes and is capped at 15'
 c_parser() {
-    timeout 900 nvim --headless '+Lazy! sync' '+qa' > "$treesitter_log" 2>&1
-    timeout 900 nvim --headless -c "lua require('nvim-treesitter').install({'lua'}):wait(600000)" -c qa >> "$treesitter_log" 2>&1
+    # Both headless runs must exit 0: a pre-existing lua.so would otherwise
+    # let a failing nvim pass on the file check alone.
+    timeout 900 nvim --headless '+Lazy! sync' '+qa' > "$treesitter_log" 2>&1 \
+        || { echo "nvim +Lazy! sync exited $?"; output_tail "$treesitter_log" 10; return 1; }
+    timeout 900 nvim --headless -c "lua require('nvim-treesitter').install({'lua'}):wait(600000)" -c qa >> "$treesitter_log" 2>&1 \
+        || { echo "nvim-treesitter install exited $?"; output_tail "$treesitter_log" 10; return 1; }
     for _p in "$HOME/.local/share/nvim/lazy/nvim-treesitter/parser/lua.so" "$HOME/.local/share/nvim/site/parser/lua.so"; do
         [ -f "$_p" ] && { echo "lua parser built: $_p"; return 0; }
     done
