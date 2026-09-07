@@ -13,18 +13,22 @@ _expect() {
     case $1 in
         # 只在 isWSL = true 時非空；平台矩陣的 fixture 全是 isWSL = false，所以這裡
         # 是空清單，WSL 那一種渲染在下面用 native-wsl fixture 單獨釘。
+        # arch（SPEC archlinux-support S5）：brew 相關的三支（20、30-brew、50-neovim）
+        # 在 Arch 上必須是空的 —— Arch 不裝 Homebrew，neovim 與工具全由 pacman 來，
+        # LazyVim 沿用 omarchy 出廠的 omarchy-nvim（D1）。
         run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl)   echo '' ;;
-        run_onchange_before_10-install-packages.sh.tmpl)      echo 'linux linux-arm64' ;;
+        run_onchange_before_10-install-packages.sh.tmpl)      echo 'linux linux-arm64 arch' ;;
         run_once_before_20-install-homebrew.sh.tmpl)          echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
         run_onchange_before_30-install-brew-packages.sh.tmpl) echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_onchange_before_30-install-pacman-packages.sh.tmpl) echo 'arch' ;;
         run_onchange_before_30-install-winget-packages.ps1.tmpl) echo 'windows windows-arm64' ;;
         run_onchange_before_35-install-ps-modules.ps1.tmpl)    echo 'windows windows-arm64' ;;
-        run_onchange_after_40-git-lfs.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_onchange_after_40-git-lfs.sh.tmpl)                echo 'linux linux-arm64 arch darwin-arm64 darwin-amd64' ;;
         run_onchange_after_40-git-lfs.ps1.tmpl)               echo 'windows windows-arm64' ;;
         run_before_50-neovim.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
         run_before_50-neovim.ps1.tmpl)               echo 'windows windows-arm64' ;;
         run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows windows-arm64' ;;
-        run_after_default-shell.sh.tmpl)                      echo 'linux linux-arm64' ;;
+        run_after_default-shell.sh.tmpl)                      echo 'linux linux-arm64 arch' ;;
         *) echo '__UNKNOWN__' ;;
     esac
 }
@@ -34,6 +38,7 @@ for _s in run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl \
           run_onchange_before_10-install-packages.sh.tmpl \
           run_once_before_20-install-homebrew.sh.tmpl \
           run_onchange_before_30-install-brew-packages.sh.tmpl \
+          run_onchange_before_30-install-pacman-packages.sh.tmpl \
           run_onchange_before_30-install-winget-packages.ps1.tmpl \
           run_onchange_before_35-install-ps-modules.ps1.tmpl \
           run_onchange_after_40-git-lfs.sh.tmpl \
@@ -178,7 +183,57 @@ assert_not_contains "brew 清單沒有只裝函式庫的 tree-sitter formula" "$
 assert_contains "winget 清單裝的是 tree-sitter.tree-sitter-cli" \
     "$(render_file windows .chezmoiscripts/run_onchange_before_30-install-winget-packages.ps1.tmpl)" \
     "'tree-sitter.tree-sitter-cli'"
-unset _brew
+
+# ---------- Arch（SPEC archlinux-support S7–S10）----------
+# S7：10-install-packages 依 pkgManager 分支。Arch 上沒有 dpkg/apt，Debian 上沒有
+# pacman；兩邊都只能出現自己的那一組。安裝只用 -S --needed --noconfirm（Must NOT #5：
+# 不 -Sy、不 -Syu、不 -R）。
+_ten_arch=$(render_file arch .chezmoiscripts/run_onchange_before_10-install-packages.sh.tmpl)
+_ten_linux=$(render_file linux .chezmoiscripts/run_onchange_before_10-install-packages.sh.tmpl)
+assert_contains "10-install-packages 在 arch 上用 pacman -S --needed --noconfirm" "$_ten_arch" 'pacman -S --needed --noconfirm'
+assert_not_contains "10-install-packages 在 arch 上沒有 apt-get" "$_ten_arch" 'apt-get'
+assert_not_contains "10-install-packages 在 arch 上沒有 dpkg-query" "$_ten_arch" 'dpkg-query'
+assert_not_contains "10-install-packages 在 arch 上沒有 pacman -Sy（部分升級／全系統升級都不准）" "$_ten_arch" 'pacman -Sy'
+assert_not_contains "10-install-packages 在 linux 上沒有 pacman" "$_ten_linux" 'pacman'
+# 前置套件清單只看 for pkg 那一行：base-devel 給 nvim-treesitter 的 C compiler，
+# zsh 給 default-shell，git/curl 是 chezmoi 與 external 的前提。
+_ten_arch_pkgs=$(printf '%s\n' "$_ten_arch" | sed -n 's/^for pkg in \(.*\); do$/\1/p' | head -1)
+assert_eq "10-install-packages 在 arch 上的前置套件清單" 'zsh git curl base-devel' "$_ten_arch_pkgs"
+unset _ten_arch _ten_linux _ten_arch_pkgs
+
+# S8：pacman 工具清單 = brew 工具清單 + neovim（Arch 的 neovim 由 pacman 來，
+# 不走 mise，D1）。兩份清單只看安裝行，理由同上面 tree-sitter-cli 那一段。
+_brew_list=$(printf '%s\n' "$_brew" | sed -n 's/^for formula in \(.*\); do$/\1/p' | head -1)
+_pac=$(render_file arch .chezmoiscripts/run_onchange_before_30-install-pacman-packages.sh.tmpl)
+_pac_list=$(printf '%s\n' "$_pac" | sed -n 's/^for pkg in \(.*\); do$/\1/p' | head -1)
+assert_not_blank "brew 清單可解析" "$_brew_list"
+assert_eq "pacman 工具清單 = brew 工具清單 + neovim" "$_brew_list neovim" "$_pac_list"
+assert_contains "pacman 清單裝的是 tree-sitter-cli（CLI）" "$_pac_list" 'tree-sitter-cli'
+assert_contains "30-install-pacman-packages 用 -S --needed --noconfirm" "$_pac" 'pacman -S --needed --noconfirm'
+assert_not_contains "30-install-pacman-packages 沒有 pacman -Sy" "$_pac" 'pacman -Sy'
+unset _brew _brew_list _pac _pac_list
+
+# S9：Arch 上任何渲染結果都不得出現 brew（Must NOT #4）。
+for _f in "$REPO"/.chezmoiscripts/*.sh.tmpl; do
+    _s=$(basename "$_f")
+    _c=$(render_file arch ".chezmoiscripts/$_s" 2>&1)
+    assert_not_contains "arch / $_s 沒有 linuxbrew" "$_c" 'linuxbrew'
+    assert_not_contains "arch / $_s 沒有 brew shellenv" "$_c" 'brew shellenv'
+done
+for _t in dot_zshrc.tmpl dot_zprofile.tmpl; do
+    _c=$(render_file arch "$_t" 2>&1)
+    assert_not_contains "arch / $_t 沒有 linuxbrew" "$_c" 'linuxbrew'
+    assert_not_contains "arch / $_t 沒有 brew shellenv" "$_c" 'brew shellenv'
+done
+unset _f _s _t _c
+
+# S10：40-git-lfs 在兩個發行版上都要跑 `git lfs install --skip-repo`，差別只在
+# Debian 要先把 brew 的 git-lfs 放上 PATH。
+_lfs_arch=$(render_file arch .chezmoiscripts/run_onchange_after_40-git-lfs.sh.tmpl)
+_lfs_linux=$(render_file linux .chezmoiscripts/run_onchange_after_40-git-lfs.sh.tmpl)
+assert_contains "40-git-lfs 在 arch 上仍執行 git lfs install --skip-repo" "$_lfs_arch" 'git lfs install --skip-repo'
+assert_contains "40-git-lfs 在 linux 上先載入 brew shellenv" "$_lfs_linux" 'brew shellenv'
+unset _lfs_arch _lfs_linux
 
 # ---------- .chezmoi.toml.tmpl：直譯器設定 ----------
 # L9 第一次真實執行的根因：chezmoi 把 .ps1 寫到 %TEMP% 再交給直譯器，而全新

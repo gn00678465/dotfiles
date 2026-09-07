@@ -37,6 +37,7 @@
 .chezmoiscripts/10-install-packages.sh
 .chezmoiscripts/20-install-homebrew.sh
 .chezmoiscripts/30-install-brew-packages.sh
+.chezmoiscripts/30-install-pacman-packages.sh
 .chezmoiscripts/30-install-winget-packages.ps1
 .chezmoiscripts/35-install-ps-modules.ps1
 .chezmoiscripts/40-git-lfs.ps1
