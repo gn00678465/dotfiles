@@ -74,6 +74,14 @@ exec 3>&1
 echo "probe: mode=$([ $remote = 1 ] && echo "remote branch $branch" || echo local) out_dir=$out_dir"
 echo "probe: $(uname -srm); $(cat /etc/debian_version 2>/dev/null || echo 'not debian'); glibc $(ldd --version 2>/dev/null | head -1 | sed 's/.* //')"
 
+# Which package path the dotfiles take on this machine, decided the way
+# platform.toml decides it: ID= in /etc/os-release. Everything below that
+# differs between Debian (apt + Homebrew + mise-pinned neovim) and Arch (pacman
+# only, omarchy's own LazyVim) keys off this one flag.
+distro=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID:-}")
+arch=0; [ "$distro" = arch ] && arch=1
+echo "probe: distro=${distro:-unknown}; path=$([ $arch = 1 ] && echo 'pacman (Arch)' || echo 'apt + Homebrew')"
+
 add_result() { # status name detail
     _line=$(printf '%s\t%s\t%s' "$1" "$2" "$(printf '%s' "$3" | tr '\n' '|' | tr -s '|' | sed 's/|/ | /g')")
     echo "$_line"
@@ -166,8 +174,19 @@ else
 fi
 update_probe_path
 
-c_path() { echo "$path_report"; case "$path_report" in *linuxbrew*) ;; *) echo 'brew prefix not found'; return 1 ;; esac; }
-check 'PATH rebuilt from ~/.local/bin, brew prefix, mise shims' c_path
+if [ $arch = 1 ]; then
+    # Must NOT #4 / M3: the brew scripts render empty on Arch, so nothing may
+    # have created the linuxbrew prefix.
+    c_no_brew() {
+        [ ! -e /home/linuxbrew ] || { echo '/home/linuxbrew exists'; return 1; }
+        case "$path_report" in *linuxbrew*) echo "$path_report"; return 1 ;; esac
+        echo "$path_report"
+    }
+    check 'no Homebrew on Arch (Must NOT #4)' c_no_brew
+else
+    c_path() { echo "$path_report"; case "$path_report" in *linuxbrew*) ;; *) echo 'brew prefix not found'; return 1 ;; esac; }
+    check 'PATH rebuilt from ~/.local/bin, brew prefix, mise shims' c_path
+fi
 
 if [ $remote = 1 ]; then
     c_source_path() {
@@ -187,13 +206,20 @@ fi
 # and missed here would be silently unverified.
 apt_packages='zsh git curl build-essential procps file'
 brew_formulas='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli'
+pacman_packages='zsh git curl base-devel'
+pacman_tools='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim'
 
-c_apt() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q '^install ok installed$' || { echo 'not installed'; return 1; }; echo installed; }
-for _p in $apt_packages; do check "apt package installed: $_p" c_apt "$_p"; done
-# stderr dropped on the detail line: brew's `locale` warnings on a fresh
-# rootfs are noise here, the version is the fact.
-c_brew() { brew list --formula "$1" >/dev/null 2>&1 || { echo 'not installed'; return 1; }; brew list --versions "$1" 2>/dev/null; }
-for _f in $brew_formulas; do check "brew formula installed: $_f" c_brew "$_f"; done
+if [ $arch = 1 ]; then
+    c_pacman() { pacman -Q "$1" 2>/dev/null || { echo 'not installed'; return 1; }; }
+    for _p in $pacman_packages $pacman_tools; do check "pacman package installed: $_p" c_pacman "$_p"; done
+else
+    c_apt() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q '^install ok installed$' || { echo 'not installed'; return 1; }; echo installed; }
+    for _p in $apt_packages; do check "apt package installed: $_p" c_apt "$_p"; done
+    # stderr dropped on the detail line: brew's `locale` warnings on a fresh
+    # rootfs are noise here, the version is the fact.
+    c_brew() { brew list --formula "$1" >/dev/null 2>&1 || { echo 'not installed'; return 1; }; brew list --versions "$1" 2>/dev/null; }
+    for _f in $brew_formulas; do check "brew formula installed: $_f" c_brew "$_f"; done
+fi
 
 # ---------------------------------------------------------------- files
 c_zsh_files() {
@@ -211,6 +237,20 @@ c_login_shell() {
 }
 check 'interactive login zsh resolves mise, fzf, nvim, tree-sitter' c_login_shell
 
+if [ $arch = 1 ]; then
+    # M6: making zsh the login shell must not lose omarchy's own environment.
+    # .zshrc/.zprofile source omarchy's env-bootstrap, which sets OMARCHY_PATH
+    # and puts omarchy-* on PATH (in dev-link mode; production has them in
+    # /usr/bin anyway).
+    c_omarchy_env() {
+        _out=$(zsh -ilc 'command -v git-lfs omarchy-version && printf "OMARCHY_PATH=%s\n" "$OMARCHY_PATH"' 2>/dev/null) \
+            || { echo "zsh -il failed: $_out"; return 1; }
+        case "$_out" in *OMARCHY_PATH=/*) ;; *) echo "OMARCHY_PATH unset: $_out"; return 1 ;; esac
+        printf '%s' "$_out" | tr '\n' ' '
+    }
+    check 'login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH' c_omarchy_env
+fi
+
 c_windows_files() {
     for _n in AppData .config/powershell; do
         [ ! -e "$HOME/$_n" ] || { echo "$_n should not exist on Linux"; return 1; }
@@ -218,15 +258,32 @@ c_windows_files() {
 }
 check 'Windows-only files did NOT land' c_windows_files
 
-c_nvim_config() {
-    _cfg="$HOME/.config/nvim"
-    [ -f "$_cfg/init.lua" ] || { echo 'no init.lua'; return 1; }
-    [ -f "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'no marker'; return 1; }
-    [ ! -e "$_cfg/.git" ] || { echo '.git was not removed'; return 1; }
-    [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
-    echo "$_cfg"
-}
-check 'nvim config is the LazyVim starter with our marker' c_nvim_config
+if [ $arch = 1 ]; then
+    # D1 / M2: 50-neovim renders empty on Arch, so omarchy's LazyVim config
+    # must still be exactly where useradd put it -- no .bak, no starter marker,
+    # omarchy's own plugins intact -- with our override layered on top.
+    c_nvim_omarchy() {
+        _cfg="$HOME/.config/nvim"
+        [ -z "$(ls -d "$HOME"/.config/nvim.bak* "$HOME"/.local/share/nvim.bak* 2>/dev/null)" ] \
+            || { echo 'a .bak of the nvim config exists: 50-neovim moved it'; return 1; }
+        [ -f "$_cfg/init.lua" ] || { echo 'no init.lua'; return 1; }
+        [ -f "$_cfg/lua/plugins/omarchy-theme-hotreload.lua" ] || { echo 'omarchy plugin missing: the config was replaced'; return 1; }
+        [ ! -e "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'starter marker present: 50-neovim ran'; return 1; }
+        [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
+        echo "$_cfg"
+    }
+    check 'omarchy nvim config was left in place, with our override on top (M2)' c_nvim_omarchy
+else
+    c_nvim_config() {
+        _cfg="$HOME/.config/nvim"
+        [ -f "$_cfg/init.lua" ] || { echo 'no init.lua'; return 1; }
+        [ -f "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'no marker'; return 1; }
+        [ ! -e "$_cfg/.git" ] || { echo '.git was not removed'; return 1; }
+        [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
+        echo "$_cfg"
+    }
+    check 'nvim config is the LazyVim starter with our marker' c_nvim_config
+fi
 
 # Every symlink_ under dot_claude/skills, read from the source tree rather
 # than a name written here: the Windows probe carried a skill name that had
@@ -261,27 +318,87 @@ c_codex() {
 }
 check 'codex config.toml has the managed [tui] keys' c_codex
 
+if [ $arch = 1 ]; then
+    # M4: distroOverride in the test fixtures is only a stand-in. Here the real
+    # chezmoi reads /etc/os-release, and the partial has to reach the same
+    # answer the os-arch fixture gives L1/L2.
+    c_seam() {
+        _out=$(printf '%s' '{{ .chezmoi.osRelease.id }}|{{- $p := includeTemplate "platform.toml" . | fromToml -}}{{ $p.distro }}|{{ $p.pkgManager }}|{{ $p.brewPrefix }}' \
+            | chezmoi execute-template 2>&1) || { echo "execute-template failed: $_out"; return 1; }
+        [ "$_out" = 'arch|arch|pacman|' ] || { echo "expected arch|arch|pacman|, got: $_out"; return 1; }
+        echo "$_out"
+    }
+    check 'real chezmoi osRelease.id reaches the partial: distro=arch pkgManager=pacman brewPrefix empty (M4)' c_seam
+
+    # D4: the file omarchy wrote at install time is replaced by the managed one.
+    c_git_config() {
+        _want=$(chezmoi cat "$HOME/.config/git/config" 2>&1) || { echo "chezmoi cat failed: $_want"; return 1; }
+        [ "$_want" = "$(cat "$HOME/.config/git/config")" ] || { echo 'differs from chezmoi cat'; return 1; }
+        echo 'managed content in place (omarchy defaults replaced, D4)'
+    }
+    check '~/.config/git/config is the managed file (D4)' c_git_config
+
+    # 40-git-lfs without the brew shellenv line: git-lfs comes from pacman.
+    c_lfs() {
+        _e=$(git lfs env 2>&1) || { echo "git lfs env failed: $_e"; return 1; }
+        printf '%s' "$_e" | grep -q 'filter.lfs' || { echo "no filter.lfs in: $_e"; return 1; }
+        echo 'filter.lfs configured'
+    }
+    check 'git lfs filter is configured (40-git-lfs, pacman git-lfs)' c_lfs
+
+    # D3: zsh from pacman is a valid login shell; chsh needs a tty, so without
+    # one the script must print the manual command instead of failing.
+    c_shell() {
+        _z=$(command -v zsh) || { echo 'zsh not on PATH'; return 1; }
+        grep -qx "$_z" /etc/shells || { echo "$_z not in /etc/shells"; return 1; }
+        _s=$(getent passwd "$(id -un)" | cut -d: -f7)
+        case "$_s" in
+            */zsh) echo "login shell: $_s" ;;
+            *) grep -q 'chsh -s' "$out_dir/install.log" || { echo "shell is $_s and no chsh hint was printed"; return 1; }
+               echo "login shell: $_s; chsh hint printed (no tty)" ;;
+        esac
+    }
+    check 'zsh is a valid login shell; chsh done or the manual hint was printed (D3)' c_shell
+fi
+
 # ---------------------------------------------------------------- neovim + tree-sitter
 pin=$(sed -n 's/^neovim = "\([^"]*\)".*/\1/p' "$repo/.chezmoitemplates/versions.toml" 2>/dev/null)
-c_nvim_pin() {
-    [ -n "$pin" ] || { echo 'could not read the neovim pin from versions.toml'; return 1; }
-    _v=$(nvim --version 2>&1 | head -1)
-    [ "$_v" = "NVIM v$pin" ] || { echo "expected NVIM v$pin, got: $_v"; return 1; }
-    echo "$_v via $(command -v nvim)"
-}
-check 'nvim runs and is the pinned version from versions.toml' c_nvim_pin
+if [ $arch = 1 ]; then
+    # Arch: neovim and tree-sitter-cli are pacman packages; the mise pin in
+    # versions.toml does not apply (rolling release, SPEC §7).
+    c_nvim_pacman() {
+        _v=$(nvim --version 2>&1 | head -1) || { echo "nvim failed: $_v"; return 1; }
+        echo "$_v via $(command -v nvim) ($(pacman -Q neovim 2>/dev/null))"
+    }
+    check 'nvim runs (pacman neovim; the mise pin does not apply on Arch)' c_nvim_pacman
+    c_treesitter_pacman() {
+        _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
+        case "$_ts" in /usr/bin/*) ;; *) echo "tree-sitter is $_ts, not pacman's"; return 1 ;; esac
+        _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
+        echo "$_v at $_ts"
+    }
+    check "tree-sitter CLI is pacman's and runs" c_treesitter_pacman
+else
+    c_nvim_pin() {
+        [ -n "$pin" ] || { echo 'could not read the neovim pin from versions.toml'; return 1; }
+        _v=$(nvim --version 2>&1 | head -1)
+        [ "$_v" = "NVIM v$pin" ] || { echo "expected NVIM v$pin, got: $_v"; return 1; }
+        echo "$_v via $(command -v nvim)"
+    }
+    check 'nvim runs and is the pinned version from versions.toml' c_nvim_pin
 
-# The Debian 12 regression: brew's `tree-sitter` formula stopped shipping the
-# CLI, LazyVim fell back to mason's prebuilt binary, and that one wants a
-# newer glibc than Debian 12 has. Both halves are asserted: the CLI is brew's,
-# and it actually executes.
-c_treesitter() {
-    _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
-    case "$_ts" in /home/linuxbrew/*) ;; *) echo "tree-sitter is $_ts, not brew's"; return 1 ;; esac
-    _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
-    echo "$_v at $_ts"
-}
-check "tree-sitter CLI is brew's and runs on this glibc" c_treesitter
+    # The Debian 12 regression: brew's `tree-sitter` formula stopped shipping the
+    # CLI, LazyVim fell back to mason's prebuilt binary, and that one wants a
+    # newer glibc than Debian 12 has. Both halves are asserted: the CLI is brew's,
+    # and it actually executes.
+    c_treesitter() {
+        _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
+        case "$_ts" in /home/linuxbrew/*) ;; *) echo "tree-sitter is $_ts, not brew's"; return 1 ;; esac
+        _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
+        echo "$_v at $_ts"
+    }
+    check "tree-sitter CLI is brew's and runs on this glibc" c_treesitter
+fi
 
 echo
 echo 'probe: running nvim Lazy! sync + nvim-treesitter install lua (the Linux M12)'
@@ -310,7 +427,11 @@ check 'second chezmoi apply completes without a prompt' c_second_apply
 
 c_idempotent() {
     [ -z "$(ls -d "$HOME"/.config/nvim.bak* 2>/dev/null)" ] || { echo 'a re-run backed up ~/.config/nvim again'; return 1; }
-    [ -f "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'marker gone'; return 1; }
+    if [ $arch = 1 ]; then
+        [ ! -e "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'starter marker appeared: 50-neovim ran on Arch'; return 1; }
+    else
+        [ -f "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'marker gone'; return 1; }
+    fi
     echo ok
 }
 check 'second apply did not re-bootstrap nvim' c_idempotent
@@ -350,16 +471,22 @@ fi
 # A removed neovim must come back on the next apply (50-neovim is run_, not
 # run_onchange_).
 echo
-echo 'probe: removing neovim from mise and applying again'
-c_reinstall() {
-    mise uninstall "neovim@$pin" >/dev/null 2>&1 || { echo 'mise uninstall failed'; return 1; }
-    mise ls neovim 2>/dev/null | grep -q missing || { echo 'uninstall did not take'; return 1; }
-    run_streamed "$out_dir/apply3.log" chezmoi apply --no-tty --include=scripts \
-        || { echo 'apply -> failed'; output_tail "$out_dir/apply3.log" 15; return 1; }
-    mise ls neovim 2>/dev/null | grep -q missing && { echo 'neovim still missing after apply'; return 1; }
-    nvim --version | head -1
-}
-check 'a removed neovim is reinstalled by the next apply' c_reinstall
+if [ $arch = 1 ]; then
+    # On Arch neovim is a pacman package and the probe never removes packages
+    # (SPEC Must NOT #8): the machine is the user's, not a throwaway rootfs.
+    skip 'a removed neovim is reinstalled by the next apply' 'Arch: neovim is a pacman package; the probe does not remove packages (Must NOT #8)'
+else
+    echo 'probe: removing neovim from mise and applying again'
+    c_reinstall() {
+        mise uninstall "neovim@$pin" >/dev/null 2>&1 || { echo 'mise uninstall failed'; return 1; }
+        mise ls neovim 2>/dev/null | grep -q missing || { echo 'uninstall did not take'; return 1; }
+        run_streamed "$out_dir/apply3.log" chezmoi apply --no-tty --include=scripts \
+            || { echo 'apply -> failed'; output_tail "$out_dir/apply3.log" 15; return 1; }
+        mise ls neovim 2>/dev/null | grep -q missing && { echo 'neovim still missing after apply'; return 1; }
+        nvim --version | head -1
+    }
+    check 'a removed neovim is reinstalled by the next apply' c_reinstall
+fi
 
 # ---------------------------------------------------------------- report
 n_pass=$(grep -c '^PASS' "$results"); n_fail=$(grep -c '^FAIL' "$results"); n_skip=$(grep -c '^SKIP' "$results")

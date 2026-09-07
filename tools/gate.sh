@@ -2,8 +2,11 @@
 # 驗證閘門的單一入口點。evidence report 裡的每一個數字都必須來自這支腳本的
 # 「一次」完整執行，而且是在最後一次修改程式碼之後跑的。
 #
-#   tools/gate.sh [--base <ref>]
+#   tools/gate.sh [--scope <scope>] [--base <ref>]
 #
+# scope 是 SPEC 的目錄名（specs/<scope>/SPEC.md），也是產出目錄 .gate/<scope>/ 與
+# intent 層的依據。不給的話，specs/ 底下（archive 除外）剛好只有一份 SPEC 時就用它，
+# 否則硬錯誤：猜錯 scope 的 gate 會把報告歸到另一份 SPEC 底下。
 # 預設 base 是 SPEC 裡記的那一個。SPEC 在 CLOSE（spec-archive）之後會從
 #   specs/<scope>/SPEC.md 搬到 specs/archive/<scope>/SPEC.md
 # 所以兩個位置都要找。找不到就是硬錯誤，不是預設值 —— 讀不到基準的 gate 沒有意義。
@@ -23,23 +26,34 @@ REPO=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$REPO"
 
 BASE=""
+SCOPE=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --base) BASE=$2; shift 2 ;;
         --base=*) BASE=${1#*=}; shift ;;
+        --scope) SCOPE=$2; shift 2 ;;
+        --scope=*) SCOPE=${1#*=}; shift ;;
         *) echo "gate: unknown argument: $1" >&2; exit 2 ;;
     esac
 done
+if [ -z "$SCOPE" ]; then
+    _n=0
+    for _d in specs/*/SPEC.md; do
+        [ -f "$_d" ] || continue
+        _n=$((_n + 1)); SCOPE=$(basename "$(dirname "$_d")")
+    done
+    [ "$_n" -eq 1 ] || { echo "gate: specs/ 底下有 $_n 份 SPEC，請用 --scope 指定" >&2; exit 2; }
+fi
 if [ -z "$BASE" ]; then
-    for _spec in specs/windows-support/SPEC.md specs/archive/windows-support/SPEC.md; do
+    for _spec in "specs/$SCOPE/SPEC.md" "specs/archive/$SCOPE/SPEC.md"; do
         [ -f "$_spec" ] || continue
         BASE=$(sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' "$_spec" | head -1)
         [ -n "$BASE" ] && break
     done
 fi
-[ -n "$BASE" ] || { echo "gate: 給不出 base ref" >&2; exit 2; }
+[ -n "$BASE" ] || { echo "gate: 給不出 base ref（scope $SCOPE）" >&2; exit 2; }
 
-ART=".gate/windows-support"
+ART=".gate/$SCOPE"
 rm -rf "$ART"
 mkdir -p "$ART"
 RAN="$ART/layers-ran"
@@ -58,6 +72,7 @@ suite-health-shuffle
 properties
 mutation
 supply-chain
+pacman-ids
 changed-lines
 source-state-after
 EOF
@@ -91,6 +106,7 @@ versions() {
         printf 'pwsh:    ABSENT (L4/L7/L8 會標成 skip)\n'
     fi
     printf 'base:    %s\n' "$BASE"
+    printf 'scope:   %s\n' "$SCOPE"
 }
 run_layer versions "$ART/versions.txt" versions
 
@@ -102,7 +118,7 @@ run_layer source-state-before "$ART/source-state-before.txt" \
 # evidence 標頭的 intent 欄位從這裡的輸出逐字複製。手填的標頭會與 SPEC 脫節
 # （這份報告發生過：SPEC 到了 v7，標頭還寫 v6），而 spec-archive 在 CLOSE 會拿
 # 報告引用的 spec_version 與 SPEC 比對。
-run_layer intent "$ART/intent.txt" sh tools/gate-intent.sh windows-support
+run_layer intent "$ART/intent.txt" sh tools/gate-intent.sh "$SCOPE"
 
 # -------------------------------------------------------- agent doc invariants
 # main 的 #3 帶進來的，管的是 agent 文件之間的一致性，不屬於 Windows 移植的層。
@@ -161,6 +177,11 @@ run_layer mutation "$ART/mutants.txt" \
 # ---------------------------------------------------------------- supply chain
 run_layer supply-chain "$ART/supply-chain.txt" \
     python3 tools/gate-supply-chain.py --base "$BASE"
+
+# ---------------------------------------------------------------- pacman ids
+# S17 / M5：pacman 套件名逐一 `pacman -Si`（唯讀），在 omarchy WSL 內或 Arch 主機上。
+# 兩者都不可達時印 SKIPPED 並 exit 0，報告記成 UNAVAILABLE（與 winget 那條同形）。
+run_layer pacman-ids "$ART/pacman-ids.txt" sh tools/gate-pacman-ids.sh
 
 # ---------------------------------------------------------------- changed lines
 # 這一層只報告不設閘：這個 repo 的三種語言在這個環境裡都沒有覆蓋率工具，
