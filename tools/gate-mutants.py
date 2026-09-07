@@ -71,6 +71,14 @@ MUTANTS: list[Mutant] = [
         rationale="Windows 上忘了忽略 zsh 那一套，於是它們被裝進 %USERPROFILE%",
     ),
     Mutant(
+        name="ignore-zwc-gone",
+        path=".chezmoiignore",
+        old=".oh-my-zsh/**/*.zwc\n",
+        new="",
+        layer="L5",
+        rationale="p10k 編出來的 .zwc 又被 exact 刪掉，下一次 apply --no-tty 停在 overwrite 提問",
+    ),
+    Mutant(
         name="posix-nvim-delete",
         path=".chezmoiscripts/run_before_50-neovim.sh.tmpl",
         old='  mv "$1" "$dest"',

@@ -7,16 +7,18 @@
 # external），整棵樹 diff（S15）。腳本不會被 apply 落地，所以另外逐支渲染比對，
 # 連同 .chezmoiignore、.chezmoiexternal.toml.tmpl、.chezmoi.toml.tmpl（S16）。
 #
-# base ref 從 SPEC 讀。SPEC 在 CLOSE 後會搬到 specs/archive/，兩個位置都找。
+# base ref 只從仍在 specs/archlinux-support/ 的 SPEC 讀。SPEC 一封存（CLOSE 之後），
+# 這一層的任務就結束：之後任何刻意改動 .chezmoiignore 或腳本的任務（第一個是
+# powerlevel10k 的 .zwc 修正）都會與凍結的 base ref 不同。windows-support 封存後
+# 同名的比較器也是這樣退役的。封存後這裡 skip。
 
 _BASE_REF=""
-for _spec in "$REPO/specs/archlinux-support/SPEC.md" "$REPO/specs/archive/archlinux-support/SPEC.md"; do
-    [ -f "$_spec" ] || continue
-    _BASE_REF=$(sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' "$_spec" | head -1)
-    [ -n "$_BASE_REF" ] && break
-done
+_spec="$REPO/specs/archlinux-support/SPEC.md"
+[ -f "$_spec" ] && _BASE_REF=$(sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' "$_spec" | head -1)
 
-if [ -z "$_BASE_REF" ]; then
+if [ ! -f "$_spec" ]; then
+    skip "既有平台回歸" "SPEC archlinux-support 已封存，比較器退役"
+elif [ -z "$_BASE_REF" ]; then
     skip "既有平台回歸" "SPEC 裡讀不到 base ref"
 elif ! git -C "$REPO" cat-file -e "$_BASE_REF^{commit}" 2>/dev/null; then
     skip "既有平台回歸" "base ref $_BASE_REF 不在這個 repo 裡"
