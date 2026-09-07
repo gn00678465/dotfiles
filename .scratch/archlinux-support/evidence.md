@@ -109,6 +109,7 @@
 | Must NOT #8 omarchy 內只做 init --apply | 啟動器只做 mkdir/chown、複製、tar；探針在 Arch 上 SKIP 移除 neovim（`L11` 釘住） | pass |
 | Must NOT #9 不改測試求綠、不報未跑的檢查 | 每次測試改動的理由在 commit 訊息與本檔 Honest notes | pass |
 | Must NOT #10 不在 main 提交 | 分支 `feat/archlinux-support`，`git log 4ddc1b5..HEAD` 全在此分支 | pass |
+| D3 互動式 `chsh` 後的登入 zsh（探針無 tty，只能驗到手動提示） | 使用者在 omarchy 終端機執行 `chsh -s /bin/zsh` 後回報：`echo $SHELL $OMARCHY_PATH; omarchy-version` → `/bin/zsh /home/omarchy/.local/share/omarchy` / `dev (f0020448)`；p10k 首次載入抓取 gitstatusd ok | pass（人工） |
 | M1 改壞既有平台 | `L10` | pass |
 | M2 50-neovim 在 Arch 執行 | `L2` S5；mutant `neovim-guard-isposix`；L9 | pass |
 | M3 brew 腳本在 Arch 執行 | `L2` S5/S9；L9 | pass |
