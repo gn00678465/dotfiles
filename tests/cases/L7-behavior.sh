@@ -14,9 +14,13 @@
 # 這裡把那條路徑釘成 characterization test：先把接下來幾秒的時間戳目錄全部建好，
 # 腳本算出來的名字必然已被佔用。這樣做不是宣告它是對的行為，而是讓「有人改了備份
 # 命名的形狀」不會無聲通過 —— 資料仍然沒有被刪，只是位置被埋深了一層。
+# 撞名視窗要蓋過腳本從啟動到 mv 的整段時間。原本只種 0–6 秒，Windows 那一半經
+# WSL interop 啟動 pwsh.exe 常常超過 6 秒，於是同一個 suite 連跑兩次時第二次撞不到
+# （archlinux-support 的 gate 在 suite-health-repeat 層實際抓到：753 條裡這兩條變紅）。
+# 種到 30 秒只是讓撞名一定發生，斷言本身不變。
 _seed_stamp_collisions() { # base-path
     _i=0
-    while [ "$_i" -le 6 ]; do
+    while [ "$_i" -le 30 ]; do
         mkdir -p "$1.bak.$(date -d "+$_i second" +%Y%m%d%H%M%S 2>/dev/null || date +%Y%m%d%H%M%S)"
         _i=$((_i + 1))
     done
