@@ -1,0 +1,35 @@
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# ---- PATH ---------------------------------------------------------------
+export PATH="$HOME/.local/bin:$PATH"
+
+
+# omarchy: OMARCHY_PATH and PATH come from its own env-bootstrap (POSIX sh
+# syntax, so zsh can source it). default/bash/rc is bash-only and is not loaded.
+[ -r /etc/omarchy.conf ] && . /etc/omarchy.conf
+: "${OMARCHY_PATH:=/usr/share/omarchy}"
+[ -r "$OMARCHY_PATH/default/bash/env-bootstrap" ] && . "$OMARCHY_PATH/default/bash/env-bootstrap"
+
+
+# ---- Oh My Zsh ----------------------------------------------------------
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="powerlevel10k/powerlevel10k"
+# fzf-tab must come before zsh-autosuggestions/zsh-syntax-highlighting: those
+# wrap ZLE widgets, and fzf-tab has to wrap them first.
+plugins=(git mise fzf-tab zsh-autosuggestions zsh-syntax-highlighting)
+# chezmoi owns the OMZ version via .chezmoiexternal.toml refreshPeriod.
+zstyle ':omz:update' mode disabled
+source "$ZSH/oh-my-zsh.sh"
+
+# mise is NOT activated here: the OMZ `mise` plugin above already runs
+# `mise activate zsh` and additionally wires up completions. mise comes from
+# brew, which is why the shellenv above has to precede oh-my-zsh.sh -- the
+# plugin bails out early if mise is not already on PATH.
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
