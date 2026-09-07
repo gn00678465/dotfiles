@@ -273,7 +273,25 @@ _script_brew=$(render_file linux .chezmoiscripts/run_onchange_before_30-install-
     | sed -n 's/^for formula in \(.*\); do$/\1/p' | tr ' ' '\n' | LC_ALL=C sort)
 assert_not_blank "Linux 探針讀得到 brew 清單" "$_probe_brew"
 assert_eq "Linux 探針的 brew 清單與 30-install-brew-packages 完全相同" "$_script_brew" "$_probe_brew"
-unset _probe_sh _probe_apt _script_apt _probe_brew _script_brew
+
+# Arch（SPEC archlinux-support S18）：探針的兩份 pacman 清單也要等於腳本的清單。
+_probe_pac=$(sed -n "s/^pacman_packages='\(.*\)'$/\1/p" "$REPO/tests/sandbox/_probe.sh" | tr ' ' '\n' | LC_ALL=C sort)
+_script_pac=$(render_file arch .chezmoiscripts/run_onchange_before_10-install-packages.sh.tmpl \
+    | sed -n 's/^for pkg in \(.*\); do$/\1/p' | tr ' ' '\n' | LC_ALL=C sort)
+assert_not_blank "Linux 探針讀得到 pacman 前置套件清單" "$_probe_pac"
+assert_eq "Linux 探針的 pacman 前置清單與 10-install-packages（arch）完全相同" "$_script_pac" "$_probe_pac"
+_probe_pac_tools=$(sed -n "s/^pacman_tools='\(.*\)'$/\1/p" "$REPO/tests/sandbox/_probe.sh" | tr ' ' '\n' | LC_ALL=C sort)
+_script_pac_tools=$(render_file arch .chezmoiscripts/run_onchange_before_30-install-pacman-packages.sh.tmpl \
+    | sed -n 's/^for pkg in \(.*\); do$/\1/p' | tr ' ' '\n' | LC_ALL=C sort)
+assert_not_blank "Linux 探針讀得到 pacman 工具清單" "$_probe_pac_tools"
+assert_eq "Linux 探針的 pacman 工具清單與 30-install-pacman-packages 完全相同" "$_script_pac_tools" "$_probe_pac_tools"
+# S19 的 omarchy 專屬義務：這幾條少一條，L9 就答不了對應的 M2/M3/M4/M6 問題。
+assert_contains "探針在 Arch 上檢查 ~/.config/nvim 沒有被搬進 .bak（M2）" "$_probe_sh" 'omarchy nvim config was left in place'
+assert_contains "探針在 Arch 上檢查沒有 /home/linuxbrew（M3）" "$_probe_sh" 'no Homebrew on Arch'
+assert_contains "探針在 Arch 上用真實 chezmoi 驗證 osRelease 接縫（M4）" "$_probe_sh" 'osRelease.id'
+assert_contains "探針在 Arch 上檢查登入 zsh 有 OMARCHY_PATH（M6）" "$_probe_sh" 'OMARCHY_PATH'
+assert_contains "探針在 Arch 上不移除 pacman 的 neovim（Must NOT #8）" "$_probe_sh" "skip 'a removed neovim is reinstalled by the next apply'"
+unset _probe_sh _probe_apt _script_apt _probe_brew _script_brew _probe_pac _script_pac _probe_pac_tools _script_pac_tools
 
 # 測試層自己也會被刪掉。gate 的 manifest 稽核管的是 **gate 的層**，不是測試層；
 # 而 tests/run.sh 在指定的層檔案不存在時是 exit 0（`1..0`）。L1/L2/L3/L5/L6/L7/L11
