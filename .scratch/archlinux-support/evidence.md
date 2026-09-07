@@ -174,6 +174,7 @@ entry point 裡（需要那個 distro，且會變更它），所以數字不屬�
 | run 2（同一台，已裝過一次） | `0a9ddcb` | PASS=35 FAIL=1 SKIP=2 | 上述兩條改為 PASS（`/bin/zsh` 在 /etc/shells、`/usr/bin/tree-sitter is owned by tree-sitter-cli`）。新的 FAIL：`second chezmoi apply completes without a prompt`，見 Dismissed concerns。 |
 
 | run 3（使用者重建 omarchy 後、乾淨機器；使用者自行執行） | `f2bb435`（產品檔案與 `0cae96d` 相同） | PASS=36 FAIL=0 SKIP=2 | 使用者回報的 SUMMARY 行；SKIP 仍是 `chezmoi update`（local 模式）與移除 neovim。這是 S19 表十四列在同一輪全部成立的那一次。 |
+| run 4（remote 模式 `--branch feat/archlinux-support`，分支已推上 GitHub；使用者自行執行） | 推送時的分支 HEAD（`09ac0b7` 或之後；產品檔案同上） | PASS=36 FAIL=0 SKIP=1 | 使用者回報：`chezmoi update completes  ok`，即 `init.sh --branch` 從 GitHub 安裝、`chezmoi update` 在 omarchy 上可用（05-wsl-user-runtime-dir 的路徑）。唯一 SKIP 是移除 neovim（Must NOT #8）。 |
 
 run 2 之後到最終 commit 之間的變更只有測試與 gate 工具（`3ea61a7`、`e2f16ad`、`0cae96d`），
 產品檔案（`.chezmoiscripts/`、`.chezmoitemplates/`、`dot_*`）與 run 2 相同。
