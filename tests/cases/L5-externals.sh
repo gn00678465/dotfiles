@@ -108,7 +108,6 @@ _zwc_cm() { # subcommand... -> stdout 濾掉 config 提醒；回傳 chezmoi 自�
 rm -rf "$_zwc_dest" "$_zwc_dest.state"; mkdir -p "$_zwc_dest/.oh-my-zsh/custom/themes"
 # 每個 `_out=$(...)` 都寫成 if：set -e 底下失敗的指派會直接結束 runner 而不是留下 not ok。
 if _out=$(_zwc_cm apply --exclude=scripts "$_zwc_p10k"); then _rc=0; else _rc=$?; fi
-_zwc_ready=0
 if [ "$_rc" -ne 0 ]; then
     case $_out in
         *"dial tcp"*|*"no such host"*|*"i/o timeout"*|*"network is unreachable"*|*"connection refused"*|*"connection reset"*|*"TLS handshake"*|*"Temporary failure"*)
@@ -118,9 +117,6 @@ if [ "$_rc" -ne 0 ]; then
 elif [ ! -f "$_zwc_p10k/internal/p10k.zsh" ]; then
     _fail "p10k external 套用後 internal/p10k.zsh 存在" "apply 退出碼 0 但檔案不在"
 else
-    _zwc_ready=1
-fi
-if [ "$_zwc_ready" -eq 1 ]; then
     # 模擬 zsh 已經跑過一次：p10k 編譯的九支 .zwc 都在。
     for _f in powerlevel9k.zsh-theme powerlevel10k.zsh-theme internal/p10k.zsh internal/icons.zsh \
               internal/configure.zsh internal/worker.zsh internal/parser.zsh \
@@ -147,4 +143,4 @@ fi
 for _os in $POSIX_OSES; do
     assert_contains "$_os 的 .chezmoiignore 有 .oh-my-zsh/**/*.zwc" "$(render_file "$_os" .chezmoiignore)" '.oh-my-zsh/**/*.zwc'
 done
-unset _zwc_dest _zwc_p10k _zwc_ready _zrc _out _rc _f _os
+unset _zwc_dest _zwc_p10k _zrc _out _rc _f _os
