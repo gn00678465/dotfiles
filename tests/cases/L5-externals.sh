@@ -112,9 +112,10 @@ if _out=$(_zwc_cm apply --exclude=scripts "$_zwc_p10k") && [ -f "$_zwc_p10k/inte
         printf 'zwc' > "$_zwc_p10k/$_f.zwc"
     done
     # 已經中招的機器 state 裡有 remove 記錄（那正是 AD 的來源）；先種一筆，證明它們也能復原。
-    _zwc_cm state set --bucket=entryState --key="$_zwc_p10k/internal/p10k.zsh.zwc" --value='{"type":"remove"}' >/dev/null
+    _zwc_cm state set --bucket=entryState --key="$_zwc_p10k/internal/p10k.zsh.zwc" --value='{"type":"remove"}' >/dev/null         || _fail "種入 remove 記錄" "chezmoi state set 失敗"
     assert_eq "p10k 的 .zwc 不出現在 status" "" "$(_zwc_cm status "$_zwc_p10k")"
-    _out=$(_zwc_cm apply --exclude=scripts "$_zwc_p10k"); _rc=$?
+    # 寫成 if：run.sh 開了 set -e，`_out=$(失敗的指令)` 會直接結束整個 runner 而不是留下 not ok。
+    if _out=$(_zwc_cm apply --exclude=scripts "$_zwc_p10k"); then _rc=0; else _rc=$?; fi
     if [ "$_rc" -eq 0 ] && [ -z "$_out" ]; then _pass "有 .zwc 時 apply --no-tty 不互動、退出碼 0"
     else _fail "有 .zwc 時 apply --no-tty 不互動、退出碼 0（rc=$_rc）" "$_out"; fi
     assert_eq "九支 .zwc 在 apply 後全數保留" "9" "$(find "$_zwc_p10k" -name '*.zwc' | wc -l | tr -d ' ')"
