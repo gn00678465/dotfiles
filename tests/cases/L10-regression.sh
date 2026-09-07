@@ -78,8 +78,8 @@ else
         # ---- managed 清單：只准多出一支新腳本，不准少任何東西 ----
         _cm_src "$_base_src" base "$_os" managed --exclude=externals | LC_ALL=C sort > "$TMP/l10-mg-base"
         _cm_src "$REPO" new "$_os" managed --exclude=externals | LC_ALL=C sort > "$TMP/l10-mg-new"
-        _added=$(comm -13 "$TMP/l10-mg-base" "$TMP/l10-mg-new")
-        _removed=$(comm -23 "$TMP/l10-mg-base" "$TMP/l10-mg-new")
+        _added=$(LC_ALL=C comm -13 "$TMP/l10-mg-base" "$TMP/l10-mg-new")
+        _removed=$(LC_ALL=C comm -23 "$TMP/l10-mg-base" "$TMP/l10-mg-new")
         assert_eq "$_os：managed 只多出 30-install-pacman-packages.sh" \
             '.chezmoiscripts/30-install-pacman-packages.sh' "$_added"
         assert_eq "$_os：managed 沒有任何 target 消失" "" "$_removed"
