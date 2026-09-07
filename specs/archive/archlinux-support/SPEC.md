@@ -1,7 +1,7 @@
 # SPEC — ArchLinux（omarchy）支援
 
 - `spec_version`: v2
-- `status`: approved
+- `status`: shipped
 - `tier`: 3
 - `scope`: archlinux-support
 - `base_ref`: `4ddc1b5`（`origin/main`，PR #16 合併點）
