@@ -300,7 +300,7 @@ unset _probe_sh _probe_apt _script_apt _probe_brew _script_brew _probe_pac _scri
 # L8 是 SPEC 對 M8 唯一指名的程序（接縫與真實 Windows 行為是否一致），而這份報告
 # 每一條 Windows 與 macOS 的主張都是經由那個接縫推導出來的。
 assert_eq "測試層的檔案集合" \
-    "$(printf '%s\n' L1-platform.sh L10-regression.sh L11-render-golden.sh \
+    "$(printf '%s\n' L1-platform.sh L11-render-golden.sh \
         L2-script-render-matrix.sh L3-managed-set.sh L4-syntax.sh L5-externals.sh \
         L6-file-golden.sh L7-behavior.sh L8-windows-seam.sh | LC_ALL=C sort)" \
     "$(ls "$REPO/tests/cases" | LC_ALL=C sort)"
