@@ -1,0 +1,9 @@
+# 與 os-linux.toml 相同，再加 distroOverride = "arch"。這三個 override 只有
+# .chezmoitemplates/platform.toml 認得；正式環境的 config 沒有它們。
+# 這是本 repo 在 Windows/WSL Debian 主機上取得 Arch 渲染證據的唯一手段；接縫與
+# 真實 Arch 行為是否一致由 L9 在 omarchy 內用真實 chezmoi 驗證（SPEC M4）。
+[data]
+    osOverride = "linux"
+    archOverride = "amd64"
+    distroOverride = "arch"
+    isWSL = false
