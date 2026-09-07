@@ -10,7 +10,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 
 # omarchy: OMARCHY_PATH and PATH come from its own env-bootstrap (POSIX sh
-# syntax, so zsh can source it). default/bash/rc is bash-only and is not loaded.
+# syntax, so zsh can source it). Its bash-only rc file is deliberately not loaded.
 [ -r /etc/omarchy.conf ] && . /etc/omarchy.conf
 : "${OMARCHY_PATH:=/usr/share/omarchy}"
 [ -r "$OMARCHY_PATH/default/bash/env-bootstrap" ] && . "$OMARCHY_PATH/default/bash/env-bootstrap"
