@@ -72,21 +72,25 @@ for _t in .zshrc .zprofile .chezmoiscripts/50-neovim.sh; do
 done
 unset _t
 
-# ---------- C0. Debian 的 50-neovim golden（SPEC arch-family-support S6）----------
+# ---------- C0. brew 平台的 50-neovim golden（SPEC arch-family-support S6）----------
 # 50-neovim 的模板改成兩段（mise 段只在 brew 平台、starter 段共用）之後，Debian 與
-# macOS 的渲染必須逐位元組不變（Must NOT #2）。這份 golden 是改動前的 linux 渲染。
-_GOLDEN_LINUX="$GOLDEN/render/linux"
-if [ ! -f "$_GOLDEN_LINUX/50-neovim.sh" ]; then
-    _fail "golden 存在：linux/50-neovim.sh" "$_GOLDEN_LINUX/50-neovim.sh 不存在"
-else
-    _render_to linux ".chezmoiscripts/50-neovim.sh" "$TMP/render-linux-50-neovim.sh" "golden linux/50-neovim.sh" \
-        && assert_bytes_eq "golden：50-neovim.sh 的 linux 渲染沒有改變（S6）" \
-            "$_GOLDEN_LINUX/50-neovim.sh" "$TMP/render-linux-50-neovim.sh"
-fi
-assert_eq "golden/render/linux 的檔案集合" \
-    "$(printf '50-neovim.sh\n')" \
-    "$(ls "$_GOLDEN_LINUX" 2>/dev/null | LC_ALL=C sort)"
-unset _GOLDEN_LINUX
+# macOS 的渲染必須逐位元組不變（Must NOT #2）。三份 golden 都是改動前（base
+# 4e6f13c）的渲染：linux、darwin-arm64（/opt/homebrew）、darwin-amd64（/usr/local）。
+# linux-arm64 由上面 B 段的跨 arch 等價涵蓋。
+for _os in linux darwin-arm64 darwin-amd64; do
+    _g="$GOLDEN/render/$_os"
+    if [ ! -f "$_g/50-neovim.sh" ]; then
+        _fail "golden 存在：$_os/50-neovim.sh" "$_g/50-neovim.sh 不存在"
+    else
+        _render_to "$_os" ".chezmoiscripts/50-neovim.sh" "$TMP/render-$_os-50-neovim.sh" "golden $_os/50-neovim.sh" \
+            && assert_bytes_eq "golden：50-neovim.sh 的 $_os 渲染與改動前相同（S6）" \
+                "$_g/50-neovim.sh" "$TMP/render-$_os-50-neovim.sh"
+    fi
+    assert_eq "golden/render/$_os 的檔案集合" \
+        "$(printf '50-neovim.sh\n')" \
+        "$(ls "$_g" 2>/dev/null | LC_ALL=C sort)"
+done
+unset _os _g
 
 # ---------- C. Windows 專屬產物的 golden 快照 ----------
 # 涵蓋的是 Windows 專屬的檔案。跨平台共用的部分由上面的 A 負責，POSIX 專屬的
