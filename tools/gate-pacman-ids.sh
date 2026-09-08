@@ -31,19 +31,28 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 # Each script must render, and each must yield a list: a render failure or a
 # missing `for pkg in` line is a hard failure, not an empty contribution to a
 # merged list (that shape let one whole script go unverified).
-render_list() { # script
-    if ! _out=$(chezmoi --source "$REPO" --config "$REPO/tests/fixtures/os-arch.toml" \
-            --destination "$TMP/dest" --persistent-state "$TMP/state.boltdb" --no-tty \
-            execute-template < "$REPO/.chezmoiscripts/$1" 2>&1); then
-        echo "gate-pacman-ids: render failed for $1: $_out" >&2
+render_list() { # fixture script
+    if ! _out=$(chezmoi --source "$REPO" --config "$REPO/tests/fixtures/$1" \
+            --destination "$TMP/dest-$1" --persistent-state "$TMP/state-$1.boltdb" --no-tty \
+            execute-template < "$REPO/.chezmoiscripts/$2" 2>&1); then
+        echo "gate-pacman-ids: render failed for $2 ($1): $_out" >&2
         return 1
     fi
     _list=$(printf '%s\n' "$_out" | sed -n 's/^for pkg in \(.*\); do$/\1/p' | head -1)
-    [ -n "$(printf '%s' "$_list" | tr -d ' ')" ] || { echo "gate-pacman-ids: no 'for pkg in' list in $1" >&2; return 1; }
+    [ -n "$(printf '%s' "$_list" | tr -d ' ')" ] || { echo "gate-pacman-ids: no 'for pkg in' list in $2 ($1)" >&2; return 1; }
     printf '%s' "$_list"
 }
-pre=$(render_list run_onchange_before_10-install-packages.sh.tmpl) || exit 1
-tools=$(render_list run_onchange_before_30-install-pacman-packages.sh.tmpl) || exit 1
+pre=$(render_list os-arch.toml run_onchange_before_10-install-packages.sh.tmpl) || exit 1
+tools=$(render_list os-arch.toml run_onchange_before_30-install-pacman-packages.sh.tmpl) || exit 1
+# SPEC arch-family-support S12: the omarchy fixture (ID=omarchy, ID_LIKE=arch)
+# must yield the same lists, or the production omarchy would install a
+# different set than the one resolved below.
+pre_om=$(render_list os-omarchy.toml run_onchange_before_10-install-packages.sh.tmpl) || exit 1
+tools_om=$(render_list os-omarchy.toml run_onchange_before_30-install-pacman-packages.sh.tmpl) || exit 1
+if [ "$pre $tools" != "$pre_om $tools_om" ]; then
+    echo "gate-pacman-ids: os-omarchy renders different lists than os-arch: '$pre_om $tools_om' vs '$pre $tools'" >&2
+    exit 1
+fi
 pkgs=$(printf '%s\n' $pre $tools | LC_ALL=C sort -u | tr '\n' ' ')
 
 WSL=""

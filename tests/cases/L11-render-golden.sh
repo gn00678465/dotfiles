@@ -64,6 +64,30 @@ done
 _arch_pair windows windows-arm64 ".config/powershell/profile.ps1" "profile.ps1"
 _arch_pair linux linux-arm64 ".chezmoiscripts/50-neovim.sh" "50-neovim.sh"
 
+# ---------- B2. Arch 家族等價（SPEC arch-family-support S7）----------
+# omarchy（ID=omarchy + ID_LIKE=arch）與 arch（ID=arch）在 platform.toml 之後必須
+# 完全一樣：受管的 zsh 檔案與 50-neovim 都不得再分辨兩者（Must NOT #6）。
+for _t in .zshrc .zprofile .chezmoiscripts/50-neovim.sh; do
+    _arch_pair arch omarchy "$_t" "$_t（arch 家族）"
+done
+unset _t
+
+# ---------- C0. Debian 的 50-neovim golden（SPEC arch-family-support S6）----------
+# 50-neovim 的模板改成兩段（mise 段只在 brew 平台、starter 段共用）之後，Debian 與
+# macOS 的渲染必須逐位元組不變（Must NOT #2）。這份 golden 是改動前的 linux 渲染。
+_GOLDEN_LINUX="$GOLDEN/render/linux"
+if [ ! -f "$_GOLDEN_LINUX/50-neovim.sh" ]; then
+    _fail "golden 存在：linux/50-neovim.sh" "$_GOLDEN_LINUX/50-neovim.sh 不存在"
+else
+    _render_to linux ".chezmoiscripts/50-neovim.sh" "$TMP/render-linux-50-neovim.sh" "golden linux/50-neovim.sh" \
+        && assert_bytes_eq "golden：50-neovim.sh 的 linux 渲染沒有改變（S6）" \
+            "$_GOLDEN_LINUX/50-neovim.sh" "$TMP/render-linux-50-neovim.sh"
+fi
+assert_eq "golden/render/linux 的檔案集合" \
+    "$(printf '50-neovim.sh\n')" \
+    "$(ls "$_GOLDEN_LINUX" 2>/dev/null | LC_ALL=C sort)"
+unset _GOLDEN_LINUX
+
 # ---------- C. Windows 專屬產物的 golden 快照 ----------
 # 涵蓋的是 Windows 專屬的檔案。跨平台共用的部分由上面的 A 負責，POSIX 專屬的
 # 腳本內容由 L2 的具名斷言釘住，不重複。
@@ -110,8 +134,17 @@ for _pair in ".zshrc|zshrc" ".zprofile|zprofile"; do
     assert_not_contains "arch / $_t 不載入 bash 專用的 default/bash/rc（M7）" "$_c" 'default/bash/rc'
     assert_contains "arch / $_t 讀 /etc/omarchy.conf（dev 模式的 OMARCHY_PATH）" "$_c" '/etc/omarchy.conf'
 done
+# 50-neovim 的 Arch 渲染（SPEC arch-family-support S5）：同一種強度的變更偵測器。
+# 執行期行為（跳過 vs. 備份 + clone）由 L7 的 S8/S9 證明，真實機器由 L9 證明。
+if [ ! -f "$_GOLDEN_ARCH/50-neovim.sh" ]; then
+    _fail "golden 存在：arch/50-neovim.sh" "$_GOLDEN_ARCH/50-neovim.sh 不存在"
+else
+    _render_to arch ".chezmoiscripts/50-neovim.sh" "$TMP/render-arch-50-neovim.sh" "golden arch/50-neovim.sh" \
+        && assert_bytes_eq "golden：50-neovim.sh 的 arch 渲染沒有悄悄改變" \
+            "$_GOLDEN_ARCH/50-neovim.sh" "$TMP/render-arch-50-neovim.sh"
+fi
 assert_eq "golden/render/arch 的檔案集合" \
-    "$(printf 'zprofile\nzshrc\n')" \
+    "$(printf '50-neovim.sh\nzprofile\nzshrc\n')" \
     "$(ls "$_GOLDEN_ARCH" 2>/dev/null | LC_ALL=C sort)"
 unset _pair _t _name _c _GOLDEN_ARCH
 
@@ -291,6 +324,13 @@ assert_contains "探針在 Arch 上檢查沒有 /home/linuxbrew（M3）" "$_prob
 assert_contains "探針在 Arch 上用真實 chezmoi 驗證 osRelease 接縫（M4）" "$_probe_sh" 'osRelease.id'
 assert_contains "探針在 Arch 上檢查登入 zsh 有 OMARCHY_PATH（M6）" "$_probe_sh" 'OMARCHY_PATH'
 assert_contains "探針在 Arch 上不移除 pacman 的 neovim（Must NOT #8）" "$_probe_sh" "skip 'a removed neovim is reinstalled by the next apply'"
+# arch-family-support S10/S11：探針要能在正式 omarchy（ID=omarchy）與純 Arch 上跑。
+# 家族判斷看 ID_LIKE；omarchy 專屬檢查只在 omarchy 上跑，訊號與 50-neovim 同一個
+# （pacman -Q omarchy-nvim，M6），純 Arch 改問 starter marker。
+assert_contains "探針以 ID_LIKE 認出 Arch 家族（正式 omarchy 的 ID=omarchy）" "$_probe_sh" 'ID_LIKE'
+assert_contains "探針以 pacman -Q omarchy-nvim 分辨 omarchy 與純 Arch（與 50-neovim 同一個訊號，M6）" "$_probe_sh" 'pacman -Q omarchy-nvim'
+assert_contains "探針在純 Arch 上改問 starter marker" "$_probe_sh" 'nvim config is the LazyVim starter with our marker'
+assert_contains "探針的 M4 接縫檢查接受 distro=omarchy" "$_probe_sh" 'omarchy|pacman|'
 unset _probe_sh _probe_apt _script_apt _probe_brew _script_brew _probe_pac _script_pac _probe_pac_tools _script_pac_tools
 
 # 測試層自己也會被刪掉。gate 的 manifest 稽核管的是 **gate 的層**，不是測試層；

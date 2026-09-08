@@ -150,6 +150,84 @@ assert_eq "POSIX: 跑到的是 stub 的 mise 而不是真實的 mise（隔離生
 
 fi   # _HAVE_NS
 
+# ================= A2. Arch 家族的 50-neovim（SPEC arch-family-support S8/S9）=================
+# 同一支模板在 pacman 平台渲染成另一條路：沒有 brew shellenv、沒有 mise，改在執行期
+# 以 `pacman -Q omarchy-nvim` 決定要不要 clone starter（D2）。這裡用 stub 的 pacman
+# 兩種回答各跑一次。腳本不會呼叫 brew，所以不需要 A 段的 mount namespace。
+_ar="$TMP/l7arch"
+rm -rf "$_ar"; mkdir -p "$_ar/stub"
+cp "$_a/stub/git" "$_ar/stub/git"
+printf '#!/bin/sh\necho "$@" >> "%s/mise-calls.log"\nexit 0\n' "$_ar" > "$_ar/stub/mise"
+printf '#!/bin/sh\nexit 0\n' > "$_ar/stub/brew"
+# stub pacman：只認 `-Q omarchy-nvim`，答案由 STUB_OMARCHY 決定；其他呼叫一律失敗，
+# 這樣腳本若多問了別的問題就會在這裡炸出來。
+cat > "$_ar/stub/pacman" <<'STUB'
+#!/bin/sh
+echo "$@" >> "$STUB_PACMAN_LOG"
+if [ "$1" = "-Q" ] && [ "$2" = "omarchy-nvim" ]; then
+    [ "${STUB_OMARCHY:-0}" = 1 ] && exit 0
+    exit 1
+fi
+exit 2
+STUB
+chmod +x "$_ar/stub/"*
+render_file arch .chezmoiscripts/run_before_50-neovim.sh.tmpl > "$_ar/50-neovim.sh"
+
+_run_arch() { # home omarchy(0|1)
+    HOME="$1" XDG_CONFIG_HOME="$1/.config" XDG_DATA_HOME="$1/.local/share" \
+    XDG_STATE_HOME="$1/.local/state" XDG_CACHE_HOME="$1/.cache" \
+    STUB_OMARCHY="$2" STUB_PACMAN_LOG="$1/pacman-calls.log" PATH="$_ar/stub:$PATH" \
+        zsh "$_ar/50-neovim.sh" 2>&1
+}
+
+if ! command -v zsh >/dev/null 2>&1; then
+    skip "Arch 50-neovim 的執行期行為" "找不到 zsh"
+elif [ ! -s "$_ar/50-neovim.sh" ]; then
+    _fail "Arch 50-neovim 在 arch 上渲染成非空（S5）" "渲染結果是空的，沒有東西可以執行"
+else
+
+# S8：omarchy（pacman 回報 omarchy-nvim 已裝）——什麼都不動（Must NOT #3、M3）。
+_h="$_ar/home-omarchy"
+_seed_nvim "$_h/.config/nvim" "$_h/.local/share/nvim" "$_h/.local/state/nvim" "$_h/.cache/nvim"
+printf 'OMARCHY-INIT\n' > "$_h/.config/nvim/init.lua"
+if _out=$(_run_arch "$_h" 1); then _pass "Arch/omarchy 50-neovim 執行成功（exit 0）"
+else _fail "Arch/omarchy 50-neovim 執行成功（exit 0）" "$_out"; fi
+assert_eq "omarchy: pacman -Q omarchy-nvim 真的被問過" "-Q omarchy-nvim" "$(cat "$_h/pacman-calls.log" 2>&1)"
+for _d in .config/nvim .local/share/nvim .local/state/nvim .cache/nvim; do
+    assert_eq "omarchy: $_d 原地未動（S8）" "USER-CONTENT" "$(cat "$_h/$_d/user-marker.txt" 2>&1)"
+    assert_eq "omarchy: 沒有產生 $_d.bak（S8）" "0" \
+        "$(ls -d "$_h/$_d".bak* 2>/dev/null | wc -l | tr -d ' ')"
+done
+assert_eq "omarchy: init.lua 仍是 omarchy 的（沒有 clone starter）" "OMARCHY-INIT" "$(cat "$_h/.config/nvim/init.lua" 2>&1)"
+assert_eq "omarchy: 沒有寫 marker" "absent" \
+    "$([ -e "$_h/.config/nvim/.chezmoi-lazyvim-starter" ] && echo present || echo absent)"
+assert_eq "omarchy: 沒有呼叫 mise（Must NOT #8）" "absent" "$([ -e "$_ar/mise-calls.log" ] && echo present || echo absent)"
+
+# S9：純 Arch（pacman 回報未裝）——與 Debian 相同的備份 + clone + marker，且重跑不再搬。
+_h="$_ar/home-arch"
+_seed_nvim "$_h/.config/nvim" "$_h/.local/share/nvim" "$_h/.local/state/nvim" "$_h/.cache/nvim"
+if _out=$(_run_arch "$_h" 0); then _pass "純 Arch 50-neovim 第一次執行成功"
+else _fail "純 Arch 50-neovim 第一次執行成功" "$_out"; fi
+_assert_backup "純 Arch: 既有 ~/.config/nvim 被備份而非刪除（S9）" "$_h/.config/nvim"
+_assert_backup "純 Arch: 既有 ~/.local/share/nvim 被備份" "$_h/.local/share/nvim"
+_assert_backup "純 Arch: 既有 ~/.local/state/nvim 被備份" "$_h/.local/state/nvim"
+_assert_backup "純 Arch: 既有 ~/.cache/nvim 被備份" "$_h/.cache/nvim"
+assert_eq "純 Arch: starter 已放進 ~/.config/nvim" "starter" "$(cat "$_h/.config/nvim/init.lua" 2>&1)"
+assert_eq "純 Arch: starter 的 .git 已刪除" "absent" \
+    "$([ -e "$_h/.config/nvim/.git" ] && echo present || echo absent)"
+assert_eq "純 Arch: marker 已建立" "present" \
+    "$([ -f "$_h/.config/nvim/.chezmoi-lazyvim-starter" ] && echo present || echo absent)"
+printf 'MY-OWN-EDIT\n' > "$_h/.config/nvim/init.lua"
+if _out=$(_run_arch "$_h" 0); then _pass "純 Arch 50-neovim 第二次執行成功"
+else _fail "純 Arch 50-neovim 第二次執行成功" "$_out"; fi
+assert_eq "純 Arch: 重跑不會動使用者自己的設定（M4）" "MY-OWN-EDIT" "$(cat "$_h/.config/nvim/init.lua" 2>&1)"
+assert_eq "純 Arch: 重跑不會多生一份備份（M4）" "1" \
+    "$(ls -d "$_h"/.config/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
+assert_eq "純 Arch: 沒有呼叫 mise（Must NOT #8）" "absent" "$([ -e "$_ar/mise-calls.log" ] && echo present || echo absent)"
+
+fi
+unset _ar _h _d
+
 # ================= B. Windows 的 50-neovim =================
 _PWSH=$(command -v pwsh.exe 2>/dev/null || true)
 _WT=""

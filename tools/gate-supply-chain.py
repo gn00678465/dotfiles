@@ -39,7 +39,7 @@ FIXTURES = REPO / "tests" / "fixtures"
 # 六個組合，不是四個：每個平台的渲染只吐出屬於它自己的那一個 cc-statusline asset，
 # 少一個組合就等於那個 asset 的 pin 從來沒有被下載驗證過。
 OS_CONFIGS = [
-    "os-linux.toml", "os-linux-arm64.toml", "os-arch.toml",
+    "os-linux.toml", "os-linux-arm64.toml", "os-arch.toml", "os-omarchy.toml",
     "os-darwin-arm64.toml", "os-darwin-amd64.toml",
     "os-windows.toml", "os-windows-arm64.toml",
 ]

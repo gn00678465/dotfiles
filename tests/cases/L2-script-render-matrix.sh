@@ -13,22 +13,24 @@ _expect() {
     case $1 in
         # 只在 isWSL = true 時非空；平台矩陣的 fixture 全是 isWSL = false，所以這裡
         # 是空清單，WSL 那一種渲染在下面用 native-wsl fixture 單獨釘。
-        # arch（SPEC archlinux-support S5）：brew 相關的三支（20、30-brew、50-neovim）
-        # 在 Arch 上必須是空的 —— Arch 不裝 Homebrew，neovim 與工具全由 pacman 來，
-        # LazyVim 沿用 omarchy 出廠的 omarchy-nvim（D1）。
+        # arch 與 omarchy（SPEC archlinux-support S5、arch-family-support S4）：brew 相關的
+        # 兩支（20、30-brew）在 Arch 家族上必須是空的 —— 不裝 Homebrew，neovim 與工具全由
+        # pacman 來。50-neovim 在 Arch 家族上**非空**（arch-family-support S5、D2）：它在
+        # 執行期以 pacman -Q omarchy-nvim 決定要不要 clone LazyVim starter，純 Arch 沒有
+        # omarchy-nvim，渲染成空會讓 nvim 沒有設定（F9）。
         run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl)   echo '' ;;
-        run_onchange_before_10-install-packages.sh.tmpl)      echo 'linux linux-arm64 arch' ;;
+        run_onchange_before_10-install-packages.sh.tmpl)      echo 'linux linux-arm64 arch omarchy' ;;
         run_once_before_20-install-homebrew.sh.tmpl)          echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
         run_onchange_before_30-install-brew-packages.sh.tmpl) echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
-        run_onchange_before_30-install-pacman-packages.sh.tmpl) echo 'arch' ;;
+        run_onchange_before_30-install-pacman-packages.sh.tmpl) echo 'arch omarchy' ;;
         run_onchange_before_30-install-winget-packages.ps1.tmpl) echo 'windows windows-arm64' ;;
         run_onchange_before_35-install-ps-modules.ps1.tmpl)    echo 'windows windows-arm64' ;;
-        run_onchange_after_40-git-lfs.sh.tmpl)                echo 'linux linux-arm64 arch darwin-arm64 darwin-amd64' ;;
+        run_onchange_after_40-git-lfs.sh.tmpl)                echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
         run_onchange_after_40-git-lfs.ps1.tmpl)               echo 'windows windows-arm64' ;;
-        run_before_50-neovim.sh.tmpl)                echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_before_50-neovim.sh.tmpl)                echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
         run_before_50-neovim.ps1.tmpl)               echo 'windows windows-arm64' ;;
         run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows windows-arm64' ;;
-        run_after_default-shell.sh.tmpl)                      echo 'linux linux-arm64 arch' ;;
+        run_after_default-shell.sh.tmpl)                      echo 'linux linux-arm64 arch omarchy' ;;
         *) echo '__UNKNOWN__' ;;
     esac
 }
@@ -217,19 +219,45 @@ assert_not_contains "30-install-pacman-packages 沒有 pacman -R" "$_pac" 'pacma
 assert_not_contains "30-install-pacman-packages 沒有 --overwrite" "$_pac" '--overwrite'
 unset _brew _brew_list _pac _pac_list
 
-# S9：Arch 上任何渲染結果都不得出現 brew（Must NOT #4）。
+# S9：Arch 家族上任何渲染結果都不得出現 brew（Must NOT #4；arch-family-support S4）。
+for _os in arch omarchy; do
+    for _f in "$REPO"/.chezmoiscripts/*.sh.tmpl; do
+        _s=$(basename "$_f")
+        _c=$(render_file "$_os" ".chezmoiscripts/$_s" 2>&1)
+        assert_not_contains "$_os / $_s 沒有 linuxbrew" "$_c" 'linuxbrew'
+        assert_not_contains "$_os / $_s 沒有 brew shellenv" "$_c" 'brew shellenv'
+    done
+    for _t in dot_zshrc.tmpl dot_zprofile.tmpl; do
+        _c=$(render_file "$_os" "$_t" 2>&1)
+        assert_not_contains "$_os / $_t 沒有 linuxbrew" "$_c" 'linuxbrew'
+        assert_not_contains "$_os / $_t 沒有 brew shellenv" "$_c" 'brew shellenv'
+    done
+done
+unset _os _f _s _t _c
+
+# ---------- Arch 家族（SPEC arch-family-support S4、S5）----------
+# S4：omarchy 的每一支腳本渲染結果必須與 arch 逐位元組相同。ID_LIKE 只是讓
+# platform.toml 走到同一個 pkgManager，之後不該有任何地方再分辨兩者（Must NOT #6）。
 for _f in "$REPO"/.chezmoiscripts/*.sh.tmpl; do
     _s=$(basename "$_f")
-    _c=$(render_file arch ".chezmoiscripts/$_s" 2>&1)
-    assert_not_contains "arch / $_s 沒有 linuxbrew" "$_c" 'linuxbrew'
-    assert_not_contains "arch / $_s 沒有 brew shellenv" "$_c" 'brew shellenv'
+    render_file arch ".chezmoiscripts/$_s" > "$TMP/l2-arch-$_s" 2>&1
+    render_file omarchy ".chezmoiscripts/$_s" > "$TMP/l2-omarchy-$_s" 2>&1
+    assert_bytes_eq "omarchy / $_s 的渲染與 arch 逐位元組相同" "$TMP/l2-arch-$_s" "$TMP/l2-omarchy-$_s"
 done
-for _t in dot_zshrc.tmpl dot_zprofile.tmpl; do
-    _c=$(render_file arch "$_t" 2>&1)
-    assert_not_contains "arch / $_t 沒有 linuxbrew" "$_c" 'linuxbrew'
-    assert_not_contains "arch / $_t 沒有 brew shellenv" "$_c" 'brew shellenv'
-done
-unset _f _s _t _c
+unset _f _s
+
+# S5：50-neovim 在 Arch 家族上執行，但走的是另一條路：neovim 來自 pacman（Must NOT #8：
+# 沒有 mise 釘版本），LazyVim starter 只在沒有 omarchy-nvim 時才 clone（D2）。
+_nv_arch=$(render_file arch .chezmoiscripts/run_before_50-neovim.sh.tmpl)
+assert_contains "50-neovim 在 arch 上以 pacman -Q omarchy-nvim 決定是否跳過" "$_nv_arch" 'pacman -Q omarchy-nvim'
+assert_not_contains "50-neovim 在 arch 上沒有 mise" "$_nv_arch" 'mise'
+assert_not_contains "50-neovim 在 arch 上沒有 neovim@ 釘版本" "$_nv_arch" 'neovim@'
+assert_not_contains "50-neovim 在 arch 上沒有 brew" "$_nv_arch" 'brew'
+assert_contains "50-neovim 在 arch 上仍會 clone LazyVim starter" "$_nv_arch" 'git clone --depth 1'
+assert_contains "50-neovim 在 arch 上仍用同一個 marker" "$_nv_arch" '.chezmoi-lazyvim-starter'
+# 反向：Debian 那一份不得帶 pacman，它的 omarchy 判斷是 Arch 家族專屬的。
+assert_not_contains "50-neovim 在 linux 上沒有 pacman" "$(render_file linux .chezmoiscripts/run_before_50-neovim.sh.tmpl)" 'pacman'
+unset _nv_arch
 
 # S10：40-git-lfs 在兩個發行版上都要跑 `git lfs install --skip-repo`，差別只在
 # Debian 要先把 brew 的 git-lfs 放上 PATH。

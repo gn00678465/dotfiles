@@ -35,6 +35,23 @@ assert_eq "arch（linux/amd64 + distroOverride=arch）的平台事實：pacman�
     'linux|amd64|false|true||arch|pacman' \
     "$(render arch "$_platform_fields")"
 
+# S1（arch-family-support）：正式版 omarchy 4.0.2 的 /etc/os-release 是 ID=omarchy、
+# ID_LIKE=arch（F1）。distro 保留原值 omarchy，pkgManager 靠 ID_LIKE 走到 pacman，
+# brewPrefix 仍是空。少了這條，正式 omarchy 會被當成 Debian 走 apt + Homebrew（F2）。
+assert_eq "omarchy（distroOverride=omarchy + distroLikeOverride=arch）的平台事實：distro 保留 omarchy、pacman、沒有 brew prefix" \
+    'linux|amd64|false|true||omarchy|pacman' \
+    "$(render omarchy "$_platform_fields")"
+# M2：ID_LIKE 的比對必須是整個字，不是子字串。"ubuntu debian" 不含 arch 這個字，
+# 走 apt；"archarch" 這種子字串命中不算數。
+_like_pm='{{- $p := includeTemplate "platform.toml" . | fromToml -}}{{ $p.pkgManager }}'
+assert_eq "ID_LIKE 含多個字時逐字比對：\"ubuntu debian\" 走 apt" 'apt' \
+    "$(render linux "{{- \$_ := set . \"distroOverride\" \"ubuntu\" -}}{{- \$_ := set . \"distroLikeOverride\" \"ubuntu debian\" -}}$_like_pm")"
+assert_eq "ID_LIKE 含多個字時逐字比對：\"foo arch\" 走 pacman" 'pacman' \
+    "$(render linux "{{- \$_ := set . \"distroOverride\" \"foo\" -}}{{- \$_ := set . \"distroLikeOverride\" \"foo arch\" -}}$_like_pm")"
+assert_eq "ID_LIKE 是子字串命中不算：\"archarch\" 走 apt" 'apt' \
+    "$(render linux "{{- \$_ := set . \"distroOverride\" \"foo\" -}}{{- \$_ := set . \"distroLikeOverride\" \"archarch\" -}}$_like_pm")"
+unset _like_pm
+
 # S3：沒有 distroOverride 時，distro 必須退回 chezmoi 自己讀到的
 # .chezmoi.osRelease.id；非 Linux 主機上那個 map 是空的，退回空字串。
 _native_distro=$(cm native execute-template '{{ if hasKey .chezmoi "osRelease" }}{{ if hasKey .chezmoi.osRelease "id" }}{{ .chezmoi.osRelease.id }}{{ end }}{{ end }}')
@@ -72,4 +89,7 @@ assert_not_contains "渲染後的生產 config 沒有 archOverride" "$_cfg_out" 
 # 分支、或 Arch 機器會走 apt 分支，10-install-packages 在第一支腳本就中止。
 assert_not_contains "生產用的 .chezmoi.toml.tmpl 原始碼沒有 distroOverride" "$_cfg_src" "distroOverride"
 assert_not_contains "渲染後的生產 config 沒有 distroOverride" "$_cfg_out" "distroOverride"
+# S3（arch-family-support）：distroLikeOverride 是第四個接縫，同樣只准出現在 fixture（M7）。
+assert_not_contains "生產用的 .chezmoi.toml.tmpl 原始碼沒有 distroLikeOverride" "$_cfg_src" "distroLikeOverride"
+assert_not_contains "渲染後的生產 config 沒有 distroLikeOverride" "$_cfg_out" "distroLikeOverride"
 unset _cfg_src _cfg_out
