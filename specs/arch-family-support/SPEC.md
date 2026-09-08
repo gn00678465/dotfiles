@@ -1,7 +1,7 @@
 # SPEC — Arch 家族支援：正式版 omarchy 與純 Arch
 
 - `spec_version`: v1
-- `status`: draft
+- `status`: approved
 - `tier`: 3
 - `scope`: arch-family-support
 - `base_ref`: `4e6f13c`（`origin/main`，PR #18 合併點）
@@ -199,7 +199,10 @@ systemd 已啟用。
 
 ## Approval
 
-（待核准）
+- 2026-09-08 — approves v1 — 「核准 SPEC V1」（對話中的明確字句，針對
+  `specs/arch-family-support/SPEC.md` commit `25497d2`。審閱經 HTML 頁面進行，三則
+  留言串均已解決且不要求修改內容；exploration round 1 的 D1–D4 與「不建立使用者、
+  維持 v1」的回答記於 §8 與留言串）。
 
 ## Revisions
 
