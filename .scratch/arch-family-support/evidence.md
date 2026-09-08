@@ -1,7 +1,7 @@
 # Evidence Report — Arch 家族支援：正式版 omarchy 與純 Arch (Tier 3)
 
-- `headline`: **GATE PASSED（自動化層，13/13）— 但 Must NOT #7 被操作者的環境準備違反，待使用者
-  追認或否決（§Stated claim、§Honest notes）；reproducibility degraded（工具版本只有記錄，沒有釘住；
+- `headline`: **GATE PASSED（自動化層，13/13）— Must NOT #7 被操作者的環境準備違反，使用者已追認
+  （§Stated claim、§Honest notes）；reproducibility degraded（工具版本只有記錄，沒有釘住；
   gate 必須在乾淨的 checkout 執行，見 entry_point）；Real execution 在 entry point 之外（L9 兩個真實
   環境各 35 PASS / 0 FAIL / 3 SKIP，環境 B 在最終 commit、環境 A 在 491c0f2，之後探針與產品模板未再改動）；
   changed-line coverage UNAVAILABLE；independent verification（Tier 3）round 1 verdict failed，
@@ -95,7 +95,7 @@ WSL 內執行，這兩條在那裡通過。
 | Must NOT #4 Arch 家族不裝 Homebrew | L2 S9（arch 與 omarchy）；L9 兩環境 `/home/linuxbrew` 不存在 | pass |
 | Must NOT #5 腳本不做 -Sy/-Syu/-R/--overwrite | L2 既有六條（10 與 30-pacman）；`--syu` 只在啟動器 | pass |
 | Must NOT #6 不以 ID=omarchy 分支 | L2 的原始碼檢查（`.chezmoiscripts/*.tmpl`、`dot_zshrc.tmpl`、`dot_zprofile.tmpl`、`platform.toml` 的 `{{ }}` 內沒有 omarchy，16 條，`03db4c5`）；L2 S4 / L11 B2 只證明輸出相同，不是這條的證據 | pass |
-| Must NOT #7 環境 A 只做 init --apply | 啟動器本身遵守（只建 /src、/out、跑探針）。**違反：操作者在環境 A 做了 init --apply 以外的系統變更**——改 sudoers（`Defaults:madao !authenticate`；`04_madao` 曾改後還原）、加 ssh 金鑰、刪除失敗探針殘留（§Honest notes 逐項）。SPEC §6 只授權「使用者先設定免密碼 sudo」；使用者自己加了 NOPASSWD，其餘三項是我做的，沒有逐項事先徵得同意。依合約這是失敗條件；獨立驗證（F3）也這樣判。處置交給使用者：追認（VM 是重建的測試環境，變更可逆且已列出）或否決（重建 VM、由使用者自己準備前置後重跑 `ssh.sh`）。在使用者決定之前，本報告不宣稱 SPEC 全數遵守，spec-archive 不執行 | **違反，待使用者決定** |
+| Must NOT #7 環境 A 只做 init --apply | 啟動器本身遵守（只建 /src、/out、跑探針）。**違反：操作者在環境 A 做了 init --apply 以外的系統變更**——改 sudoers（`Defaults:madao !authenticate`；`04_madao` 曾改後還原）、加 ssh 金鑰、刪除失敗探針殘留（§Honest notes 逐項）。SPEC §6 只授權「使用者先設定免密碼 sudo」；使用者自己加了 NOPASSWD，其餘三項是我做的，沒有逐項事先徵得同意。依合約這是失敗條件；獨立驗證（F3）也這樣判。處置交給使用者，選項為追認（VM 是重建的測試環境，變更可逆且已列出）或否決（重建 VM、由使用者自己準備前置後重跑 `ssh.sh`）。使用者在報告提交後選擇追認，原話是「1」（回覆「1. 追認」／「2. 否決」的選項）。這不改變事實：SPEC 的字面被違反，違反的內容如左列 | **違反，已追認** |
 | Must NOT #8 mise 釘版本不進 Arch 家族 | L2 S5（無 mise、無 neovim@）；L7 兩個分支都沒有呼叫 mise | pass |
 
 ## RED reconstruction
@@ -250,6 +250,8 @@ gate 的 mutation 層以同樣形狀的六個 mutant 在 WSL 內重做了這兩�
   占位（已填）；Must NOT #6 推論過強（加了原始碼檢查）；文件對應引用了不檢查它們的測試（已改 unverified）；
   數字（pacman 12 個、RED 分項重算為 2+26+8、properties 的 35 個只驗 P0 已註明；manifest 依
   `layers-manifest` 檔案是 13 行，稽核說 14，以檔案為準）。
+- Must NOT #7 的最終處置：使用者在 `5fa641a` 之後以「1」選擇追認。追認的範圍就是 §Stated claim 該列
+  列出的三項 VM 變更；`ssh.sh` 沒有重跑，環境 A 的結果仍是 `491c0f2` 那次。
 - codex（`$ponytail-audit`，第二輪）在 `453f96f`（本報告的第一次提交）上稽核最終產出：13/13 層、778/0/0
   三輪、44/44 mutant、兩份 L9 計數皆與 `.gate/` 產出相符；Must NOT #7 的標示恰當；並更正它上一輪的
   manifest 計數（13 項，不是 14）。四項 P2 的處置：§Gate 表格的 source-state 列改為 `5e30e95`、執行環境
