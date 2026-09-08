@@ -486,7 +486,13 @@ c_chezmoi_git() {
 }
 check 'chezmoi git works (the chezmoi update code path)' c_chezmoi_git
 
-if [ -d /run/systemd/system ]; then
+# 05-wsl-user-runtime-dir renders only when chezmoi sees a WSL kernel, so
+# linger is an obligation on WSL alone. A non-WSL machine with systemd (the
+# omarchy VM) must skip here, not fail: nothing in the dotfiles enables linger
+# there, and nothing needs to.
+is_wsl=0
+case "$(uname -r 2>/dev/null | tr '[:upper:]' '[:lower:]')" in *microsoft*) is_wsl=1 ;; esac
+if [ -d /run/systemd/system ] && [ $is_wsl = 1 ]; then
     c_linger() {
         _l=$(loginctl show-user "$(id -un)" --property=Linger --value 2>&1) || { echo "loginctl: $_l"; return 1; }
         [ "$_l" = yes ] || { echo "Linger=$_l"; return 1; }
@@ -494,6 +500,18 @@ if [ -d /run/systemd/system ]; then
         echo "Linger=yes, /run/user/$(id -u) present"
     }
     check '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' c_linger
+    if [ $remote = 1 ]; then
+        c_update() {
+            run_streamed "$out_dir/update.log" chezmoi update --no-tty \
+                || { echo 'chezmoi update -> failed'; output_tail "$out_dir/update.log" 15; return 1; }
+            echo ok
+        }
+        check 'chezmoi update completes' c_update
+    else
+        skip 'chezmoi update completes' 'local mode: the source tree is not a clone with a remote'
+    fi
+elif [ -d /run/systemd/system ]; then
+    skip '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' 'not WSL: 05-wsl-user-runtime-dir renders empty here'
     if [ $remote = 1 ]; then
         c_update() {
             run_streamed "$out_dir/update.log" chezmoi update --no-tty \

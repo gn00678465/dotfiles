@@ -13,6 +13,15 @@
 # /etc/os-release, key authentication (every call is BatchMode), and either
 # root or passwordless sudo for <user> -- the install scripts run pacman
 # without a tty, and so does this launcher when it creates /src and /out.
+# "Passwordless" is checked with `sudo -n -v`, the exact call the scripts
+# make to prime the credential cache. `sudo -v` asks for a password whenever
+# any rule for the user lacks the NOPASSWD tag, and omarchy ships one such
+# rule in /etc/sudoers.d/50-asdcontrol (`ALL=(ALL) !/usr/bin/asdcontrol`), so
+# a NOPASSWD: ALL entry passes `sudo -n true` but still fails `sudo -v`
+# (measured on the VM). What works is a drop-in with
+#   Defaults:<user> !authenticate
+# which turns password checks off for that user altogether; remove it after
+# the run.
 # Results land in .gate/l9-ssh/<host>/.
 #
 # Connection budget: omarchy's ufw has `22/tcp LIMIT IN` (measured), i.e. at
@@ -45,7 +54,7 @@ preflight=$(run_user '
 printf "id=%s %s\n" "$ID" "${ID_LIKE:-}"
 printf "user=%s\n" "$(id -un)"
 if [ "$(id -u)" = 0 ]; then echo sudo=root
-elif sudo -n true 2>/dev/null; then echo sudo=nopasswd
+elif sudo -n -v 2>/dev/null; then echo sudo=nopasswd
 else echo sudo=none; fi
 ' 2>&1) || { echo "ssh.sh: cannot reach $target non-interactively (BatchMode): $preflight" >&2; exit 2; }
 distro_id=$(printf '%s\n' "$preflight" | sed -n 's/^id=//p')
@@ -58,7 +67,7 @@ esac
 case "$sudo_state" in
     root) SUDO="" ;;
     nopasswd) SUDO="sudo -n" ;;
-    *) echo "ssh.sh: user $user on $target has no passwordless sudo; the install scripts cannot run pacman without a tty" >&2; exit 2 ;;
+    *) echo "ssh.sh: user $user on $target cannot 'sudo -v' without a password (every sudoers rule for the user must be NOPASSWD); the install scripts cannot run pacman without a tty" >&2; exit 2 ;;
 esac
 
 host=${target#*@}

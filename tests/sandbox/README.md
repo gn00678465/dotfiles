@@ -150,7 +150,7 @@ shell 展開 `$ID`、`$@`（所以指令改走 stdin），以及 Git Bash 會把
 | | `omarchy.sh --distro arch --syu` | `ssh.sh <user@host>` |
 |---|---|---|
 | 環境 | `wsl --install archlinux` 的官方映像，root，可重建 | ISO 安裝的 omarchy VM，經 ssh |
-| 前置 | 無；`--syu` 讓啟動器先以 root 跑一次 `pacman -Syu --noconfirm`（全新映像沒有同步資料庫，不跑會停在第一支腳本） | 金鑰登入；使用者是 root 或有免密碼 sudo |
+| 前置 | 無；`--syu` 讓啟動器先以 root 跑一次 `pacman -Syu --noconfirm`（全新映像沒有同步資料庫，不跑會停在第一支腳本） | 金鑰登入；使用者是 root，或 `sudo -n -v` 不問密碼（見下） |
 | 輸出 | `.gate/l9-omarchy/` | `.gate/l9-ssh/<host>/` |
 
 探針以 `ID` 或 `ID_LIKE` 含 `arch` 認出 Arch 家族（正式 omarchy 是 `ID=omarchy`、
@@ -161,3 +161,17 @@ shell 展開 `$ID`、`$@`（所以指令改走 stdin），以及 Git Bash 會把
 
 `--syu` 是啟動器的系統變更，不是 dotfiles 的：`.chezmoiscripts/` 仍然不做 `-Sy`、
 `-Syu`（Must NOT #5）。不加旗標時，啟動器在同步資料庫為空的 distro 上會停下並提示。
+
+**omarchy VM 的 sudo 前置**：安裝腳本用 `sudo -v` 預熱憑證快取，而 `sudo -v` 只要使用者
+有任何一條沒帶 `NOPASSWD` 的規則就會問密碼。omarchy 出廠的 `/etc/sudoers.d/50-asdcontrol`
+有一條 `ALL=(ALL) !/usr/bin/asdcontrol`，所以只加 `NOPASSWD: ALL` 會讓 `sudo -n true` 通過、
+`sudo -n -v` 仍失敗（實測）。探針要的是後者。在 VM 上以該使用者執行一次：
+
+```sh
+printf 'Defaults:%s !authenticate\n%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$USER" "$USER" \
+  | sudo tee /etc/sudoers.d/99-probe-nopasswd >/dev/null
+sudo chmod 0440 /etc/sudoers.d/99-probe-nopasswd && sudo visudo -c
+sudo -k && sudo -n -v && echo ok
+```
+
+跑完探針後刪掉 `/etc/sudoers.d/99-probe-nopasswd` 即可恢復。啟動器本身不會改 sudoers。

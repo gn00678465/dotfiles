@@ -76,8 +76,10 @@ case " $distro_id " in
 esac
 user=$(run_user 'id -un' | tr -d '\0\r')
 if [ "$user" != root ]; then
-    run_user 'sudo -n true' >/dev/null 2>&1 || {
-        echo "omarchy.sh: user $user in $NAME has no passwordless sudo; the install scripts cannot run pacman without a tty" >&2
+    # `sudo -n -v`, the call the install scripts make: see ssh.sh for why
+    # `sudo -n true` is not the same test.
+    run_user 'sudo -n -v' >/dev/null 2>&1 || {
+        echo "omarchy.sh: user $user in $NAME cannot 'sudo -v' without a password; the install scripts cannot run pacman without a tty" >&2
         exit 2
     }
 fi
