@@ -6,13 +6,20 @@
 #   tests/sandbox/ssh.sh <user@host> --branch <name>  # remote mode: init.sh from GitHub
 #
 # Same shape as omarchy.sh, with ssh where that one has wsl.exe: the source
-# tree goes in through a pipe (git archive | ssh tar), the probe runs, and /out
-# comes back through a pipe. The launcher never touches $HOME on the target and
+# tree goes in through a pipe (tar | ssh tar), the probe runs, and /out comes
+# back through a pipe. The launcher never touches $HOME on the target and
 # never runs pacman; the probe's `chezmoi init --apply` is the only system
 # change (Must NOT #7). Preconditions on the target: an Arch-family
-# /etc/os-release, and either root or passwordless sudo for <user> -- the
-# install scripts run pacman without a tty, and so does this launcher when it
-# creates /src and /out. Results land in .gate/l9-ssh/<host>/.
+# /etc/os-release, key authentication (every call is BatchMode), and either
+# root or passwordless sudo for <user> -- the install scripts run pacman
+# without a tty, and so does this launcher when it creates /src and /out.
+# Results land in .gate/l9-ssh/<host>/.
+#
+# Connection budget: omarchy's ufw has `22/tcp LIMIT IN` (measured), i.e. at
+# most 6 new connections per 30 seconds from one address, after which the
+# rest are dropped and time out. Windows OpenSSH has no ControlMaster, so the
+# work is packed into as few sessions as possible: preflight, root setup,
+# transfer, run -- four before the long probe -- and one export afterwards.
 set -eu
 
 REPO=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
@@ -29,29 +36,30 @@ done
 command -v ssh >/dev/null 2>&1 || { echo "ssh.sh: ssh not found" >&2; exit 2; }
 
 # Commands go in through stdin, like omarchy.sh: the remote login shell never
-# re-parses a script it reads from stdin. `-n` on the runs that must not
-# consume the launcher's stdin.
+# re-parses a script it reads from stdin.
 run_user() { printf '%s\n' "$1" | ssh -o BatchMode=yes "$target" sh; }
-# Root's work on the target goes through sudo -n (or straight through when the
-# user is root); the check below is what makes -n safe.
-run_root() { printf '%s\n' "$1" | ssh -o BatchMode=yes "$target" "$SUDO sh"; }
 
-run_user 'true' >/dev/null 2>&1 || { echo "ssh.sh: cannot reach $target non-interactively (BatchMode); set up key auth first" >&2; exit 2; }
-distro_id=$(run_user '. /etc/os-release && printf "%s %s" "$ID" "${ID_LIKE:-}"')
+# Session 1: every precondition in one round trip.
+preflight=$(run_user '
+. /etc/os-release 2>/dev/null
+printf "id=%s %s\n" "$ID" "${ID_LIKE:-}"
+printf "user=%s\n" "$(id -un)"
+if [ "$(id -u)" = 0 ]; then echo sudo=root
+elif sudo -n true 2>/dev/null; then echo sudo=nopasswd
+else echo sudo=none; fi
+' 2>&1) || { echo "ssh.sh: cannot reach $target non-interactively (BatchMode): $preflight" >&2; exit 2; }
+distro_id=$(printf '%s\n' "$preflight" | sed -n 's/^id=//p')
+user=$(printf '%s\n' "$preflight" | sed -n 's/^user=//p')
+sudo_state=$(printf '%s\n' "$preflight" | sed -n 's/^sudo=//p')
 case " $distro_id " in
     *" arch "*) ;;
     *) echo "ssh.sh: $target reports ID/ID_LIKE '$distro_id', not the Arch family" >&2; exit 2 ;;
 esac
-user=$(run_user 'id -un')
-if [ "$user" = root ]; then
-    SUDO=""
-else
-    run_user 'sudo -n true' >/dev/null 2>&1 || {
-        echo "ssh.sh: user $user on $target has no passwordless sudo; the install scripts cannot run pacman without a tty" >&2
-        exit 2
-    }
-    SUDO="sudo -n"
-fi
+case "$sudo_state" in
+    root) SUDO="" ;;
+    nopasswd) SUDO="sudo -n" ;;
+    *) echo "ssh.sh: user $user on $target has no passwordless sudo; the install scripts cannot run pacman without a tty" >&2; exit 2 ;;
+esac
 
 host=${target#*@}
 OUT="$REPO/.gate/l9-ssh/$host"
@@ -64,27 +72,40 @@ else
     echo "ssh.sh: remote mode, branch $branch, target $target, user $user"
 fi
 
-# /src and /out are replaced only when a previous run of this launcher made
-# them (marker file); anything else there is a hard stop, never an rm -rf.
-_owned=$(run_root 'for d in /src /out; do if [ -e "$d" ] && [ ! -e "$d/.chezmoi-probe" ]; then echo "FOREIGN $d"; fi; done')
-if [ -n "$_owned" ]; then
-    echo "ssh.sh: refusing to replace a directory this launcher did not create: $_owned" >&2
+# Session 2: root's work. /src and /out are replaced only when a previous run
+# of this launcher made them (marker file); anything else there is a hard
+# stop, never an rm -rf.
+setup=$(printf '%s\n' "
+for d in /src /out; do
+    if [ -e \"\$d\" ] && [ ! -e \"\$d/.chezmoi-probe\" ]; then echo \"FOREIGN \$d\"; exit 3; fi
+done
+rm -rf /src /out && mkdir -p /src/dotfiles /out \
+  && touch /src/.chezmoi-probe /out/.chezmoi-probe && chown -R '$user' /src /out
+" | ssh -o BatchMode=yes "$target" "$SUDO sh" 2>&1) || {
+    echo "ssh.sh: refusing to set up /src and /out on $target: $setup" >&2
     exit 2
-fi
-run_root "rm -rf /src /out && mkdir -p /src/dotfiles /out && touch /src/.chezmoi-probe /out/.chezmoi-probe && chown -R '$user' /src /out"
-if [ -z "$branch" ]; then
-    # Committed content only (git archive): what runs is this commit, not the
-    # working tree.
-    git -C "$REPO" archive HEAD | ssh -o BatchMode=yes "$target" 'tar -x -C /src/dotfiles'
-fi
-ssh -o BatchMode=yes "$target" 'cat > /src/_probe.sh' < "$REPO/tests/sandbox/_probe.sh"
+}
 
-# -t is deliberately absent: the probe must see no tty, exactly like the WSL
-# and container launchers, so anything that would prompt is a FAIL.
+# Session 3: the probe and (local mode) the committed tree, as one tar stream.
+# Committed content only (git archive): what runs is this commit, not the
+# working tree.
+stage=$(mktemp -d "${TMPDIR:-/tmp}/ssh-probe.XXXXXX")
+trap 'rm -rf "$stage"' EXIT INT TERM
+cp "$REPO/tests/sandbox/_probe.sh" "$stage/_probe.sh"
+if [ -z "$branch" ]; then
+    mkdir -p "$stage/dotfiles"
+    git -C "$REPO" archive HEAD | tar -x -C "$stage/dotfiles"
+fi
+tar -c -C "$stage" . | ssh -o BatchMode=yes "$target" 'tar -x -C /src'
+
+# Session 4: the probe. -t is deliberately absent: it must see no tty,
+# exactly like the WSL and container launchers, so anything that would prompt
+# is a FAIL.
 rc=0
 ssh -n -o BatchMode=yes "$target" "env LANG=C.UTF-8 LC_ALL=C.UTF-8 sh /src/_probe.sh ${branch:+--branch $branch}" || rc=$?
 
-# Through a file, not a pipe: a pipe's status is the local tar's.
+# Session 5, minutes later: /out. Through a file, not a pipe: a pipe's status
+# is the local tar's.
 if ! ssh -n -o BatchMode=yes "$target" 'tar -c -C /out .' > "$OUT/out.tar"; then
     echo "ssh.sh: exporting /out from $target failed" >&2
     rm -f "$OUT/out.tar"
