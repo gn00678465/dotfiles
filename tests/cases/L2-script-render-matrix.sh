@@ -246,6 +246,16 @@ for _f in "$REPO"/.chezmoiscripts/*.sh.tmpl; do
 done
 unset _f _s
 
+# Must NOT #6（arch-family-support）：模板原始碼裡不得有任何以 omarchy 分支的 template action。
+# 上面「omarchy 與 arch 逐位元組相同」只證明輸出相同，證不了原始碼沒有一個剛好輸出相同的分支；
+# 這裡直接看原始碼：所有 .chezmoiscripts 模板與 zsh 檔案的 `{{ ... }}` 內不得出現 omarchy。
+for _f in "$REPO"/.chezmoiscripts/*.tmpl "$REPO"/dot_zshrc.tmpl "$REPO"/dot_zprofile.tmpl "$REPO"/.chezmoitemplates/platform.toml; do
+    _s=$(basename "$_f")
+    _hits=$(grep -n '{{[^}]*omarchy[^}]*}}' "$_f" || true)
+    assert_eq "原始碼 $_s 的 template action 裡沒有 omarchy 分支（Must NOT #6）" "" "$_hits"
+done
+unset _f _s _hits
+
 # S5：50-neovim 在 Arch 家族上執行，但走的是另一條路：neovim 來自 pacman（Must NOT #8：
 # 沒有 mise 釘版本），LazyVim starter 只在沒有 omarchy-nvim 時才 clone（D2）。
 _nv_arch=$(render_file arch .chezmoiscripts/run_before_50-neovim.sh.tmpl)
