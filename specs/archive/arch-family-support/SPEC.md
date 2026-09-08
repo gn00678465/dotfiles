@@ -1,7 +1,7 @@
 # SPEC — Arch 家族支援：正式版 omarchy 與純 Arch
 
 - `spec_version`: v1
-- `status`: approved
+- `status`: shipped
 - `tier`: 3
 - `scope`: arch-family-support
 - `base_ref`: `4e6f13c`（`origin/main`，PR #18 合併點）
