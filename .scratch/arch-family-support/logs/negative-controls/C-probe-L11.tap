@@ -1,0 +1,1783 @@
+ok 1 - [L11] nvim completion plugin：POSIX 與 Windows 的落點內容逐位元組相同
+ok 2 - [L11] uv 設定：POSIX 與 Windows 的落點內容逐位元組相同
+ok 3 - [L11] 30-install-winget-packages.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 4 - [L11] 35-install-ps-modules.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 5 - [L11] 40-git-lfs.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 6 - [L11] 50-neovim.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 7 - [L11] 60-pwsh-profile.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 8 - [L11] profile.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 9 - [L11] 50-neovim.sh：linux 與 linux-arm64 的渲染相同（腳本不該依賴 arch）
+ok 10 - [L11] .zshrc（arch 家族）：arch 與 omarchy 的渲染相同（腳本不該依賴 arch）
+ok 11 - [L11] .zprofile（arch 家族）：arch 與 omarchy 的渲染相同（腳本不該依賴 arch）
+ok 12 - [L11] .chezmoiscripts/50-neovim.sh（arch 家族）：arch 與 omarchy 的渲染相同（腳本不該依賴 arch）
+ok 13 - [L11] golden：50-neovim.sh 的 linux 渲染與改動前相同（S6）
+ok 14 - [L11] golden/render/linux 的檔案集合
+ok 15 - [L11] golden：50-neovim.sh 的 darwin-arm64 渲染與改動前相同（S6）
+ok 16 - [L11] golden/render/darwin-arm64 的檔案集合
+ok 17 - [L11] golden：50-neovim.sh 的 darwin-amd64 渲染與改動前相同（S6）
+ok 18 - [L11] golden/render/darwin-amd64 的檔案集合
+ok 19 - [L11] golden：30-install-winget-packages.ps1 的 Windows 渲染沒有悄悄改變
+ok 20 - [L11] golden：35-install-ps-modules.ps1 的 Windows 渲染沒有悄悄改變
+ok 21 - [L11] golden：40-git-lfs.ps1 的 Windows 渲染沒有悄悄改變
+ok 22 - [L11] golden：50-neovim.ps1 的 Windows 渲染沒有悄悄改變
+ok 23 - [L11] golden：60-pwsh-profile.ps1 的 Windows 渲染沒有悄悄改變
+ok 24 - [L11] golden：profile.ps1 的 Windows 渲染沒有悄悄改變
+ok 25 - [L11] golden/render/windows 的檔案集合
+ok 26 - [L11] golden：.zshrc 的 arch 渲染沒有悄悄改變
+ok 27 - [L11] arch / .zshrc 載入 omarchy 的 env-bootstrap（M6）
+ok 28 - [L11] arch / .zshrc 不載入 bash 專用的 default/bash/rc（M7）
+ok 29 - [L11] arch / .zshrc 讀 /etc/omarchy.conf（dev 模式的 OMARCHY_PATH）
+ok 30 - [L11] golden：.zprofile 的 arch 渲染沒有悄悄改變
+ok 31 - [L11] arch / .zprofile 載入 omarchy 的 env-bootstrap（M6）
+ok 32 - [L11] arch / .zprofile 不載入 bash 專用的 default/bash/rc（M7）
+ok 33 - [L11] arch / .zprofile 讀 /etc/omarchy.conf（dev 模式的 OMARCHY_PATH）
+ok 34 - [L11] golden：50-neovim.sh 的 arch 渲染沒有悄悄改變
+ok 35 - [L11] golden/render/arch 的檔案集合
+ok 36 - [L11] init.ps1 會自舉 Microsoft.PowerShell
+ok 37 - [L11] init.ps1 用 pwsh 判斷 Microsoft.PowerShell 是否已存在
+ok 38 - [L11] init.ps1 會自舉 Git.Git
+ok 39 - [L11] init.ps1 用 git 判斷 Git.Git 是否已存在
+ok 40 - [L11] init.ps1 會自舉 twpayne.chezmoi
+ok 41 - [L11] init.ps1 用 chezmoi 判斷 twpayne.chezmoi 是否已存在
+ok 42 - [L11] init.ps1 clone 的是正確的 GitHub 帳號
+ok 43 - [L11] init.ps1 會在 symlink 權限不足時警告
+ok 44 - [L11] init.ps1 的 symlink 警告有指出開發人員模式
+ok 45 - [L11] sandbox 探針會問 M12（treesitter parser 編不編得出來）
+ok 46 - [L11] sandbox 探針會檢查 symlink
+ok 47 - [L11] sandbox 探針會檢查 zsh 專屬檔案沒有落地
+ok 48 - [L11] sandbox 探針收 -Branch（名稱與 init.ps1 對齊）
+ok 49 - [L11] 遠端模式讓 chezmoi 自己 clone 指定分支
+ok 50 - [L11] 遠端模式 clone 的是正確的 GitHub 帳號
+ok 51 - [L11] 遠端模式改從 chezmoi source-path 取來源樹
+ok 52 - [L11] 沒有對應 C:\out 時輸出改寫到桌面
+ok 53 - [L11] 結尾把 results.tsv 全文印到主控台（Sandbox 關掉就沒了）
+ok 54 - [L11] 探針裡沒有寫死的 C:\out 輸出路徑
+ok 55 - [L11] 探針裡每一處 Get-Content 都帶 -ErrorAction Stop（缺檔要炸，不是回 $null）
+ok 56 - [L11] chezmoi 失敗時，FAIL 的 detail 要帶 chezmoi 輸出的尾段
+ok 57 - [L11] 結尾要印出 treesitter.log（遠端模式關掉就沒了）
+ok 58 - [L11] 主控台編碼統一成 UTF-8（winget 的輸出是 UTF-8，5.1 預設用 ANSI 代碼頁解）
+ok 59 - [L11] 子程序輸出邊收邊印，不是整段收完才印
+ok 60 - [L11] 長步驟開始前先報「正在做什麼、預期多久」
+ok 61 - [L11] treesitter 那段等待中要有心跳，不能整段靜止
+ok 62 - [L11] PATH 判定用有 scope 的 GetEnvironmentVariable，不經 registry provider
+ok 63 - [L11] Machine 與 User 兩個範圍都讀
+ok 64 - [L11] PATH 重建的結果要記進 results，不能只留在主控台
+ok 65 - [L11] PATH 重建本身是一條可以 FAIL 的檢查（靜靜失敗就是這次的問題）
+ok 66 - [L11] 套件檢查失敗時要帶 winget 的輸出尾段
+ok 67 - [L11] 子程序查找機制已移除（SPEC v6）
+ok 68 - [L11] tool on PATH 那組檢查已移除（SPEC v6）
+ok 69 - [L11] 改用 winget list --exact --id 確認套件已安裝
+ok 70 - [L11] 套件檢查的名稱進得了 results
+ok 71 - [L11] 探針讀得到 winget 套件清單
+ok 72 - [L11] 探針的套件清單與 30-install-winget-packages 完全相同
+ok 73 - [L11] 探針不再靠寫死的 ProgramFiles 目錄清單判定 PATH
+ok 74 - [L11] verbatim golden：init.ps1 沒有被改動（含註解掉、改序、覆寫）
+ok 75 - [L11] verbatim golden：_probe.ps1 沒有被改動（含註解掉、改序、覆寫）
+not ok 76 - [L11] verbatim golden：_probe.sh 沒有被改動（含註解掉、改序、覆寫）
+#   /tmp/verify/mutant1/tests/golden/verbatim/_probe.sh /tmp/verify/mutant1/tests/sandbox/_probe.sh differ: byte 4121, line 91
+#   expected 28206 bytes, actual 28208 bytes
+#   --- expected ---
+#   | #!/bin/sh
+#   | # End-to-end check inside a throwaway Linux environment (test layer L9, the
+#   | # POSIX half of tests/sandbox/_probe.ps1).
+#   | #
+#   | # The sandbox is the only place a real install is allowed to run: the host is
+#   | # off limits. Everything here runs against a machine that is thrown away
+#   | # afterwards -- a debian:12 container (tests/sandbox/docker.sh) or a fresh WSL
+#   | # distro (tests/sandbox/wsl.sh). Only the WSL one has systemd, so the checks
+#   | # that need logind report SKIP in the container rather than a PASS they did
+#   | # not earn.
+#   | #
+#   | # Two modes, mirroring the Windows probe.
+#   | #
+#   | # Local (no --branch): the source tree is /src/dotfiles, put there by the
+#   | # launcher from `git archive HEAD`, and output goes to /out. chezmoi is
+#   | # installed the way init.sh installs it and then pointed at that tree with
+#   | # `chezmoi init --apply --source`.
+#   | #
+#   | # Remote (--branch <name>): nothing is mounted. The probe runs init.sh from
+#   | # GitHub with --branch, exactly the line a first-time user runs, and every
+#   | # expected value is read from `chezmoi source-path` afterwards.
+#   | #
+#   | # Unlike the Windows probe this one does not stop after the first install: the
+#   | # things this repo got wrong were all on the *second* run -- `chezmoi update`
+#   | # dying on a missing /run/user/<uid>, a removed neovim never coming back -- so
+#   | # the probe goes on to a second apply, `chezmoi git`, and a remove-and-reinstall
+#   | # round.
+#   | #
+#   | # Output survives only through /out (or $HOME/chezmoi-probe when /out is not
+#   | # mounted) and the results table echoed to the console at the end.
+#   | set -u
+#   | 
+#   | branch=""
+#   | while [ $# -gt 0 ]; do
+#   |     case "$1" in
+#   |         --branch) [ $# -ge 2 ] || { echo "probe: --branch needs a value" >&2; exit 2; }
+#   |                   branch=$2; shift 2 ;;
+#   |         --branch=*) branch=${1#*=}; shift ;;
+#   |         *) echo "probe: unknown argument: $1" >&2; exit 2 ;;
+#   |     esac
+#   | done
+#   | remote=0
+#   | [ -n "$branch" ] && remote=1
+#   | 
+#   | # /out only counts when the launcher mounted it: a directory this script made
+#   | # itself dies with the sandbox.
+#   | out_dir=/out
+#   | if [ ! -d "$out_dir" ] || [ ! -w "$out_dir" ]; then
+#   |     out_dir="$HOME/chezmoi-probe"
+#   | fi
+#   | mkdir -p "$out_dir"
+#   | transcript="$out_dir/transcript.txt"
+#   | results="$out_dir/results.tsv"
+#   | treesitter_log="$out_dir/treesitter.log"
+#   | 
+#   | # Transcript: re-exec once with everything piped through tee. POSIX sh has no
+#   | # process substitution, and the exit status has to come back through a file
+#   | # because a pipeline's status is tee's.
+#   | if [ -z "${PROBE_TRANSCRIPT:-}" ]; then
+#   |     rc_file="$out_dir/.rc"
+#   |     rm -f "$rc_file"
+#   |     { PROBE_TRANSCRIPT=1 sh "$0" ${branch:+--branch "$branch"}; echo $? > "$rc_file"; } 2>&1 | tee "$transcript"
+#   |     rc=$(cat "$rc_file" 2>/dev/null || echo 1)
+#   |     rm -f "$rc_file"
+#   |     exit "$rc"
+#   | fi
+#   | 
+#   | # check() captures a test function's stdout as the result detail, so anything
+#   | # a long step wants the operator to see while it runs has to bypass that
+#   | # capture. fd 3 is the console, saved here before any capture starts.
+#   | exec 3>&1
+#   | 
+#   | : > "$results"
+#   | echo "probe: mode=$([ $remote = 1 ] && echo "remote branch $branch" || echo local) out_dir=$out_dir"
+#   | echo "probe: $(uname -srm); $(cat /etc/debian_version 2>/dev/null || echo 'not debian'); glibc $(ldd --version 2>/dev/null | head -1 | sed 's/.* //')"
+#   | 
+#   | # Which package path the dotfiles take on this machine, decided the way
+#   | # platform.toml decides it: ID= in /etc/os-release, or ID_LIKE= containing the
+#   | # word arch (the ISO-installed omarchy reports ID=omarchy ID_LIKE=arch; the WSL
+#   | # image and plain Arch report ID=arch). Everything below that differs between
+#   | # Debian (apt + Homebrew + mise-pinned neovim) and the Arch family (pacman only)
+#   | # keys off $arch. Within the family, $omarchy separates omarchy (its own
+#   | # LazyVim config from omarchy-nvim, left untouched) from plain Arch (the
+#   | # starter is cloned). It is the same signal 50-neovim uses at run time, so the
+#   | # probe and the script cannot disagree (SPEC arch-family-support M6).
+#   | distro=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID:-}")
+#   | distro_like=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID_LIKE:-}")
+#   | arch=0
+#   | case " $distro $distro_like " in *" arch "*) arch=1 ;; esac
+#   | omarchy=0
+#   | if [ $arch = 1 ] && pacman -Q omarchy-nvim >/dev/null 2>&1; then omarchy=1; fi
+#   | echo "probe: distro=${distro:-unknown}${distro_like:+ (ID_LIKE=$distro_like)}; path=$([ $arch = 1 ] && echo 'pacman (Arch family)' || echo 'apt + Homebrew'); omarchy=$omarchy"
+#   | 
+#   | add_result() { # status name detail
+#   |     _line=$(printf '%s\t%s\t%s' "$1" "$2" "$(printf '%s' "$3" | tr '\n' '|' | tr -s '|' | sed 's/|/ | /g')")
+#   |     echo "$_line"
+#   |     printf '%s\n' "$_line" >> "$results"
+#   | }
+#   | 
+#   | # check NAME FUNC: FUNC prints its detail (or the failure reason) and returns
+#   | # non-zero on failure. Nothing here has a tty, so anything that would prompt
+#   | # is a FAIL, which is the point.
+#   | check() {
+#   |     _name=$1; shift
+#   |     if _detail=$("$@" 2>&1); then add_result PASS "$_name" "$_detail"
+#   |     else add_result FAIL "$_name" "$_detail"; fi
+#   | }
+#   | skip() { add_result SKIP "$1" "$2"; }
+#   | 
+#   | # Long steps stream their output as it happens -- a silent console is
+#   | # indistinguishable from a hang -- and keep a copy so a failure's detail can
+#   | # carry the tail, which is the only thing that survives remote mode.
+#   | run_streamed() { # logfile command...
+#   |     _log=$1; shift
+#   |     { "$@"; echo $? > "$_log.rc"; } 2>&1 | tee "$_log" >&3
+#   |     _rc=$(cat "$_log.rc"); rm -f "$_log.rc"
+#   |     return "$_rc"
+#   | }
+#   | output_tail() { # logfile [lines]
+#   |     [ -s "$1" ] || { echo '(no output)'; return; }
+#   |     grep -v '^[[:space:]]*$' "$1" | tail -n "${2:-30}"
+#   | }
+#   | 
+#   | # The probe starts before anything is installed, so nothing the install adds
+#   | # to a login shell's PATH is visible here. Rebuild it from the same three
+#   | # places the dotfiles use (.zprofile: ~/.local/bin, brew shellenv, mise shims)
+#   | # and report what was found, so a "not found" later is readable.
+#   | path_report=""
+#   | update_probe_path() {
+#   |     _found=""
+#   |     for _d in "$HOME/.local/bin" /home/linuxbrew/.linuxbrew/bin /home/linuxbrew/.linuxbrew/sbin "$HOME/.local/share/mise/shims"; do
+#   |         if [ -d "$_d" ]; then
+#   |             _found="$_found $_d"
+#   |             case ":$PATH:" in *":$_d:"*) ;; *) PATH="$_d:$PATH" ;; esac
+#   |         fi
+#   |     done
+#   |     export PATH
+#   |     path_report="added:${_found:- none}"
+#   | }
+#   | 
+#   | # ---------------------------------------------------------------- prerequisites
+#   | c_curl() { command -v curl || { echo 'curl missing (README lists it as the one thing init.sh cannot install)'; return 1; }; }
+#   | check 'curl is available (README prerequisite)' c_curl
+#   | 
+#   | repo=/src/dotfiles
+#   | c_source_tree() { [ -d "$repo/.chezmoiscripts" ] || { echo "missing $repo"; return 1; }; echo "$repo"; }
+#   | [ $remote = 1 ] || check 'source tree is present' c_source_tree
+#   | 
+#   | # ---------------------------------------------------------------- install
+#   | echo
+#   | if [ $remote = 1 ]; then
+#   |     echo "probe: running init.sh --branch $branch from GitHub -- this is the whole install"
+#   |     echo 'probe: this usually takes 10-25 minutes (apt, Homebrew, brew formulas, externals, LazyVim clone)'
+#   |     c_init_sh() {
+#   |         run_streamed "$out_dir/install.log" sh -c \
+#   |             "sh -c \"\$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/$branch/init.sh)\" -- --branch $branch" \
+#   |             || { echo "init.sh -> failed"; output_tail "$out_dir/install.log"; return 1; }
+#   |         echo applied
+#   |     }
+#   |     check "init.sh --branch $branch completes" c_init_sh
+#   | else
+#   |     echo 'probe: installing chezmoi the way init.sh does'
+#   |     c_install_chezmoi() {
+#   |         # init.sh's install line without its `chezmoi init` tail: the init call
+#   |         # below is the one under test, and it differs per mode.
+#   |         run_streamed "$out_dir/chezmoi-install.log" sh -c \
+#   |             'sh -c "$(curl -fsLS https://get.chezmoi.io)" -- -b "$HOME/.local/bin"' \
+#   |             || { echo 'get.chezmoi.io failed'; output_tail "$out_dir/chezmoi-install.log"; return 1; }
+#   |         "$HOME/.local/bin/chezmoi" --version
+#   |     }
+#   |     check 'init.sh installs chezmoi into ~/.local/bin' c_install_chezmoi
+#   |     update_probe_path
+#   | 
+#   |     echo
+#   |     echo 'probe: running chezmoi init --apply --source /src/dotfiles -- this is the whole install'
+#   |     echo 'probe: this usually takes 10-25 minutes (apt, Homebrew, brew formulas, externals, LazyVim clone)'
+#   |     c_init_apply() {
+#   |         run_streamed "$out_dir/install.log" chezmoi init --apply --source "$repo" \
+#   |             || { echo 'chezmoi init --apply -> failed'; output_tail "$out_dir/install.log"; return 1; }
+#   |         echo applied
+#   |     }
+#   |     check 'chezmoi init --apply completes' c_init_apply
+#   | fi
+#   | update_probe_path
+#   | 
+#   | if [ $arch = 1 ]; then
+#   |     # Must NOT #4 / M3: the brew scripts render empty on Arch, so nothing may
+#   |     # have created the linuxbrew prefix.
+#   |     c_no_brew() {
+#   |         [ ! -e /home/linuxbrew ] || { echo '/home/linuxbrew exists'; return 1; }
+#   |         case "$path_report" in *linuxbrew*) echo "$path_report"; return 1 ;; esac
+#   |         echo "$path_report"
+#   |     }
+#   |     check 'no Homebrew on Arch (Must NOT #4)' c_no_brew
+#   | else
+#   |     c_path() { echo "$path_report"; case "$path_report" in *linuxbrew*) ;; *) echo 'brew prefix not found'; return 1 ;; esac; }
+#   |     check 'PATH rebuilt from ~/.local/bin, brew prefix, mise shims' c_path
+#   | fi
+#   | 
+#   | if [ $remote = 1 ]; then
+#   |     c_source_path() {
+#   |         _p=$(chezmoi source-path 2>/dev/null | head -1)
+#   |         [ -n "$_p" ] || { echo 'chezmoi source-path returned nothing'; return 1; }
+#   |         [ -d "$_p/.chezmoiscripts" ] || { echo "missing $_p"; return 1; }
+#   |         repo=$_p; echo "$_p"
+#   |     }
+#   |     check 'source tree is present' c_source_path
+#   |     repo=$(chezmoi source-path 2>/dev/null | head -1)
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- packages
+#   | # Same question the Windows probe asks: is the package installed, using the
+#   | # same command the install script uses to decide. Both lists must stay
+#   | # identical to the scripts'; L11 asserts that, because a package added there
+#   | # and missed here would be silently unverified.
+#   | apt_packages='zsh git curl build-essential procps file'
+#   | brew_formulas='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli'
+#   | pacman_packages='zsh git curl base-devel'
+#   | pacman_tools='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim'
+#   | 
+#   | if [ $arch = 1 ]; then
+#   |     c_pacman() { pacman -Q "$1" 2>/dev/null || { echo 'not installed'; return 1; }; }
+#   |     for _p in $pacman_packages $pacman_tools; do check "pacman package installed: $_p" c_pacman "$_p"; done
+#   | else
+#   |     c_apt() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q '^install ok installed$' || { echo 'not installed'; return 1; }; echo installed; }
+#   |     for _p in $apt_packages; do check "apt package installed: $_p" c_apt "$_p"; done
+#   |     # stderr dropped on the detail line: brew's `locale` warnings on a fresh
+#   |     # rootfs are noise here, the version is the fact.
+#   |     c_brew() { brew list --formula "$1" >/dev/null 2>&1 || { echo 'not installed'; return 1; }; brew list --versions "$1" 2>/dev/null; }
+#   |     for _f in $brew_formulas; do check "brew formula installed: $_f" c_brew "$_f"; done
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- files
+#   | c_zsh_files() {
+#   |     for _n in .zshrc .zprofile .p10k.zsh .oh-my-zsh/oh-my-zsh.sh .oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme; do
+#   |         [ -e "$HOME/$_n" ] || { echo "missing $_n"; return 1; }
+#   |     done; echo ok
+#   | }
+#   | check 'zsh files and externals landed' c_zsh_files
+#   | 
+#   | # The Linux analogue of the "tool on PATH" question, asked the one way it can
+#   | # be answered: start the shell the user gets and see what it resolves.
+#   | c_login_shell() {
+#   |     _out=$(zsh -ilc 'command -v mise fzf nvim tree-sitter' 2>/dev/null) || { echo "zsh -il failed: $_out"; return 1; }
+#   |     printf '%s' "$_out" | tr '\n' ' '
+#   | }
+#   | check 'interactive login zsh resolves mise, fzf, nvim, tree-sitter' c_login_shell
+#   | 
+#   | if [ $omarchy = 1 ]; then
+#   |     # M6: making zsh the login shell must not lose omarchy's own environment.
+#   |     # .zshrc/.zprofile source omarchy's env-bootstrap, which sets OMARCHY_PATH
+#   |     # and puts omarchy-* on PATH (in dev-link mode; production has them in
+#   |     # /usr/bin anyway).
+#   |     c_omarchy_env() {
+#   |         _out=$(zsh -ilc 'command -v git-lfs omarchy-version && printf "OMARCHY_PATH=%s\n" "$OMARCHY_PATH"' 2>/dev/null) \
+#   |             || { echo "zsh -il failed: $_out"; return 1; }
+#   |         case "$_out" in *OMARCHY_PATH=/*) ;; *) echo "OMARCHY_PATH unset: $_out"; return 1 ;; esac
+#   |         printf '%s' "$_out" | tr '\n' ' '
+#   |     }
+#   |     check 'login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH' c_omarchy_env
+#   | elif [ $arch = 1 ]; then
+#   |     skip 'login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH' 'plain Arch: no omarchy on this machine'
+#   | fi
+#   | 
+#   | c_windows_files() {
+#   |     for _n in AppData .config/powershell; do
+#   |         [ ! -e "$HOME/$_n" ] || { echo "$_n should not exist on Linux"; return 1; }
+#   |     done; echo ok
+#   | }
+#   | check 'Windows-only files did NOT land' c_windows_files
+#   | 
+#   | if [ $omarchy = 1 ]; then
+#   |     # D2 / M3: on omarchy 50-neovim sees omarchy-nvim and exits, so omarchy's
+#   |     # LazyVim config must still be exactly where useradd put it -- no .bak, no
+#   |     # starter marker, omarchy's own plugins intact -- with our override layered
+#   |     # on top. Plain Arch takes the else branch: the starter is cloned there
+#   |     # like on Debian (SPEC arch-family-support S10).
+#   |     c_nvim_omarchy() {
+#   |         _cfg="$HOME/.config/nvim"
+#   |         [ -z "$(ls -d "$HOME"/.config/nvim.bak* "$HOME"/.local/share/nvim.bak* 2>/dev/null)" ] \
+#   |             || { echo 'a .bak of the nvim config exists: 50-neovim moved it'; return 1; }
+#   |         [ -f "$_cfg/init.lua" ] || { echo 'no init.lua'; return 1; }
+#   |         [ -f "$_cfg/lua/plugins/omarchy-theme-hotreload.lua" ] || { echo 'omarchy plugin missing: the config was replaced'; return 1; }
+#   |         [ ! -e "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'starter marker present: 50-neovim ran'; return 1; }
+#   |         [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
+#   |         _want=$(chezmoi cat "$_cfg/lua/plugins/completion.lua" 2>&1) || { echo "chezmoi cat failed: $_want"; return 1; }
+#   |         [ "$_want" = "$(cat "$_cfg/lua/plugins/completion.lua")" ] || { echo 'our override differs from chezmoi cat'; return 1; }
+#   |         echo "$_cfg"
+#   |     }
+#   |     check 'omarchy nvim config was left in place, with our override on top (M2)' c_nvim_omarchy
+#   | else
+#   |     c_nvim_config() {
+#   |         _cfg="$HOME/.config/nvim"
+#   |         [ -f "$_cfg/init.lua" ] || { echo 'no init.lua'; return 1; }
+#   |         [ -f "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'no marker'; return 1; }
+#   |         [ ! -e "$_cfg/.git" ] || { echo '.git was not removed'; return 1; }
+#   |         [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
+#   |         echo "$_cfg"
+#   |     }
+#   |     check 'nvim config is the LazyVim starter with our marker' c_nvim_config
+#   | fi
+#   | 
+#   | # Every symlink_ under dot_claude/skills, read from the source tree rather
+#   | # than a name written here: the Windows probe carried a skill name that had
+#   | # been renamed, and its check was "expected to fail" there so nobody noticed.
+#   | c_skills() {
+#   |     _n=0
+#   |     for _s in "$repo"/dot_claude/skills/symlink_*; do
+#   |         _name=${_s##*/symlink_}; _name=${_name%.tmpl}
+#   |         [ -L "$HOME/.claude/skills/$_name" ] || { echo "missing symlink $_name"; return 1; }
+#   |         [ -e "$HOME/.claude/skills/$_name" ] || { echo "dangling symlink $_name -> $(readlink "$HOME/.claude/skills/$_name")"; return 1; }
+#   |         _n=$((_n + 1))
+#   |     done
+#   |     [ "$_n" -gt 0 ] || { echo 'no symlink_ sources found'; return 1; }
+#   |     echo "$_n symlinks resolve"
+#   | }
+#   | check 'claude skills symlinks' c_skills
+#   | 
+#   | c_statusline() {
+#   |     _b="$HOME/.claude/cc-statusline/cc-statusline"
+#   |     [ -x "$_b" ] || { echo "missing or not executable: $_b"; return 1; }
+#   |     grep -q 'cc-statusline' "$HOME/.claude/settings.json" 2>/dev/null || { echo 'settings.json does not point at it'; return 1; }
+#   |     wc -c < "$_b" | tr -d ' '
+#   | }
+#   | check 'cc-statusline downloaded and wired into settings.json' c_statusline
+#   | 
+#   | c_codex() {
+#   |     _p="$HOME/.codex/config.toml"
+#   |     [ -f "$_p" ] || { echo "missing $_p"; return 1; }
+#   |     grep -q '^status_line_use_colors = true$' "$_p" || { echo 'status_line_use_colors missing'; return 1; }
+#   |     grep -q '^status_line = \[' "$_p" || { echo 'status_line missing'; return 1; }
+#   |     echo ok
+#   | }
+#   | check 'codex config.toml has the managed [tui] keys' c_codex
+#   | 
+#   | if [ $arch = 1 ]; then
+#   |     # M4: distroOverride in the test fixtures is only a stand-in. Here the real
+#   |     # chezmoi reads /etc/os-release, and the partial has to reach the same
+#   |     # answer the os-arch fixture gives L1/L2.
+#   |     # ID=arch (WSL omarchy, plain Arch) and ID=omarchy (ISO omarchy, via
+#   |     # ID_LIKE=arch) must both end at pacman with an empty brewPrefix; distro
+#   |     # keeps the raw id (SPEC arch-family-support S11).
+#   |     c_seam() {
+#   |         _out=$(printf '%s' '{{ .chezmoi.osRelease.id }}|{{- $p := includeTemplate "platform.toml" . | fromToml -}}{{ $p.distro }}|{{ $p.pkgManager }}|{{ $p.brewPrefix }}' \
+#   |             | chezmoi execute-template 2>&1) || { echo "execute-template failed: $_out"; return 1; }
+#   |         case "$_out" in
+#   |             'arch|arch|pacman|'|'omarchy|omarchy|pacman|') ;;
+#   |             *) echo "expected arch|arch|pacman| or omarchy|omarchy|pacman|, got: $_out"; return 1 ;;
+#   |         esac
+#   |         echo "$_out"
+#   |     }
+#   |     check 'real chezmoi osRelease.id reaches the partial: distro kept, pkgManager=pacman, brewPrefix empty (M4)' c_seam
+#   | 
+#   |     # D4: the file omarchy wrote at install time is replaced by the managed one.
+#   |     c_git_config() {
+#   |         _want=$(chezmoi cat "$HOME/.config/git/config" 2>&1) || { echo "chezmoi cat failed: $_want"; return 1; }
+#   |         [ "$_want" = "$(cat "$HOME/.config/git/config")" ] || { echo 'differs from chezmoi cat'; return 1; }
+#   |         echo 'managed content in place (omarchy defaults replaced, D4)'
+#   |     }
+#   |     check '~/.config/git/config is the managed file (D4)' c_git_config
+#   | 
+#   |     # 40-git-lfs without the brew shellenv line: git-lfs comes from pacman.
+#   |     # `git lfs env` prints the filter.lfs.* keys even when they are unset (with
+#   |     # empty values), so the assertion is on the value `git lfs install` writes.
+#   |     c_lfs() {
+#   |         _e=$(git lfs env 2>&1) || { echo "git lfs env failed: $_e"; return 1; }
+#   |         printf '%s\n' "$_e" | grep -q 'filter\.lfs\.process = "git-lfs filter-process"' \
+#   |             || { echo "filter.lfs.process not set to git-lfs filter-process: $(printf '%s\n' "$_e" | grep 'filter.lfs' | tr '\n' ' ')"; return 1; }
+#   |         echo 'filter.lfs.process = git-lfs filter-process'
+#   |     }
+#   |     check 'git lfs filter is configured (40-git-lfs, pacman git-lfs)' c_lfs
+#   | 
+#   |     # D3: zsh from pacman is a valid login shell; chsh needs a tty, so without
+#   |     # one the script must print the manual command instead of failing.
+#   |     c_shell() {
+#   |         _z=$(command -v zsh) || { echo 'zsh not on PATH'; return 1; }
+#   |         # Same resolution default-shell does: /etc/shells lists /usr/bin/zsh,
+#   |         # `command -v` says /usr/sbin/zsh; they are one file (merged /usr).
+#   |         _real=$(readlink -f "$_z"); _ok=""
+#   |         while IFS= read -r _c; do
+#   |             case "$_c" in /*) ;; *) continue ;; esac
+#   |             [ "$(readlink -f "$_c" 2>/dev/null)" = "$_real" ] && { _ok=$_c; break; }
+#   |         done < /etc/shells
+#   |         [ -n "$_ok" ] || { echo "no /etc/shells entry resolves to $_real"; return 1; }
+#   |         _s=$(getent passwd "$(id -un)" | cut -d: -f7)
+#   |         case "$_s" in
+#   |             */zsh) echo "login shell: $_s" ;;
+#   |             *) grep -q 'chsh -s' "$out_dir/install.log" || { echo "shell is $_s and no chsh hint was printed"; return 1; }
+#   |                echo "login shell: $_s; chsh hint printed (no tty)" ;;
+#   |         esac
+#   |     }
+#   |     check 'zsh is a valid login shell; chsh done or the manual hint was printed (D3)' c_shell
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- neovim + tree-sitter
+#   | pin=$(sed -n 's/^neovim = "\([^"]*\)".*/\1/p' "$repo/.chezmoitemplates/versions.toml" 2>/dev/null)
+#   | if [ $arch = 1 ]; then
+#   |     # Arch: neovim and tree-sitter-cli are pacman packages; the mise pin in
+#   |     # versions.toml does not apply (rolling release, SPEC §7).
+#   |     c_nvim_pacman() {
+#   |         # nvim's own exit status, not head's.
+#   |         _all=$(nvim --version 2>&1) || { echo "nvim --version failed: $_all"; return 1; }
+#   |         _v=$(printf '%s\n' "$_all" | head -1)
+#   |         echo "$_v via $(command -v nvim) ($(pacman -Q neovim 2>/dev/null))"
+#   |     }
+#   |     check 'nvim runs (pacman neovim; the mise pin does not apply on Arch)' c_nvim_pacman
+#   |     # Ownership asked of pacman, not read off the path: on Arch /usr/sbin is a
+#   |     # symlink to /usr/bin and `command -v` reports /usr/sbin/tree-sitter
+#   |     # (measured), so a /usr/bin/* pattern would reject pacman's own binary.
+#   |     c_treesitter_pacman() {
+#   |         _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
+#   |         _owner=$(pacman -Qo "$(readlink -f "$_ts")" 2>&1) || { echo "not a pacman file: $_owner"; return 1; }
+#   |         case "$_owner" in *tree-sitter-cli*) ;; *) echo "owned by something else: $_owner"; return 1 ;; esac
+#   |         _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
+#   |         echo "$_v at $_ts ($_owner)"
+#   |     }
+#   |     check "tree-sitter CLI is pacman's and runs" c_treesitter_pacman
+#   | else
+#   |     c_nvim_pin() {
+#   |         [ -n "$pin" ] || { echo 'could not read the neovim pin from versions.toml'; return 1; }
+#   |         _v=$(nvim --version 2>&1 | head -1)
+#   |         [ "$_v" = "NVIM v$pin" ] || { echo "expected NVIM v$pin, got: $_v"; return 1; }
+#   |         echo "$_v via $(command -v nvim)"
+#   |     }
+#   |     check 'nvim runs and is the pinned version from versions.toml' c_nvim_pin
+#   | 
+#   |     # The Debian 12 regression: brew's `tree-sitter` formula stopped shipping the
+#   |     # CLI, LazyVim fell back to mason's prebuilt binary, and that one wants a
+#   |     # newer glibc than Debian 12 has. Both halves are asserted: the CLI is brew's,
+#   |     # and it actually executes.
+#   |     c_treesitter() {
+#   |         _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
+#   |         case "$_ts" in /home/linuxbrew/*) ;; *) echo "tree-sitter is $_ts, not brew's"; return 1 ;; esac
+#   |         _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
+#   |         echo "$_v at $_ts"
+#   |     }
+#   |     check "tree-sitter CLI is brew's and runs on this glibc" c_treesitter
+#   | fi
+#   | 
+#   | echo
+#   | echo 'probe: running nvim Lazy! sync + nvim-treesitter install lua (the Linux M12)'
+#   | echo 'probe: this usually takes 3-10 minutes and is capped at 15'
+#   | c_parser() {
+#   |     # Both headless runs must exit 0: a pre-existing lua.so would otherwise
+#   |     # let a failing nvim pass on the file check alone.
+#   |     timeout 900 nvim --headless '+Lazy! sync' '+qa' > "$treesitter_log" 2>&1 \
+#   |         || { echo "nvim +Lazy! sync exited $?"; output_tail "$treesitter_log" 10; return 1; }
+#   |     timeout 900 nvim --headless -c "lua require('nvim-treesitter').install({'lua'}):wait(600000)" -c qa >> "$treesitter_log" 2>&1 \
+#   |         || { echo "nvim-treesitter install exited $?"; output_tail "$treesitter_log" 10; return 1; }
+#   |     for _p in "$HOME/.local/share/nvim/lazy/nvim-treesitter/parser/lua.so" "$HOME/.local/share/nvim/site/parser/lua.so"; do
+#   |         [ -f "$_p" ] && { echo "lua parser built: $_p"; return 0; }
+#   |     done
+#   |     echo "no lua parser produced -- see treesitter.log"; output_tail "$treesitter_log" 10; return 1
+#   | }
+#   | check 'nvim-treesitter builds a parser' c_parser
+#   | 
+#   | # ---------------------------------------------------------------- second run
+#   | # Everything above is the first install. The bugs this probe exists for only
+#   | # show up afterwards.
+#   | echo
+#   | echo 'probe: second chezmoi apply (must be non-interactive and idempotent)'
+#   | c_second_apply() {
+#   |     run_streamed "$out_dir/apply2.log" chezmoi apply --no-tty \
+#   |         || { echo 'second apply -> failed'; output_tail "$out_dir/apply2.log" 15; return 1; }
+#   |     echo ok
+#   | }
+#   | check 'second chezmoi apply completes without a prompt' c_second_apply
+#   | 
+#   | c_idempotent() {
+#   |     [ -z "$(ls -d "$HOME"/.config/nvim.bak* 2>/dev/null)" ] || { echo 'a re-run backed up ~/.config/nvim again'; return 1; }
+#   |     if [ $omarchy = 1 ]; then
+#   |         [ ! -e "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'starter marker appeared: 50-neovim bootstrapped over omarchy-nvim'; return 1; }
+#   |     else
+#   |         [ -f "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'marker gone'; return 1; }
+#   |     fi
+#   |     echo ok
+#   | }
+#   | check 'second apply did not re-bootstrap nvim' c_idempotent
+#   | 
+#   | # `chezmoi git` is the code path `chezmoi update` takes: chezmoi MkdirAll's
+#   | # $XDG_RUNTIME_DIR before spawning git. In the container the variable is
+#   | # unset, so this passes trivially; in the fresh WSL distro it is the bug.
+#   | c_chezmoi_git() {
+#   |     _out=$(chezmoi git -- status --short --branch 2>&1) || { echo "chezmoi git failed: $_out"; return 1; }
+#   |     echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-unset}; $(printf '%s' "$_out" | head -1)"
+#   | }
+#   | check 'chezmoi git works (the chezmoi update code path)' c_chezmoi_git
+#   | 
+#   | # 05-wsl-user-runtime-dir renders only when chezmoi sees a WSL kernel, so
+#   | # linger is an obligation on WSL alone. A non-WSL machine with systemd (the
+#   | # omarchy VM) must skip here, not fail: nothing in the dotfiles enables linger
+#   | # there, and nothing needs to.
+#   | is_wsl=0
+#   | case "$(uname -r 2>/dev/null | tr '[:upper:]' '[:lower:]')" in *microsoft*) is_wsl=1 ;; esac
+#   | if [ -d /run/systemd/system ]; then
+#   |     if [ $is_wsl = 1 ]; then
+#   |         c_linger() {
+#   |             _l=$(loginctl show-user "$(id -un)" --property=Linger --value 2>&1) || { echo "loginctl: $_l"; return 1; }
+#   |             [ "$_l" = yes ] || { echo "Linger=$_l"; return 1; }
+#   |             [ -d "/run/user/$(id -u)" ] || { echo "/run/user/$(id -u) missing"; return 1; }
+#   |             echo "Linger=yes, /run/user/$(id -u) present"
+#   |         }
+#   |         check '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' c_linger
+#   |     else
+#   |         skip '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' 'not WSL: 05-wsl-user-runtime-dir renders empty here'
+#   |     fi
+#   |     if [ $remote = 1 ]; then
+#   |         c_update() {
+#   |             run_streamed "$out_dir/update.log" chezmoi update --no-tty \
+#   |                 || { echo 'chezmoi update -> failed'; output_tail "$out_dir/update.log" 15; return 1; }
+#   |             echo ok
+#   |         }
+#   |         check 'chezmoi update completes' c_update
+#   |     else
+#   |         skip 'chezmoi update completes' 'local mode: the source tree is not a clone with a remote'
+#   |     fi
+#   | else
+#   |     skip '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' 'no systemd in this sandbox'
+#   |     skip 'chezmoi update completes' 'no systemd in this sandbox (and local mode has no remote)'
+#   | fi
+#   | 
+#   | # A removed neovim must come back on the next apply (50-neovim is run_, not
+#   | # run_onchange_).
+#   | echo
+#   | if [ $arch = 1 ]; then
+#   |     # On Arch neovim is a pacman package and the probe never removes packages
+#   |     # (SPEC Must NOT #8): the machine is the user's, not a throwaway rootfs.
+#   |     skip 'a removed neovim is reinstalled by the next apply' 'Arch: neovim is a pacman package; the probe does not remove packages (Must NOT #8)'
+#   | else
+#   |     echo 'probe: removing neovim from mise and applying again'
+#   |     c_reinstall() {
+#   |         mise uninstall "neovim@$pin" >/dev/null 2>&1 || { echo 'mise uninstall failed'; return 1; }
+#   |         mise ls neovim 2>/dev/null | grep -q missing || { echo 'uninstall did not take'; return 1; }
+#   |         run_streamed "$out_dir/apply3.log" chezmoi apply --no-tty --include=scripts \
+#   |             || { echo 'apply -> failed'; output_tail "$out_dir/apply3.log" 15; return 1; }
+#   |         mise ls neovim 2>/dev/null | grep -q missing && { echo 'neovim still missing after apply'; return 1; }
+#   |         nvim --version | head -1
+#   |     }
+#   |     check 'a removed neovim is reinstalled by the next apply' c_reinstall
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- report
+#   | n_pass=$(grep -c '^PASS' "$results"); n_fail=$(grep -c '^FAIL' "$results"); n_skip=$(grep -c '^SKIP' "$results")
+#   | summary="PASS=$n_pass FAIL=$n_fail SKIP=$n_skip"
+#   | printf 'SUMMARY\t%s\t\n' "$summary" >> "$results"
+#   | echo
+#   | echo "probe: $summary"
+#   | echo "probe: results in $results, transcript in $transcript"
+#   | 
+#   | if [ -s "$treesitter_log" ]; then
+#   |     echo; echo '--- treesitter.log (tail 200) ---'; tail -n 200 "$treesitter_log"; echo '--- end treesitter.log ---'
+#   | fi
+#   | echo; echo '--- results.tsv (full) ---'; cat "$results"; echo '--- end results.tsv ---'
+#   | [ "$n_fail" -eq 0 ]
+#   --- actual ---
+#   | #!/bin/sh
+#   | # End-to-end check inside a throwaway Linux environment (test layer L9, the
+#   | # POSIX half of tests/sandbox/_probe.ps1).
+#   | #
+#   | # The sandbox is the only place a real install is allowed to run: the host is
+#   | # off limits. Everything here runs against a machine that is thrown away
+#   | # afterwards -- a debian:12 container (tests/sandbox/docker.sh) or a fresh WSL
+#   | # distro (tests/sandbox/wsl.sh). Only the WSL one has systemd, so the checks
+#   | # that need logind report SKIP in the container rather than a PASS they did
+#   | # not earn.
+#   | #
+#   | # Two modes, mirroring the Windows probe.
+#   | #
+#   | # Local (no --branch): the source tree is /src/dotfiles, put there by the
+#   | # launcher from `git archive HEAD`, and output goes to /out. chezmoi is
+#   | # installed the way init.sh installs it and then pointed at that tree with
+#   | # `chezmoi init --apply --source`.
+#   | #
+#   | # Remote (--branch <name>): nothing is mounted. The probe runs init.sh from
+#   | # GitHub with --branch, exactly the line a first-time user runs, and every
+#   | # expected value is read from `chezmoi source-path` afterwards.
+#   | #
+#   | # Unlike the Windows probe this one does not stop after the first install: the
+#   | # things this repo got wrong were all on the *second* run -- `chezmoi update`
+#   | # dying on a missing /run/user/<uid>, a removed neovim never coming back -- so
+#   | # the probe goes on to a second apply, `chezmoi git`, and a remove-and-reinstall
+#   | # round.
+#   | #
+#   | # Output survives only through /out (or $HOME/chezmoi-probe when /out is not
+#   | # mounted) and the results table echoed to the console at the end.
+#   | set -u
+#   | 
+#   | branch=""
+#   | while [ $# -gt 0 ]; do
+#   |     case "$1" in
+#   |         --branch) [ $# -ge 2 ] || { echo "probe: --branch needs a value" >&2; exit 2; }
+#   |                   branch=$2; shift 2 ;;
+#   |         --branch=*) branch=${1#*=}; shift ;;
+#   |         *) echo "probe: unknown argument: $1" >&2; exit 2 ;;
+#   |     esac
+#   | done
+#   | remote=0
+#   | [ -n "$branch" ] && remote=1
+#   | 
+#   | # /out only counts when the launcher mounted it: a directory this script made
+#   | # itself dies with the sandbox.
+#   | out_dir=/out
+#   | if [ ! -d "$out_dir" ] || [ ! -w "$out_dir" ]; then
+#   |     out_dir="$HOME/chezmoi-probe"
+#   | fi
+#   | mkdir -p "$out_dir"
+#   | transcript="$out_dir/transcript.txt"
+#   | results="$out_dir/results.tsv"
+#   | treesitter_log="$out_dir/treesitter.log"
+#   | 
+#   | # Transcript: re-exec once with everything piped through tee. POSIX sh has no
+#   | # process substitution, and the exit status has to come back through a file
+#   | # because a pipeline's status is tee's.
+#   | if [ -z "${PROBE_TRANSCRIPT:-}" ]; then
+#   |     rc_file="$out_dir/.rc"
+#   |     rm -f "$rc_file"
+#   |     { PROBE_TRANSCRIPT=1 sh "$0" ${branch:+--branch "$branch"}; echo $? > "$rc_file"; } 2>&1 | tee "$transcript"
+#   |     rc=$(cat "$rc_file" 2>/dev/null || echo 1)
+#   |     rm -f "$rc_file"
+#   |     exit "$rc"
+#   | fi
+#   | 
+#   | # check() captures a test function's stdout as the result detail, so anything
+#   | # a long step wants the operator to see while it runs has to bypass that
+#   | # capture. fd 3 is the console, saved here before any capture starts.
+#   | exec 3>&1
+#   | 
+#   | : > "$results"
+#   | echo "probe: mode=$([ $remote = 1 ] && echo "remote branch $branch" || echo local) out_dir=$out_dir"
+#   | echo "probe: $(uname -srm); $(cat /etc/debian_version 2>/dev/null || echo 'not debian'); glibc $(ldd --version 2>/dev/null | head -1 | sed 's/.* //')"
+#   | 
+#   | # Which package path the dotfiles take on this machine, decided the way
+#   | # platform.toml decides it: ID= in /etc/os-release, or ID_LIKE= containing the
+#   | # word arch (the ISO-installed omarchy reports ID=omarchy ID_LIKE=arch; the WSL
+#   | # image and plain Arch report ID=arch). Everything below that differs between
+#   | # Debian (apt + Homebrew + mise-pinned neovim) and the Arch family (pacman only)
+#   | # keys off $arch. Within the family, $omarchy separates omarchy (its own
+#   | # LazyVim config from omarchy-nvim, left untouched) from plain Arch (the
+#   | # starter is cloned). It is the same signal 50-neovim uses at run time, so the
+#   | # probe and the script cannot disagree (SPEC arch-family-support M6).
+#   | distro=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID:-}")
+#   | distro_like=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID_LIKE:-}")
+#   | arch=0
+#   | case " $distro $distro_like " in *" arch "*) arch=1 ;; esac
+#   | omarchy=0
+#   | if [ $arch = 1 ] && pacman -Q some-other-pkg >/dev/null 2>&1; then omarchy=1; fi
+#   | echo "probe: distro=${distro:-unknown}${distro_like:+ (ID_LIKE=$distro_like)}; path=$([ $arch = 1 ] && echo 'pacman (Arch family)' || echo 'apt + Homebrew'); omarchy=$omarchy"
+#   | 
+#   | add_result() { # status name detail
+#   |     _line=$(printf '%s\t%s\t%s' "$1" "$2" "$(printf '%s' "$3" | tr '\n' '|' | tr -s '|' | sed 's/|/ | /g')")
+#   |     echo "$_line"
+#   |     printf '%s\n' "$_line" >> "$results"
+#   | }
+#   | 
+#   | # check NAME FUNC: FUNC prints its detail (or the failure reason) and returns
+#   | # non-zero on failure. Nothing here has a tty, so anything that would prompt
+#   | # is a FAIL, which is the point.
+#   | check() {
+#   |     _name=$1; shift
+#   |     if _detail=$("$@" 2>&1); then add_result PASS "$_name" "$_detail"
+#   |     else add_result FAIL "$_name" "$_detail"; fi
+#   | }
+#   | skip() { add_result SKIP "$1" "$2"; }
+#   | 
+#   | # Long steps stream their output as it happens -- a silent console is
+#   | # indistinguishable from a hang -- and keep a copy so a failure's detail can
+#   | # carry the tail, which is the only thing that survives remote mode.
+#   | run_streamed() { # logfile command...
+#   |     _log=$1; shift
+#   |     { "$@"; echo $? > "$_log.rc"; } 2>&1 | tee "$_log" >&3
+#   |     _rc=$(cat "$_log.rc"); rm -f "$_log.rc"
+#   |     return "$_rc"
+#   | }
+#   | output_tail() { # logfile [lines]
+#   |     [ -s "$1" ] || { echo '(no output)'; return; }
+#   |     grep -v '^[[:space:]]*$' "$1" | tail -n "${2:-30}"
+#   | }
+#   | 
+#   | # The probe starts before anything is installed, so nothing the install adds
+#   | # to a login shell's PATH is visible here. Rebuild it from the same three
+#   | # places the dotfiles use (.zprofile: ~/.local/bin, brew shellenv, mise shims)
+#   | # and report what was found, so a "not found" later is readable.
+#   | path_report=""
+#   | update_probe_path() {
+#   |     _found=""
+#   |     for _d in "$HOME/.local/bin" /home/linuxbrew/.linuxbrew/bin /home/linuxbrew/.linuxbrew/sbin "$HOME/.local/share/mise/shims"; do
+#   |         if [ -d "$_d" ]; then
+#   |             _found="$_found $_d"
+#   |             case ":$PATH:" in *":$_d:"*) ;; *) PATH="$_d:$PATH" ;; esac
+#   |         fi
+#   |     done
+#   |     export PATH
+#   |     path_report="added:${_found:- none}"
+#   | }
+#   | 
+#   | # ---------------------------------------------------------------- prerequisites
+#   | c_curl() { command -v curl || { echo 'curl missing (README lists it as the one thing init.sh cannot install)'; return 1; }; }
+#   | check 'curl is available (README prerequisite)' c_curl
+#   | 
+#   | repo=/src/dotfiles
+#   | c_source_tree() { [ -d "$repo/.chezmoiscripts" ] || { echo "missing $repo"; return 1; }; echo "$repo"; }
+#   | [ $remote = 1 ] || check 'source tree is present' c_source_tree
+#   | 
+#   | # ---------------------------------------------------------------- install
+#   | echo
+#   | if [ $remote = 1 ]; then
+#   |     echo "probe: running init.sh --branch $branch from GitHub -- this is the whole install"
+#   |     echo 'probe: this usually takes 10-25 minutes (apt, Homebrew, brew formulas, externals, LazyVim clone)'
+#   |     c_init_sh() {
+#   |         run_streamed "$out_dir/install.log" sh -c \
+#   |             "sh -c \"\$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/$branch/init.sh)\" -- --branch $branch" \
+#   |             || { echo "init.sh -> failed"; output_tail "$out_dir/install.log"; return 1; }
+#   |         echo applied
+#   |     }
+#   |     check "init.sh --branch $branch completes" c_init_sh
+#   | else
+#   |     echo 'probe: installing chezmoi the way init.sh does'
+#   |     c_install_chezmoi() {
+#   |         # init.sh's install line without its `chezmoi init` tail: the init call
+#   |         # below is the one under test, and it differs per mode.
+#   |         run_streamed "$out_dir/chezmoi-install.log" sh -c \
+#   |             'sh -c "$(curl -fsLS https://get.chezmoi.io)" -- -b "$HOME/.local/bin"' \
+#   |             || { echo 'get.chezmoi.io failed'; output_tail "$out_dir/chezmoi-install.log"; return 1; }
+#   |         "$HOME/.local/bin/chezmoi" --version
+#   |     }
+#   |     check 'init.sh installs chezmoi into ~/.local/bin' c_install_chezmoi
+#   |     update_probe_path
+#   | 
+#   |     echo
+#   |     echo 'probe: running chezmoi init --apply --source /src/dotfiles -- this is the whole install'
+#   |     echo 'probe: this usually takes 10-25 minutes (apt, Homebrew, brew formulas, externals, LazyVim clone)'
+#   |     c_init_apply() {
+#   |         run_streamed "$out_dir/install.log" chezmoi init --apply --source "$repo" \
+#   |             || { echo 'chezmoi init --apply -> failed'; output_tail "$out_dir/install.log"; return 1; }
+#   |         echo applied
+#   |     }
+#   |     check 'chezmoi init --apply completes' c_init_apply
+#   | fi
+#   | update_probe_path
+#   | 
+#   | if [ $arch = 1 ]; then
+#   |     # Must NOT #4 / M3: the brew scripts render empty on Arch, so nothing may
+#   |     # have created the linuxbrew prefix.
+#   |     c_no_brew() {
+#   |         [ ! -e /home/linuxbrew ] || { echo '/home/linuxbrew exists'; return 1; }
+#   |         case "$path_report" in *linuxbrew*) echo "$path_report"; return 1 ;; esac
+#   |         echo "$path_report"
+#   |     }
+#   |     check 'no Homebrew on Arch (Must NOT #4)' c_no_brew
+#   | else
+#   |     c_path() { echo "$path_report"; case "$path_report" in *linuxbrew*) ;; *) echo 'brew prefix not found'; return 1 ;; esac; }
+#   |     check 'PATH rebuilt from ~/.local/bin, brew prefix, mise shims' c_path
+#   | fi
+#   | 
+#   | if [ $remote = 1 ]; then
+#   |     c_source_path() {
+#   |         _p=$(chezmoi source-path 2>/dev/null | head -1)
+#   |         [ -n "$_p" ] || { echo 'chezmoi source-path returned nothing'; return 1; }
+#   |         [ -d "$_p/.chezmoiscripts" ] || { echo "missing $_p"; return 1; }
+#   |         repo=$_p; echo "$_p"
+#   |     }
+#   |     check 'source tree is present' c_source_path
+#   |     repo=$(chezmoi source-path 2>/dev/null | head -1)
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- packages
+#   | # Same question the Windows probe asks: is the package installed, using the
+#   | # same command the install script uses to decide. Both lists must stay
+#   | # identical to the scripts'; L11 asserts that, because a package added there
+#   | # and missed here would be silently unverified.
+#   | apt_packages='zsh git curl build-essential procps file'
+#   | brew_formulas='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli'
+#   | pacman_packages='zsh git curl base-devel'
+#   | pacman_tools='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim'
+#   | 
+#   | if [ $arch = 1 ]; then
+#   |     c_pacman() { pacman -Q "$1" 2>/dev/null || { echo 'not installed'; return 1; }; }
+#   |     for _p in $pacman_packages $pacman_tools; do check "pacman package installed: $_p" c_pacman "$_p"; done
+#   | else
+#   |     c_apt() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q '^install ok installed$' || { echo 'not installed'; return 1; }; echo installed; }
+#   |     for _p in $apt_packages; do check "apt package installed: $_p" c_apt "$_p"; done
+#   |     # stderr dropped on the detail line: brew's `locale` warnings on a fresh
+#   |     # rootfs are noise here, the version is the fact.
+#   |     c_brew() { brew list --formula "$1" >/dev/null 2>&1 || { echo 'not installed'; return 1; }; brew list --versions "$1" 2>/dev/null; }
+#   |     for _f in $brew_formulas; do check "brew formula installed: $_f" c_brew "$_f"; done
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- files
+#   | c_zsh_files() {
+#   |     for _n in .zshrc .zprofile .p10k.zsh .oh-my-zsh/oh-my-zsh.sh .oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme; do
+#   |         [ -e "$HOME/$_n" ] || { echo "missing $_n"; return 1; }
+#   |     done; echo ok
+#   | }
+#   | check 'zsh files and externals landed' c_zsh_files
+#   | 
+#   | # The Linux analogue of the "tool on PATH" question, asked the one way it can
+#   | # be answered: start the shell the user gets and see what it resolves.
+#   | c_login_shell() {
+#   |     _out=$(zsh -ilc 'command -v mise fzf nvim tree-sitter' 2>/dev/null) || { echo "zsh -il failed: $_out"; return 1; }
+#   |     printf '%s' "$_out" | tr '\n' ' '
+#   | }
+#   | check 'interactive login zsh resolves mise, fzf, nvim, tree-sitter' c_login_shell
+#   | 
+#   | if [ $omarchy = 1 ]; then
+#   |     # M6: making zsh the login shell must not lose omarchy's own environment.
+#   |     # .zshrc/.zprofile source omarchy's env-bootstrap, which sets OMARCHY_PATH
+#   |     # and puts omarchy-* on PATH (in dev-link mode; production has them in
+#   |     # /usr/bin anyway).
+#   |     c_omarchy_env() {
+#   |         _out=$(zsh -ilc 'command -v git-lfs omarchy-version && printf "OMARCHY_PATH=%s\n" "$OMARCHY_PATH"' 2>/dev/null) \
+#   |             || { echo "zsh -il failed: $_out"; return 1; }
+#   |         case "$_out" in *OMARCHY_PATH=/*) ;; *) echo "OMARCHY_PATH unset: $_out"; return 1 ;; esac
+#   |         printf '%s' "$_out" | tr '\n' ' '
+#   |     }
+#   |     check 'login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH' c_omarchy_env
+#   | elif [ $arch = 1 ]; then
+#   |     skip 'login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH' 'plain Arch: no omarchy on this machine'
+#   | fi
+#   | 
+#   | c_windows_files() {
+#   |     for _n in AppData .config/powershell; do
+#   |         [ ! -e "$HOME/$_n" ] || { echo "$_n should not exist on Linux"; return 1; }
+#   |     done; echo ok
+#   | }
+#   | check 'Windows-only files did NOT land' c_windows_files
+#   | 
+#   | if [ $omarchy = 1 ]; then
+#   |     # D2 / M3: on omarchy 50-neovim sees omarchy-nvim and exits, so omarchy's
+#   |     # LazyVim config must still be exactly where useradd put it -- no .bak, no
+#   |     # starter marker, omarchy's own plugins intact -- with our override layered
+#   |     # on top. Plain Arch takes the else branch: the starter is cloned there
+#   |     # like on Debian (SPEC arch-family-support S10).
+#   |     c_nvim_omarchy() {
+#   |         _cfg="$HOME/.config/nvim"
+#   |         [ -z "$(ls -d "$HOME"/.config/nvim.bak* "$HOME"/.local/share/nvim.bak* 2>/dev/null)" ] \
+#   |             || { echo 'a .bak of the nvim config exists: 50-neovim moved it'; return 1; }
+#   |         [ -f "$_cfg/init.lua" ] || { echo 'no init.lua'; return 1; }
+#   |         [ -f "$_cfg/lua/plugins/omarchy-theme-hotreload.lua" ] || { echo 'omarchy plugin missing: the config was replaced'; return 1; }
+#   |         [ ! -e "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'starter marker present: 50-neovim ran'; return 1; }
+#   |         [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
+#   |         _want=$(chezmoi cat "$_cfg/lua/plugins/completion.lua" 2>&1) || { echo "chezmoi cat failed: $_want"; return 1; }
+#   |         [ "$_want" = "$(cat "$_cfg/lua/plugins/completion.lua")" ] || { echo 'our override differs from chezmoi cat'; return 1; }
+#   |         echo "$_cfg"
+#   |     }
+#   |     check 'omarchy nvim config was left in place, with our override on top (M2)' c_nvim_omarchy
+#   | else
+#   |     c_nvim_config() {
+#   |         _cfg="$HOME/.config/nvim"
+#   |         [ -f "$_cfg/init.lua" ] || { echo 'no init.lua'; return 1; }
+#   |         [ -f "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'no marker'; return 1; }
+#   |         [ ! -e "$_cfg/.git" ] || { echo '.git was not removed'; return 1; }
+#   |         [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
+#   |         echo "$_cfg"
+#   |     }
+#   |     check 'nvim config is the LazyVim starter with our marker' c_nvim_config
+#   | fi
+#   | 
+#   | # Every symlink_ under dot_claude/skills, read from the source tree rather
+#   | # than a name written here: the Windows probe carried a skill name that had
+#   | # been renamed, and its check was "expected to fail" there so nobody noticed.
+#   | c_skills() {
+#   |     _n=0
+#   |     for _s in "$repo"/dot_claude/skills/symlink_*; do
+#   |         _name=${_s##*/symlink_}; _name=${_name%.tmpl}
+#   |         [ -L "$HOME/.claude/skills/$_name" ] || { echo "missing symlink $_name"; return 1; }
+#   |         [ -e "$HOME/.claude/skills/$_name" ] || { echo "dangling symlink $_name -> $(readlink "$HOME/.claude/skills/$_name")"; return 1; }
+#   |         _n=$((_n + 1))
+#   |     done
+#   |     [ "$_n" -gt 0 ] || { echo 'no symlink_ sources found'; return 1; }
+#   |     echo "$_n symlinks resolve"
+#   | }
+#   | check 'claude skills symlinks' c_skills
+#   | 
+#   | c_statusline() {
+#   |     _b="$HOME/.claude/cc-statusline/cc-statusline"
+#   |     [ -x "$_b" ] || { echo "missing or not executable: $_b"; return 1; }
+#   |     grep -q 'cc-statusline' "$HOME/.claude/settings.json" 2>/dev/null || { echo 'settings.json does not point at it'; return 1; }
+#   |     wc -c < "$_b" | tr -d ' '
+#   | }
+#   | check 'cc-statusline downloaded and wired into settings.json' c_statusline
+#   | 
+#   | c_codex() {
+#   |     _p="$HOME/.codex/config.toml"
+#   |     [ -f "$_p" ] || { echo "missing $_p"; return 1; }
+#   |     grep -q '^status_line_use_colors = true$' "$_p" || { echo 'status_line_use_colors missing'; return 1; }
+#   |     grep -q '^status_line = \[' "$_p" || { echo 'status_line missing'; return 1; }
+#   |     echo ok
+#   | }
+#   | check 'codex config.toml has the managed [tui] keys' c_codex
+#   | 
+#   | if [ $arch = 1 ]; then
+#   |     # M4: distroOverride in the test fixtures is only a stand-in. Here the real
+#   |     # chezmoi reads /etc/os-release, and the partial has to reach the same
+#   |     # answer the os-arch fixture gives L1/L2.
+#   |     # ID=arch (WSL omarchy, plain Arch) and ID=omarchy (ISO omarchy, via
+#   |     # ID_LIKE=arch) must both end at pacman with an empty brewPrefix; distro
+#   |     # keeps the raw id (SPEC arch-family-support S11).
+#   |     c_seam() {
+#   |         _out=$(printf '%s' '{{ .chezmoi.osRelease.id }}|{{- $p := includeTemplate "platform.toml" . | fromToml -}}{{ $p.distro }}|{{ $p.pkgManager }}|{{ $p.brewPrefix }}' \
+#   |             | chezmoi execute-template 2>&1) || { echo "execute-template failed: $_out"; return 1; }
+#   |         case "$_out" in
+#   |             'arch|arch|pacman|'|'omarchy|omarchy|pacman|') ;;
+#   |             *) echo "expected arch|arch|pacman| or omarchy|omarchy|pacman|, got: $_out"; return 1 ;;
+#   |         esac
+#   |         echo "$_out"
+#   |     }
+#   |     check 'real chezmoi osRelease.id reaches the partial: distro kept, pkgManager=pacman, brewPrefix empty (M4)' c_seam
+#   | 
+#   |     # D4: the file omarchy wrote at install time is replaced by the managed one.
+#   |     c_git_config() {
+#   |         _want=$(chezmoi cat "$HOME/.config/git/config" 2>&1) || { echo "chezmoi cat failed: $_want"; return 1; }
+#   |         [ "$_want" = "$(cat "$HOME/.config/git/config")" ] || { echo 'differs from chezmoi cat'; return 1; }
+#   |         echo 'managed content in place (omarchy defaults replaced, D4)'
+#   |     }
+#   |     check '~/.config/git/config is the managed file (D4)' c_git_config
+#   | 
+#   |     # 40-git-lfs without the brew shellenv line: git-lfs comes from pacman.
+#   |     # `git lfs env` prints the filter.lfs.* keys even when they are unset (with
+#   |     # empty values), so the assertion is on the value `git lfs install` writes.
+#   |     c_lfs() {
+#   |         _e=$(git lfs env 2>&1) || { echo "git lfs env failed: $_e"; return 1; }
+#   |         printf '%s\n' "$_e" | grep -q 'filter\.lfs\.process = "git-lfs filter-process"' \
+#   |             || { echo "filter.lfs.process not set to git-lfs filter-process: $(printf '%s\n' "$_e" | grep 'filter.lfs' | tr '\n' ' ')"; return 1; }
+#   |         echo 'filter.lfs.process = git-lfs filter-process'
+#   |     }
+#   |     check 'git lfs filter is configured (40-git-lfs, pacman git-lfs)' c_lfs
+#   | 
+#   |     # D3: zsh from pacman is a valid login shell; chsh needs a tty, so without
+#   |     # one the script must print the manual command instead of failing.
+#   |     c_shell() {
+#   |         _z=$(command -v zsh) || { echo 'zsh not on PATH'; return 1; }
+#   |         # Same resolution default-shell does: /etc/shells lists /usr/bin/zsh,
+#   |         # `command -v` says /usr/sbin/zsh; they are one file (merged /usr).
+#   |         _real=$(readlink -f "$_z"); _ok=""
+#   |         while IFS= read -r _c; do
+#   |             case "$_c" in /*) ;; *) continue ;; esac
+#   |             [ "$(readlink -f "$_c" 2>/dev/null)" = "$_real" ] && { _ok=$_c; break; }
+#   |         done < /etc/shells
+#   |         [ -n "$_ok" ] || { echo "no /etc/shells entry resolves to $_real"; return 1; }
+#   |         _s=$(getent passwd "$(id -un)" | cut -d: -f7)
+#   |         case "$_s" in
+#   |             */zsh) echo "login shell: $_s" ;;
+#   |             *) grep -q 'chsh -s' "$out_dir/install.log" || { echo "shell is $_s and no chsh hint was printed"; return 1; }
+#   |                echo "login shell: $_s; chsh hint printed (no tty)" ;;
+#   |         esac
+#   |     }
+#   |     check 'zsh is a valid login shell; chsh done or the manual hint was printed (D3)' c_shell
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- neovim + tree-sitter
+#   | pin=$(sed -n 's/^neovim = "\([^"]*\)".*/\1/p' "$repo/.chezmoitemplates/versions.toml" 2>/dev/null)
+#   | if [ $arch = 1 ]; then
+#   |     # Arch: neovim and tree-sitter-cli are pacman packages; the mise pin in
+#   |     # versions.toml does not apply (rolling release, SPEC §7).
+#   |     c_nvim_pacman() {
+#   |         # nvim's own exit status, not head's.
+#   |         _all=$(nvim --version 2>&1) || { echo "nvim --version failed: $_all"; return 1; }
+#   |         _v=$(printf '%s\n' "$_all" | head -1)
+#   |         echo "$_v via $(command -v nvim) ($(pacman -Q neovim 2>/dev/null))"
+#   |     }
+#   |     check 'nvim runs (pacman neovim; the mise pin does not apply on Arch)' c_nvim_pacman
+#   |     # Ownership asked of pacman, not read off the path: on Arch /usr/sbin is a
+#   |     # symlink to /usr/bin and `command -v` reports /usr/sbin/tree-sitter
+#   |     # (measured), so a /usr/bin/* pattern would reject pacman's own binary.
+#   |     c_treesitter_pacman() {
+#   |         _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
+#   |         _owner=$(pacman -Qo "$(readlink -f "$_ts")" 2>&1) || { echo "not a pacman file: $_owner"; return 1; }
+#   |         case "$_owner" in *tree-sitter-cli*) ;; *) echo "owned by something else: $_owner"; return 1 ;; esac
+#   |         _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
+#   |         echo "$_v at $_ts ($_owner)"
+#   |     }
+#   |     check "tree-sitter CLI is pacman's and runs" c_treesitter_pacman
+#   | else
+#   |     c_nvim_pin() {
+#   |         [ -n "$pin" ] || { echo 'could not read the neovim pin from versions.toml'; return 1; }
+#   |         _v=$(nvim --version 2>&1 | head -1)
+#   |         [ "$_v" = "NVIM v$pin" ] || { echo "expected NVIM v$pin, got: $_v"; return 1; }
+#   |         echo "$_v via $(command -v nvim)"
+#   |     }
+#   |     check 'nvim runs and is the pinned version from versions.toml' c_nvim_pin
+#   | 
+#   |     # The Debian 12 regression: brew's `tree-sitter` formula stopped shipping the
+#   |     # CLI, LazyVim fell back to mason's prebuilt binary, and that one wants a
+#   |     # newer glibc than Debian 12 has. Both halves are asserted: the CLI is brew's,
+#   |     # and it actually executes.
+#   |     c_treesitter() {
+#   |         _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
+#   |         case "$_ts" in /home/linuxbrew/*) ;; *) echo "tree-sitter is $_ts, not brew's"; return 1 ;; esac
+#   |         _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
+#   |         echo "$_v at $_ts"
+#   |     }
+#   |     check "tree-sitter CLI is brew's and runs on this glibc" c_treesitter
+#   | fi
+#   | 
+#   | echo
+#   | echo 'probe: running nvim Lazy! sync + nvim-treesitter install lua (the Linux M12)'
+#   | echo 'probe: this usually takes 3-10 minutes and is capped at 15'
+#   | c_parser() {
+#   |     # Both headless runs must exit 0: a pre-existing lua.so would otherwise
+#   |     # let a failing nvim pass on the file check alone.
+#   |     timeout 900 nvim --headless '+Lazy! sync' '+qa' > "$treesitter_log" 2>&1 \
+#   |         || { echo "nvim +Lazy! sync exited $?"; output_tail "$treesitter_log" 10; return 1; }
+#   |     timeout 900 nvim --headless -c "lua require('nvim-treesitter').install({'lua'}):wait(600000)" -c qa >> "$treesitter_log" 2>&1 \
+#   |         || { echo "nvim-treesitter install exited $?"; output_tail "$treesitter_log" 10; return 1; }
+#   |     for _p in "$HOME/.local/share/nvim/lazy/nvim-treesitter/parser/lua.so" "$HOME/.local/share/nvim/site/parser/lua.so"; do
+#   |         [ -f "$_p" ] && { echo "lua parser built: $_p"; return 0; }
+#   |     done
+#   |     echo "no lua parser produced -- see treesitter.log"; output_tail "$treesitter_log" 10; return 1
+#   | }
+#   | check 'nvim-treesitter builds a parser' c_parser
+#   | 
+#   | # ---------------------------------------------------------------- second run
+#   | # Everything above is the first install. The bugs this probe exists for only
+#   | # show up afterwards.
+#   | echo
+#   | echo 'probe: second chezmoi apply (must be non-interactive and idempotent)'
+#   | c_second_apply() {
+#   |     run_streamed "$out_dir/apply2.log" chezmoi apply --no-tty \
+#   |         || { echo 'second apply -> failed'; output_tail "$out_dir/apply2.log" 15; return 1; }
+#   |     echo ok
+#   | }
+#   | check 'second chezmoi apply completes without a prompt' c_second_apply
+#   | 
+#   | c_idempotent() {
+#   |     [ -z "$(ls -d "$HOME"/.config/nvim.bak* 2>/dev/null)" ] || { echo 'a re-run backed up ~/.config/nvim again'; return 1; }
+#   |     if [ $omarchy = 1 ]; then
+#   |         [ ! -e "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'starter marker appeared: 50-neovim bootstrapped over omarchy-nvim'; return 1; }
+#   |     else
+#   |         [ -f "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'marker gone'; return 1; }
+#   |     fi
+#   |     echo ok
+#   | }
+#   | check 'second apply did not re-bootstrap nvim' c_idempotent
+#   | 
+#   | # `chezmoi git` is the code path `chezmoi update` takes: chezmoi MkdirAll's
+#   | # $XDG_RUNTIME_DIR before spawning git. In the container the variable is
+#   | # unset, so this passes trivially; in the fresh WSL distro it is the bug.
+#   | c_chezmoi_git() {
+#   |     _out=$(chezmoi git -- status --short --branch 2>&1) || { echo "chezmoi git failed: $_out"; return 1; }
+#   |     echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-unset}; $(printf '%s' "$_out" | head -1)"
+#   | }
+#   | check 'chezmoi git works (the chezmoi update code path)' c_chezmoi_git
+#   | 
+#   | # 05-wsl-user-runtime-dir renders only when chezmoi sees a WSL kernel, so
+#   | # linger is an obligation on WSL alone. A non-WSL machine with systemd (the
+#   | # omarchy VM) must skip here, not fail: nothing in the dotfiles enables linger
+#   | # there, and nothing needs to.
+#   | is_wsl=0
+#   | case "$(uname -r 2>/dev/null | tr '[:upper:]' '[:lower:]')" in *microsoft*) is_wsl=1 ;; esac
+#   | if [ -d /run/systemd/system ]; then
+#   |     if [ $is_wsl = 1 ]; then
+#   |         c_linger() {
+#   |             _l=$(loginctl show-user "$(id -un)" --property=Linger --value 2>&1) || { echo "loginctl: $_l"; return 1; }
+#   |             [ "$_l" = yes ] || { echo "Linger=$_l"; return 1; }
+#   |             [ -d "/run/user/$(id -u)" ] || { echo "/run/user/$(id -u) missing"; return 1; }
+#   |             echo "Linger=yes, /run/user/$(id -u) present"
+#   |         }
+#   |         check '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' c_linger
+#   |     else
+#   |         skip '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' 'not WSL: 05-wsl-user-runtime-dir renders empty here'
+#   |     fi
+#   |     if [ $remote = 1 ]; then
+#   |         c_update() {
+#   |             run_streamed "$out_dir/update.log" chezmoi update --no-tty \
+#   |                 || { echo 'chezmoi update -> failed'; output_tail "$out_dir/update.log" 15; return 1; }
+#   |             echo ok
+#   |         }
+#   |         check 'chezmoi update completes' c_update
+#   |     else
+#   |         skip 'chezmoi update completes' 'local mode: the source tree is not a clone with a remote'
+#   |     fi
+#   | else
+#   |     skip '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' 'no systemd in this sandbox'
+#   |     skip 'chezmoi update completes' 'no systemd in this sandbox (and local mode has no remote)'
+#   | fi
+#   | 
+#   | # A removed neovim must come back on the next apply (50-neovim is run_, not
+#   | # run_onchange_).
+#   | echo
+#   | if [ $arch = 1 ]; then
+#   |     # On Arch neovim is a pacman package and the probe never removes packages
+#   |     # (SPEC Must NOT #8): the machine is the user's, not a throwaway rootfs.
+#   |     skip 'a removed neovim is reinstalled by the next apply' 'Arch: neovim is a pacman package; the probe does not remove packages (Must NOT #8)'
+#   | else
+#   |     echo 'probe: removing neovim from mise and applying again'
+#   |     c_reinstall() {
+#   |         mise uninstall "neovim@$pin" >/dev/null 2>&1 || { echo 'mise uninstall failed'; return 1; }
+#   |         mise ls neovim 2>/dev/null | grep -q missing || { echo 'uninstall did not take'; return 1; }
+#   |         run_streamed "$out_dir/apply3.log" chezmoi apply --no-tty --include=scripts \
+#   |             || { echo 'apply -> failed'; output_tail "$out_dir/apply3.log" 15; return 1; }
+#   |         mise ls neovim 2>/dev/null | grep -q missing && { echo 'neovim still missing after apply'; return 1; }
+#   |         nvim --version | head -1
+#   |     }
+#   |     check 'a removed neovim is reinstalled by the next apply' c_reinstall
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- report
+#   | n_pass=$(grep -c '^PASS' "$results"); n_fail=$(grep -c '^FAIL' "$results"); n_skip=$(grep -c '^SKIP' "$results")
+#   | summary="PASS=$n_pass FAIL=$n_fail SKIP=$n_skip"
+#   | printf 'SUMMARY\t%s\t\n' "$summary" >> "$results"
+#   | echo
+#   | echo "probe: $summary"
+#   | echo "probe: results in $results, transcript in $transcript"
+#   | 
+#   | if [ -s "$treesitter_log" ]; then
+#   |     echo; echo '--- treesitter.log (tail 200) ---'; tail -n 200 "$treesitter_log"; echo '--- end treesitter.log ---'
+#   | fi
+#   | echo; echo '--- results.tsv (full) ---'; cat "$results"; echo '--- end results.tsv ---'
+#   | [ "$n_fail" -eq 0 ]
+ok 77 - [L11] Linux 探針收 --branch（遠端模式）
+ok 78 - [L11] 遠端模式跑的是 GitHub 上那個分支的 init.sh（使用者的第一次安裝路徑）
+ok 79 - [L11] 遠端模式改從 chezmoi source-path 取來源樹
+ok 80 - [L11] 沒有掛 /out 時輸出改寫到 $HOME/chezmoi-probe
+ok 81 - [L11] 結尾把 results.tsv 全文印到主控台
+ok 82 - [L11] 結尾要印出 treesitter.log
+ok 83 - [L11] 子程序輸出邊收邊印
+ok 84 - [L11] 長步驟開始前先報預期多久
+ok 85 - [L11] Linux 探針會問 M12（treesitter parser 編不編得出來）
+ok 86 - [L11] Linux 探針釘 tree-sitter CLI 是 brew 的、而且跑得起來（Debian 12 的 glibc 回歸）
+ok 87 - [L11] Linux 探針釘 nvim 是 versions.toml 的 pin
+ok 88 - [L11] Linux 探針會檢查 Windows 專屬檔案沒有落地
+ok 89 - [L11] Linux 探針會檢查 symlink
+ok 90 - [L11] 第二次 apply 必須不互動（--no-tty）
+ok 91 - [L11] 第二次 apply 不得重新 bootstrap nvim
+ok 92 - [L11] 走一次 chezmoi git（chezmoi update 的 code path）
+ok 93 - [L11] 有 systemd 時檢查 linger 與 /run/user/<uid>
+ok 94 - [L11] 沒有 systemd 時那幾條是 SKIP，不是 PASS
+ok 95 - [L11] 刪掉 neovim 再 apply 要裝回來（50-neovim 是 run_）
+ok 96 - [L11] Linux 探針讀得到 apt 套件清單
+ok 97 - [L11] Linux 探針的 apt 清單與 10-install-packages 完全相同
+ok 98 - [L11] Linux 探針讀得到 brew 清單
+ok 99 - [L11] Linux 探針的 brew 清單與 30-install-brew-packages 完全相同
+ok 100 - [L11] Linux 探針讀得到 pacman 前置套件清單
+ok 101 - [L11] Linux 探針的 pacman 前置清單與 10-install-packages（arch）完全相同
+ok 102 - [L11] Linux 探針讀得到 pacman 工具清單
+ok 103 - [L11] Linux 探針的 pacman 工具清單與 30-install-pacman-packages 完全相同
+ok 104 - [L11] 探針在 Arch 上檢查 ~/.config/nvim 沒有被搬進 .bak（M2）
+ok 105 - [L11] 探針在 Arch 上檢查沒有 /home/linuxbrew（M3）
+ok 106 - [L11] 探針在 Arch 上用真實 chezmoi 驗證 osRelease 接縫（M4）
+ok 107 - [L11] 探針在 Arch 上檢查登入 zsh 有 OMARCHY_PATH（M6）
+ok 108 - [L11] 探針在 Arch 上不移除 pacman 的 neovim（Must NOT #8）
+ok 109 - [L11] 探針以 ID_LIKE 認出 Arch 家族（正式 omarchy 的 ID=omarchy）
+not ok 110 - [L11] 探針以 pacman -Q omarchy-nvim 分辨 omarchy 與純 Arch（與 50-neovim 同一個訊號，M6）
+#   expected to contain: pacman -Q omarchy-nvim
+#   --- haystack ---
+#   | #!/bin/sh
+#   | # End-to-end check inside a throwaway Linux environment (test layer L9, the
+#   | # POSIX half of tests/sandbox/_probe.ps1).
+#   | #
+#   | # The sandbox is the only place a real install is allowed to run: the host is
+#   | # off limits. Everything here runs against a machine that is thrown away
+#   | # afterwards -- a debian:12 container (tests/sandbox/docker.sh) or a fresh WSL
+#   | # distro (tests/sandbox/wsl.sh). Only the WSL one has systemd, so the checks
+#   | # that need logind report SKIP in the container rather than a PASS they did
+#   | # not earn.
+#   | #
+#   | # Two modes, mirroring the Windows probe.
+#   | #
+#   | # Local (no --branch): the source tree is /src/dotfiles, put there by the
+#   | # launcher from `git archive HEAD`, and output goes to /out. chezmoi is
+#   | # installed the way init.sh installs it and then pointed at that tree with
+#   | # `chezmoi init --apply --source`.
+#   | #
+#   | # Remote (--branch <name>): nothing is mounted. The probe runs init.sh from
+#   | # GitHub with --branch, exactly the line a first-time user runs, and every
+#   | # expected value is read from `chezmoi source-path` afterwards.
+#   | #
+#   | # Unlike the Windows probe this one does not stop after the first install: the
+#   | # things this repo got wrong were all on the *second* run -- `chezmoi update`
+#   | # dying on a missing /run/user/<uid>, a removed neovim never coming back -- so
+#   | # the probe goes on to a second apply, `chezmoi git`, and a remove-and-reinstall
+#   | # round.
+#   | #
+#   | # Output survives only through /out (or $HOME/chezmoi-probe when /out is not
+#   | # mounted) and the results table echoed to the console at the end.
+#   | set -u
+#   | 
+#   | branch=""
+#   | while [ $# -gt 0 ]; do
+#   |     case "$1" in
+#   |         --branch) [ $# -ge 2 ] || { echo "probe: --branch needs a value" >&2; exit 2; }
+#   |                   branch=$2; shift 2 ;;
+#   |         --branch=*) branch=${1#*=}; shift ;;
+#   |         *) echo "probe: unknown argument: $1" >&2; exit 2 ;;
+#   |     esac
+#   | done
+#   | remote=0
+#   | [ -n "$branch" ] && remote=1
+#   | 
+#   | # /out only counts when the launcher mounted it: a directory this script made
+#   | # itself dies with the sandbox.
+#   | out_dir=/out
+#   | if [ ! -d "$out_dir" ] || [ ! -w "$out_dir" ]; then
+#   |     out_dir="$HOME/chezmoi-probe"
+#   | fi
+#   | mkdir -p "$out_dir"
+#   | transcript="$out_dir/transcript.txt"
+#   | results="$out_dir/results.tsv"
+#   | treesitter_log="$out_dir/treesitter.log"
+#   | 
+#   | # Transcript: re-exec once with everything piped through tee. POSIX sh has no
+#   | # process substitution, and the exit status has to come back through a file
+#   | # because a pipeline's status is tee's.
+#   | if [ -z "${PROBE_TRANSCRIPT:-}" ]; then
+#   |     rc_file="$out_dir/.rc"
+#   |     rm -f "$rc_file"
+#   |     { PROBE_TRANSCRIPT=1 sh "$0" ${branch:+--branch "$branch"}; echo $? > "$rc_file"; } 2>&1 | tee "$transcript"
+#   |     rc=$(cat "$rc_file" 2>/dev/null || echo 1)
+#   |     rm -f "$rc_file"
+#   |     exit "$rc"
+#   | fi
+#   | 
+#   | # check() captures a test function's stdout as the result detail, so anything
+#   | # a long step wants the operator to see while it runs has to bypass that
+#   | # capture. fd 3 is the console, saved here before any capture starts.
+#   | exec 3>&1
+#   | 
+#   | : > "$results"
+#   | echo "probe: mode=$([ $remote = 1 ] && echo "remote branch $branch" || echo local) out_dir=$out_dir"
+#   | echo "probe: $(uname -srm); $(cat /etc/debian_version 2>/dev/null || echo 'not debian'); glibc $(ldd --version 2>/dev/null | head -1 | sed 's/.* //')"
+#   | 
+#   | # Which package path the dotfiles take on this machine, decided the way
+#   | # platform.toml decides it: ID= in /etc/os-release, or ID_LIKE= containing the
+#   | # word arch (the ISO-installed omarchy reports ID=omarchy ID_LIKE=arch; the WSL
+#   | # image and plain Arch report ID=arch). Everything below that differs between
+#   | # Debian (apt + Homebrew + mise-pinned neovim) and the Arch family (pacman only)
+#   | # keys off $arch. Within the family, $omarchy separates omarchy (its own
+#   | # LazyVim config from omarchy-nvim, left untouched) from plain Arch (the
+#   | # starter is cloned). It is the same signal 50-neovim uses at run time, so the
+#   | # probe and the script cannot disagree (SPEC arch-family-support M6).
+#   | distro=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID:-}")
+#   | distro_like=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID_LIKE:-}")
+#   | arch=0
+#   | case " $distro $distro_like " in *" arch "*) arch=1 ;; esac
+#   | omarchy=0
+#   | if [ $arch = 1 ] && pacman -Q some-other-pkg >/dev/null 2>&1; then omarchy=1; fi
+#   | echo "probe: distro=${distro:-unknown}${distro_like:+ (ID_LIKE=$distro_like)}; path=$([ $arch = 1 ] && echo 'pacman (Arch family)' || echo 'apt + Homebrew'); omarchy=$omarchy"
+#   | 
+#   | add_result() { # status name detail
+#   |     _line=$(printf '%s\t%s\t%s' "$1" "$2" "$(printf '%s' "$3" | tr '\n' '|' | tr -s '|' | sed 's/|/ | /g')")
+#   |     echo "$_line"
+#   |     printf '%s\n' "$_line" >> "$results"
+#   | }
+#   | 
+#   | # check NAME FUNC: FUNC prints its detail (or the failure reason) and returns
+#   | # non-zero on failure. Nothing here has a tty, so anything that would prompt
+#   | # is a FAIL, which is the point.
+#   | check() {
+#   |     _name=$1; shift
+#   |     if _detail=$("$@" 2>&1); then add_result PASS "$_name" "$_detail"
+#   |     else add_result FAIL "$_name" "$_detail"; fi
+#   | }
+#   | skip() { add_result SKIP "$1" "$2"; }
+#   | 
+#   | # Long steps stream their output as it happens -- a silent console is
+#   | # indistinguishable from a hang -- and keep a copy so a failure's detail can
+#   | # carry the tail, which is the only thing that survives remote mode.
+#   | run_streamed() { # logfile command...
+#   |     _log=$1; shift
+#   |     { "$@"; echo $? > "$_log.rc"; } 2>&1 | tee "$_log" >&3
+#   |     _rc=$(cat "$_log.rc"); rm -f "$_log.rc"
+#   |     return "$_rc"
+#   | }
+#   | output_tail() { # logfile [lines]
+#   |     [ -s "$1" ] || { echo '(no output)'; return; }
+#   |     grep -v '^[[:space:]]*$' "$1" | tail -n "${2:-30}"
+#   | }
+#   | 
+#   | # The probe starts before anything is installed, so nothing the install adds
+#   | # to a login shell's PATH is visible here. Rebuild it from the same three
+#   | # places the dotfiles use (.zprofile: ~/.local/bin, brew shellenv, mise shims)
+#   | # and report what was found, so a "not found" later is readable.
+#   | path_report=""
+#   | update_probe_path() {
+#   |     _found=""
+#   |     for _d in "$HOME/.local/bin" /home/linuxbrew/.linuxbrew/bin /home/linuxbrew/.linuxbrew/sbin "$HOME/.local/share/mise/shims"; do
+#   |         if [ -d "$_d" ]; then
+#   |             _found="$_found $_d"
+#   |             case ":$PATH:" in *":$_d:"*) ;; *) PATH="$_d:$PATH" ;; esac
+#   |         fi
+#   |     done
+#   |     export PATH
+#   |     path_report="added:${_found:- none}"
+#   | }
+#   | 
+#   | # ---------------------------------------------------------------- prerequisites
+#   | c_curl() { command -v curl || { echo 'curl missing (README lists it as the one thing init.sh cannot install)'; return 1; }; }
+#   | check 'curl is available (README prerequisite)' c_curl
+#   | 
+#   | repo=/src/dotfiles
+#   | c_source_tree() { [ -d "$repo/.chezmoiscripts" ] || { echo "missing $repo"; return 1; }; echo "$repo"; }
+#   | [ $remote = 1 ] || check 'source tree is present' c_source_tree
+#   | 
+#   | # ---------------------------------------------------------------- install
+#   | echo
+#   | if [ $remote = 1 ]; then
+#   |     echo "probe: running init.sh --branch $branch from GitHub -- this is the whole install"
+#   |     echo 'probe: this usually takes 10-25 minutes (apt, Homebrew, brew formulas, externals, LazyVim clone)'
+#   |     c_init_sh() {
+#   |         run_streamed "$out_dir/install.log" sh -c \
+#   |             "sh -c \"\$(curl -fsLS https://raw.githubusercontent.com/gn00678465/dotfiles/$branch/init.sh)\" -- --branch $branch" \
+#   |             || { echo "init.sh -> failed"; output_tail "$out_dir/install.log"; return 1; }
+#   |         echo applied
+#   |     }
+#   |     check "init.sh --branch $branch completes" c_init_sh
+#   | else
+#   |     echo 'probe: installing chezmoi the way init.sh does'
+#   |     c_install_chezmoi() {
+#   |         # init.sh's install line without its `chezmoi init` tail: the init call
+#   |         # below is the one under test, and it differs per mode.
+#   |         run_streamed "$out_dir/chezmoi-install.log" sh -c \
+#   |             'sh -c "$(curl -fsLS https://get.chezmoi.io)" -- -b "$HOME/.local/bin"' \
+#   |             || { echo 'get.chezmoi.io failed'; output_tail "$out_dir/chezmoi-install.log"; return 1; }
+#   |         "$HOME/.local/bin/chezmoi" --version
+#   |     }
+#   |     check 'init.sh installs chezmoi into ~/.local/bin' c_install_chezmoi
+#   |     update_probe_path
+#   | 
+#   |     echo
+#   |     echo 'probe: running chezmoi init --apply --source /src/dotfiles -- this is the whole install'
+#   |     echo 'probe: this usually takes 10-25 minutes (apt, Homebrew, brew formulas, externals, LazyVim clone)'
+#   |     c_init_apply() {
+#   |         run_streamed "$out_dir/install.log" chezmoi init --apply --source "$repo" \
+#   |             || { echo 'chezmoi init --apply -> failed'; output_tail "$out_dir/install.log"; return 1; }
+#   |         echo applied
+#   |     }
+#   |     check 'chezmoi init --apply completes' c_init_apply
+#   | fi
+#   | update_probe_path
+#   | 
+#   | if [ $arch = 1 ]; then
+#   |     # Must NOT #4 / M3: the brew scripts render empty on Arch, so nothing may
+#   |     # have created the linuxbrew prefix.
+#   |     c_no_brew() {
+#   |         [ ! -e /home/linuxbrew ] || { echo '/home/linuxbrew exists'; return 1; }
+#   |         case "$path_report" in *linuxbrew*) echo "$path_report"; return 1 ;; esac
+#   |         echo "$path_report"
+#   |     }
+#   |     check 'no Homebrew on Arch (Must NOT #4)' c_no_brew
+#   | else
+#   |     c_path() { echo "$path_report"; case "$path_report" in *linuxbrew*) ;; *) echo 'brew prefix not found'; return 1 ;; esac; }
+#   |     check 'PATH rebuilt from ~/.local/bin, brew prefix, mise shims' c_path
+#   | fi
+#   | 
+#   | if [ $remote = 1 ]; then
+#   |     c_source_path() {
+#   |         _p=$(chezmoi source-path 2>/dev/null | head -1)
+#   |         [ -n "$_p" ] || { echo 'chezmoi source-path returned nothing'; return 1; }
+#   |         [ -d "$_p/.chezmoiscripts" ] || { echo "missing $_p"; return 1; }
+#   |         repo=$_p; echo "$_p"
+#   |     }
+#   |     check 'source tree is present' c_source_path
+#   |     repo=$(chezmoi source-path 2>/dev/null | head -1)
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- packages
+#   | # Same question the Windows probe asks: is the package installed, using the
+#   | # same command the install script uses to decide. Both lists must stay
+#   | # identical to the scripts'; L11 asserts that, because a package added there
+#   | # and missed here would be silently unverified.
+#   | apt_packages='zsh git curl build-essential procps file'
+#   | brew_formulas='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli'
+#   | pacman_packages='zsh git curl base-devel'
+#   | pacman_tools='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim'
+#   | 
+#   | if [ $arch = 1 ]; then
+#   |     c_pacman() { pacman -Q "$1" 2>/dev/null || { echo 'not installed'; return 1; }; }
+#   |     for _p in $pacman_packages $pacman_tools; do check "pacman package installed: $_p" c_pacman "$_p"; done
+#   | else
+#   |     c_apt() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q '^install ok installed$' || { echo 'not installed'; return 1; }; echo installed; }
+#   |     for _p in $apt_packages; do check "apt package installed: $_p" c_apt "$_p"; done
+#   |     # stderr dropped on the detail line: brew's `locale` warnings on a fresh
+#   |     # rootfs are noise here, the version is the fact.
+#   |     c_brew() { brew list --formula "$1" >/dev/null 2>&1 || { echo 'not installed'; return 1; }; brew list --versions "$1" 2>/dev/null; }
+#   |     for _f in $brew_formulas; do check "brew formula installed: $_f" c_brew "$_f"; done
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- files
+#   | c_zsh_files() {
+#   |     for _n in .zshrc .zprofile .p10k.zsh .oh-my-zsh/oh-my-zsh.sh .oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme; do
+#   |         [ -e "$HOME/$_n" ] || { echo "missing $_n"; return 1; }
+#   |     done; echo ok
+#   | }
+#   | check 'zsh files and externals landed' c_zsh_files
+#   | 
+#   | # The Linux analogue of the "tool on PATH" question, asked the one way it can
+#   | # be answered: start the shell the user gets and see what it resolves.
+#   | c_login_shell() {
+#   |     _out=$(zsh -ilc 'command -v mise fzf nvim tree-sitter' 2>/dev/null) || { echo "zsh -il failed: $_out"; return 1; }
+#   |     printf '%s' "$_out" | tr '\n' ' '
+#   | }
+#   | check 'interactive login zsh resolves mise, fzf, nvim, tree-sitter' c_login_shell
+#   | 
+#   | if [ $omarchy = 1 ]; then
+#   |     # M6: making zsh the login shell must not lose omarchy's own environment.
+#   |     # .zshrc/.zprofile source omarchy's env-bootstrap, which sets OMARCHY_PATH
+#   |     # and puts omarchy-* on PATH (in dev-link mode; production has them in
+#   |     # /usr/bin anyway).
+#   |     c_omarchy_env() {
+#   |         _out=$(zsh -ilc 'command -v git-lfs omarchy-version && printf "OMARCHY_PATH=%s\n" "$OMARCHY_PATH"' 2>/dev/null) \
+#   |             || { echo "zsh -il failed: $_out"; return 1; }
+#   |         case "$_out" in *OMARCHY_PATH=/*) ;; *) echo "OMARCHY_PATH unset: $_out"; return 1 ;; esac
+#   |         printf '%s' "$_out" | tr '\n' ' '
+#   |     }
+#   |     check 'login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH' c_omarchy_env
+#   | elif [ $arch = 1 ]; then
+#   |     skip 'login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH' 'plain Arch: no omarchy on this machine'
+#   | fi
+#   | 
+#   | c_windows_files() {
+#   |     for _n in AppData .config/powershell; do
+#   |         [ ! -e "$HOME/$_n" ] || { echo "$_n should not exist on Linux"; return 1; }
+#   |     done; echo ok
+#   | }
+#   | check 'Windows-only files did NOT land' c_windows_files
+#   | 
+#   | if [ $omarchy = 1 ]; then
+#   |     # D2 / M3: on omarchy 50-neovim sees omarchy-nvim and exits, so omarchy's
+#   |     # LazyVim config must still be exactly where useradd put it -- no .bak, no
+#   |     # starter marker, omarchy's own plugins intact -- with our override layered
+#   |     # on top. Plain Arch takes the else branch: the starter is cloned there
+#   |     # like on Debian (SPEC arch-family-support S10).
+#   |     c_nvim_omarchy() {
+#   |         _cfg="$HOME/.config/nvim"
+#   |         [ -z "$(ls -d "$HOME"/.config/nvim.bak* "$HOME"/.local/share/nvim.bak* 2>/dev/null)" ] \
+#   |             || { echo 'a .bak of the nvim config exists: 50-neovim moved it'; return 1; }
+#   |         [ -f "$_cfg/init.lua" ] || { echo 'no init.lua'; return 1; }
+#   |         [ -f "$_cfg/lua/plugins/omarchy-theme-hotreload.lua" ] || { echo 'omarchy plugin missing: the config was replaced'; return 1; }
+#   |         [ ! -e "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'starter marker present: 50-neovim ran'; return 1; }
+#   |         [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
+#   |         _want=$(chezmoi cat "$_cfg/lua/plugins/completion.lua" 2>&1) || { echo "chezmoi cat failed: $_want"; return 1; }
+#   |         [ "$_want" = "$(cat "$_cfg/lua/plugins/completion.lua")" ] || { echo 'our override differs from chezmoi cat'; return 1; }
+#   |         echo "$_cfg"
+#   |     }
+#   |     check 'omarchy nvim config was left in place, with our override on top (M2)' c_nvim_omarchy
+#   | else
+#   |     c_nvim_config() {
+#   |         _cfg="$HOME/.config/nvim"
+#   |         [ -f "$_cfg/init.lua" ] || { echo 'no init.lua'; return 1; }
+#   |         [ -f "$_cfg/.chezmoi-lazyvim-starter" ] || { echo 'no marker'; return 1; }
+#   |         [ ! -e "$_cfg/.git" ] || { echo '.git was not removed'; return 1; }
+#   |         [ -f "$_cfg/lua/plugins/completion.lua" ] || { echo 'our override is missing'; return 1; }
+#   |         echo "$_cfg"
+#   |     }
+#   |     check 'nvim config is the LazyVim starter with our marker' c_nvim_config
+#   | fi
+#   | 
+#   | # Every symlink_ under dot_claude/skills, read from the source tree rather
+#   | # than a name written here: the Windows probe carried a skill name that had
+#   | # been renamed, and its check was "expected to fail" there so nobody noticed.
+#   | c_skills() {
+#   |     _n=0
+#   |     for _s in "$repo"/dot_claude/skills/symlink_*; do
+#   |         _name=${_s##*/symlink_}; _name=${_name%.tmpl}
+#   |         [ -L "$HOME/.claude/skills/$_name" ] || { echo "missing symlink $_name"; return 1; }
+#   |         [ -e "$HOME/.claude/skills/$_name" ] || { echo "dangling symlink $_name -> $(readlink "$HOME/.claude/skills/$_name")"; return 1; }
+#   |         _n=$((_n + 1))
+#   |     done
+#   |     [ "$_n" -gt 0 ] || { echo 'no symlink_ sources found'; return 1; }
+#   |     echo "$_n symlinks resolve"
+#   | }
+#   | check 'claude skills symlinks' c_skills
+#   | 
+#   | c_statusline() {
+#   |     _b="$HOME/.claude/cc-statusline/cc-statusline"
+#   |     [ -x "$_b" ] || { echo "missing or not executable: $_b"; return 1; }
+#   |     grep -q 'cc-statusline' "$HOME/.claude/settings.json" 2>/dev/null || { echo 'settings.json does not point at it'; return 1; }
+#   |     wc -c < "$_b" | tr -d ' '
+#   | }
+#   | check 'cc-statusline downloaded and wired into settings.json' c_statusline
+#   | 
+#   | c_codex() {
+#   |     _p="$HOME/.codex/config.toml"
+#   |     [ -f "$_p" ] || { echo "missing $_p"; return 1; }
+#   |     grep -q '^status_line_use_colors = true$' "$_p" || { echo 'status_line_use_colors missing'; return 1; }
+#   |     grep -q '^status_line = \[' "$_p" || { echo 'status_line missing'; return 1; }
+#   |     echo ok
+#   | }
+#   | check 'codex config.toml has the managed [tui] keys' c_codex
+#   | 
+#   | if [ $arch = 1 ]; then
+#   |     # M4: distroOverride in the test fixtures is only a stand-in. Here the real
+#   |     # chezmoi reads /etc/os-release, and the partial has to reach the same
+#   |     # answer the os-arch fixture gives L1/L2.
+#   |     # ID=arch (WSL omarchy, plain Arch) and ID=omarchy (ISO omarchy, via
+#   |     # ID_LIKE=arch) must both end at pacman with an empty brewPrefix; distro
+#   |     # keeps the raw id (SPEC arch-family-support S11).
+#   |     c_seam() {
+#   |         _out=$(printf '%s' '{{ .chezmoi.osRelease.id }}|{{- $p := includeTemplate "platform.toml" . | fromToml -}}{{ $p.distro }}|{{ $p.pkgManager }}|{{ $p.brewPrefix }}' \
+#   |             | chezmoi execute-template 2>&1) || { echo "execute-template failed: $_out"; return 1; }
+#   |         case "$_out" in
+#   |             'arch|arch|pacman|'|'omarchy|omarchy|pacman|') ;;
+#   |             *) echo "expected arch|arch|pacman| or omarchy|omarchy|pacman|, got: $_out"; return 1 ;;
+#   |         esac
+#   |         echo "$_out"
+#   |     }
+#   |     check 'real chezmoi osRelease.id reaches the partial: distro kept, pkgManager=pacman, brewPrefix empty (M4)' c_seam
+#   | 
+#   |     # D4: the file omarchy wrote at install time is replaced by the managed one.
+#   |     c_git_config() {
+#   |         _want=$(chezmoi cat "$HOME/.config/git/config" 2>&1) || { echo "chezmoi cat failed: $_want"; return 1; }
+#   |         [ "$_want" = "$(cat "$HOME/.config/git/config")" ] || { echo 'differs from chezmoi cat'; return 1; }
+#   |         echo 'managed content in place (omarchy defaults replaced, D4)'
+#   |     }
+#   |     check '~/.config/git/config is the managed file (D4)' c_git_config
+#   | 
+#   |     # 40-git-lfs without the brew shellenv line: git-lfs comes from pacman.
+#   |     # `git lfs env` prints the filter.lfs.* keys even when they are unset (with
+#   |     # empty values), so the assertion is on the value `git lfs install` writes.
+#   |     c_lfs() {
+#   |         _e=$(git lfs env 2>&1) || { echo "git lfs env failed: $_e"; return 1; }
+#   |         printf '%s\n' "$_e" | grep -q 'filter\.lfs\.process = "git-lfs filter-process"' \
+#   |             || { echo "filter.lfs.process not set to git-lfs filter-process: $(printf '%s\n' "$_e" | grep 'filter.lfs' | tr '\n' ' ')"; return 1; }
+#   |         echo 'filter.lfs.process = git-lfs filter-process'
+#   |     }
+#   |     check 'git lfs filter is configured (40-git-lfs, pacman git-lfs)' c_lfs
+#   | 
+#   |     # D3: zsh from pacman is a valid login shell; chsh needs a tty, so without
+#   |     # one the script must print the manual command instead of failing.
+#   |     c_shell() {
+#   |         _z=$(command -v zsh) || { echo 'zsh not on PATH'; return 1; }
+#   |         # Same resolution default-shell does: /etc/shells lists /usr/bin/zsh,
+#   |         # `command -v` says /usr/sbin/zsh; they are one file (merged /usr).
+#   |         _real=$(readlink -f "$_z"); _ok=""
+#   |         while IFS= read -r _c; do
+#   |             case "$_c" in /*) ;; *) continue ;; esac
+#   |             [ "$(readlink -f "$_c" 2>/dev/null)" = "$_real" ] && { _ok=$_c; break; }
+#   |         done < /etc/shells
+#   |         [ -n "$_ok" ] || { echo "no /etc/shells entry resolves to $_real"; return 1; }
+#   |         _s=$(getent passwd "$(id -un)" | cut -d: -f7)
+#   |         case "$_s" in
+#   |             */zsh) echo "login shell: $_s" ;;
+#   |             *) grep -q 'chsh -s' "$out_dir/install.log" || { echo "shell is $_s and no chsh hint was printed"; return 1; }
+#   |                echo "login shell: $_s; chsh hint printed (no tty)" ;;
+#   |         esac
+#   |     }
+#   |     check 'zsh is a valid login shell; chsh done or the manual hint was printed (D3)' c_shell
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- neovim + tree-sitter
+#   | pin=$(sed -n 's/^neovim = "\([^"]*\)".*/\1/p' "$repo/.chezmoitemplates/versions.toml" 2>/dev/null)
+#   | if [ $arch = 1 ]; then
+#   |     # Arch: neovim and tree-sitter-cli are pacman packages; the mise pin in
+#   |     # versions.toml does not apply (rolling release, SPEC §7).
+#   |     c_nvim_pacman() {
+#   |         # nvim's own exit status, not head's.
+#   |         _all=$(nvim --version 2>&1) || { echo "nvim --version failed: $_all"; return 1; }
+#   |         _v=$(printf '%s\n' "$_all" | head -1)
+#   |         echo "$_v via $(command -v nvim) ($(pacman -Q neovim 2>/dev/null))"
+#   |     }
+#   |     check 'nvim runs (pacman neovim; the mise pin does not apply on Arch)' c_nvim_pacman
+#   |     # Ownership asked of pacman, not read off the path: on Arch /usr/sbin is a
+#   |     # symlink to /usr/bin and `command -v` reports /usr/sbin/tree-sitter
+#   |     # (measured), so a /usr/bin/* pattern would reject pacman's own binary.
+#   |     c_treesitter_pacman() {
+#   |         _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
+#   |         _owner=$(pacman -Qo "$(readlink -f "$_ts")" 2>&1) || { echo "not a pacman file: $_owner"; return 1; }
+#   |         case "$_owner" in *tree-sitter-cli*) ;; *) echo "owned by something else: $_owner"; return 1 ;; esac
+#   |         _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
+#   |         echo "$_v at $_ts ($_owner)"
+#   |     }
+#   |     check "tree-sitter CLI is pacman's and runs" c_treesitter_pacman
+#   | else
+#   |     c_nvim_pin() {
+#   |         [ -n "$pin" ] || { echo 'could not read the neovim pin from versions.toml'; return 1; }
+#   |         _v=$(nvim --version 2>&1 | head -1)
+#   |         [ "$_v" = "NVIM v$pin" ] || { echo "expected NVIM v$pin, got: $_v"; return 1; }
+#   |         echo "$_v via $(command -v nvim)"
+#   |     }
+#   |     check 'nvim runs and is the pinned version from versions.toml' c_nvim_pin
+#   | 
+#   |     # The Debian 12 regression: brew's `tree-sitter` formula stopped shipping the
+#   |     # CLI, LazyVim fell back to mason's prebuilt binary, and that one wants a
+#   |     # newer glibc than Debian 12 has. Both halves are asserted: the CLI is brew's,
+#   |     # and it actually executes.
+#   |     c_treesitter() {
+#   |         _ts=$(command -v tree-sitter) || { echo 'tree-sitter not on PATH'; return 1; }
+#   |         case "$_ts" in /home/linuxbrew/*) ;; *) echo "tree-sitter is $_ts, not brew's"; return 1 ;; esac
+#   |         _v=$(tree-sitter --version 2>&1) || { echo "tree-sitter --version failed: $_v"; return 1; }
+#   |         echo "$_v at $_ts"
+#   |     }
+#   |     check "tree-sitter CLI is brew's and runs on this glibc" c_treesitter
+#   | fi
+#   | 
+#   | echo
+#   | echo 'probe: running nvim Lazy! sync + nvim-treesitter install lua (the Linux M12)'
+#   | echo 'probe: this usually takes 3-10 minutes and is capped at 15'
+#   | c_parser() {
+#   |     # Both headless runs must exit 0: a pre-existing lua.so would otherwise
+#   |     # let a failing nvim pass on the file check alone.
+#   |     timeout 900 nvim --headless '+Lazy! sync' '+qa' > "$treesitter_log" 2>&1 \
+#   |         || { echo "nvim +Lazy! sync exited $?"; output_tail "$treesitter_log" 10; return 1; }
+#   |     timeout 900 nvim --headless -c "lua require('nvim-treesitter').install({'lua'}):wait(600000)" -c qa >> "$treesitter_log" 2>&1 \
+#   |         || { echo "nvim-treesitter install exited $?"; output_tail "$treesitter_log" 10; return 1; }
+#   |     for _p in "$HOME/.local/share/nvim/lazy/nvim-treesitter/parser/lua.so" "$HOME/.local/share/nvim/site/parser/lua.so"; do
+#   |         [ -f "$_p" ] && { echo "lua parser built: $_p"; return 0; }
+#   |     done
+#   |     echo "no lua parser produced -- see treesitter.log"; output_tail "$treesitter_log" 10; return 1
+#   | }
+#   | check 'nvim-treesitter builds a parser' c_parser
+#   | 
+#   | # ---------------------------------------------------------------- second run
+#   | # Everything above is the first install. The bugs this probe exists for only
+#   | # show up afterwards.
+#   | echo
+#   | echo 'probe: second chezmoi apply (must be non-interactive and idempotent)'
+#   | c_second_apply() {
+#   |     run_streamed "$out_dir/apply2.log" chezmoi apply --no-tty \
+#   |         || { echo 'second apply -> failed'; output_tail "$out_dir/apply2.log" 15; return 1; }
+#   |     echo ok
+#   | }
+#   | check 'second chezmoi apply completes without a prompt' c_second_apply
+#   | 
+#   | c_idempotent() {
+#   |     [ -z "$(ls -d "$HOME"/.config/nvim.bak* 2>/dev/null)" ] || { echo 'a re-run backed up ~/.config/nvim again'; return 1; }
+#   |     if [ $omarchy = 1 ]; then
+#   |         [ ! -e "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'starter marker appeared: 50-neovim bootstrapped over omarchy-nvim'; return 1; }
+#   |     else
+#   |         [ -f "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'marker gone'; return 1; }
+#   |     fi
+#   |     echo ok
+#   | }
+#   | check 'second apply did not re-bootstrap nvim' c_idempotent
+#   | 
+#   | # `chezmoi git` is the code path `chezmoi update` takes: chezmoi MkdirAll's
+#   | # $XDG_RUNTIME_DIR before spawning git. In the container the variable is
+#   | # unset, so this passes trivially; in the fresh WSL distro it is the bug.
+#   | c_chezmoi_git() {
+#   |     _out=$(chezmoi git -- status --short --branch 2>&1) || { echo "chezmoi git failed: $_out"; return 1; }
+#   |     echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-unset}; $(printf '%s' "$_out" | head -1)"
+#   | }
+#   | check 'chezmoi git works (the chezmoi update code path)' c_chezmoi_git
+#   | 
+#   | # 05-wsl-user-runtime-dir renders only when chezmoi sees a WSL kernel, so
+#   | # linger is an obligation on WSL alone. A non-WSL machine with systemd (the
+#   | # omarchy VM) must skip here, not fail: nothing in the dotfiles enables linger
+#   | # there, and nothing needs to.
+#   | is_wsl=0
+#   | case "$(uname -r 2>/dev/null | tr '[:upper:]' '[:lower:]')" in *microsoft*) is_wsl=1 ;; esac
+#   | if [ -d /run/systemd/system ]; then
+#   |     if [ $is_wsl = 1 ]; then
+#   |         c_linger() {
+#   |             _l=$(loginctl show-user "$(id -un)" --property=Linger --value 2>&1) || { echo "loginctl: $_l"; return 1; }
+#   |             [ "$_l" = yes ] || { echo "Linger=$_l"; return 1; }
+#   |             [ -d "/run/user/$(id -u)" ] || { echo "/run/user/$(id -u) missing"; return 1; }
+#   |             echo "Linger=yes, /run/user/$(id -u) present"
+#   |         }
+#   |         check '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' c_linger
+#   |     else
+#   |         skip '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' 'not WSL: 05-wsl-user-runtime-dir renders empty here'
+#   |     fi
+#   |     if [ $remote = 1 ]; then
+#   |         c_update() {
+#   |             run_streamed "$out_dir/update.log" chezmoi update --no-tty \
+#   |                 || { echo 'chezmoi update -> failed'; output_tail "$out_dir/update.log" 15; return 1; }
+#   |             echo ok
+#   |         }
+#   |         check 'chezmoi update completes' c_update
+#   |     else
+#   |         skip 'chezmoi update completes' 'local mode: the source tree is not a clone with a remote'
+#   |     fi
+#   | else
+#   |     skip '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' 'no systemd in this sandbox'
+#   |     skip 'chezmoi update completes' 'no systemd in this sandbox (and local mode has no remote)'
+#   | fi
+#   | 
+#   | # A removed neovim must come back on the next apply (50-neovim is run_, not
+#   | # run_onchange_).
+#   | echo
+#   | if [ $arch = 1 ]; then
+#   |     # On Arch neovim is a pacman package and the probe never removes packages
+#   |     # (SPEC Must NOT #8): the machine is the user's, not a throwaway rootfs.
+#   |     skip 'a removed neovim is reinstalled by the next apply' 'Arch: neovim is a pacman package; the probe does not remove packages (Must NOT #8)'
+#   | else
+#   |     echo 'probe: removing neovim from mise and applying again'
+#   |     c_reinstall() {
+#   |         mise uninstall "neovim@$pin" >/dev/null 2>&1 || { echo 'mise uninstall failed'; return 1; }
+#   |         mise ls neovim 2>/dev/null | grep -q missing || { echo 'uninstall did not take'; return 1; }
+#   |         run_streamed "$out_dir/apply3.log" chezmoi apply --no-tty --include=scripts \
+#   |             || { echo 'apply -> failed'; output_tail "$out_dir/apply3.log" 15; return 1; }
+#   |         mise ls neovim 2>/dev/null | grep -q missing && { echo 'neovim still missing after apply'; return 1; }
+#   |         nvim --version | head -1
+#   |     }
+#   |     check 'a removed neovim is reinstalled by the next apply' c_reinstall
+#   | fi
+#   | 
+#   | # ---------------------------------------------------------------- report
+#   | n_pass=$(grep -c '^PASS' "$results"); n_fail=$(grep -c '^FAIL' "$results"); n_skip=$(grep -c '^SKIP' "$results")
+#   | summary="PASS=$n_pass FAIL=$n_fail SKIP=$n_skip"
+#   | printf 'SUMMARY\t%s\t\n' "$summary" >> "$results"
+#   | echo
+#   | echo "probe: $summary"
+#   | echo "probe: results in $results, transcript in $transcript"
+#   | 
+#   | if [ -s "$treesitter_log" ]; then
+#   |     echo; echo '--- treesitter.log (tail 200) ---'; tail -n 200 "$treesitter_log"; echo '--- end treesitter.log ---'
+#   | fi
+#   | echo; echo '--- results.tsv (full) ---'; cat "$results"; echo '--- end results.tsv ---'
+#   | [ "$n_fail" -eq 0 ]
+ok 111 - [L11] 探針在純 Arch 上改問 starter marker
+ok 112 - [L11] 探針的 M4 接縫檢查接受 distro=omarchy
+ok 113 - [L11] 測試層的檔案集合
+1..113
+# run 113, failed 2, skipped 0

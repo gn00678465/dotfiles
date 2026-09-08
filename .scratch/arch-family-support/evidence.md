@@ -36,13 +36,15 @@
   抽取器。**同一個檔案內的個別函式或模板分支沒有被逐一對應。**
 
 執行環境：閘門在 WSL `dev`（Ubuntu）內、對這個 repo 在 ext4 上的 clone
-（`~/gate/dotfiles`，checkout 到 `5e30e95`，與工作樹 HEAD 相同）執行。RED 的觀察在
+（`~/gate/dotfiles`，checkout 到 `5e30e95`，即執行當時的工作樹 HEAD；本報告自己的 commit 在其後）執行。RED 的觀察在
 Windows 主機的 Git Bash（L1/L2/L11）與 WSL `dev` 的 `/mnt/d` 工作樹（L7）上做。
 
 ## Baseline
 
 **none —— base 是綠的。** 在 `4e6f13c` 的 worktree（WSL `dev`、ext4、`/tmp/base-wt`）上跑它自己的
-`sh tests/run.sh`：`# run 646, failed 0, skipped 0`，exit 0（`/tmp/base-suite.log`）。HEAD 的套件是
+`sh tests/run.sh`：`# run 646, failed 0, skipped 0`，exit 0。原始 TAP 附於
+`logs/baseline-4e6f13c.tap`（附件是提交報告前在同一個 WSL `dev` 環境、`git worktree add /tmp/base-wt 4e6f13c` 上重跑一次的結果，
+同樣 646/0/0；第一次執行的 `/tmp` 紀錄已隨 WSL 重啟消失）。HEAD 的套件是
 778 條；多出的 132 條是 omarchy 欄（L2–L5 的每個迴圈）、本次的具名斷言，與 Must NOT #6 的 16 條原始碼檢查。
 
 主機相關的例外，記錄但不算 baseline 失敗：在 **Windows 主機的 Git Bash** 上，L2 的兩條
@@ -108,6 +110,10 @@ WSL 內執行，這兩條在那裡通過。
   #378 50-neovim 的 pacman -Q／clone／marker）；L11 8 條（#10–#12 arch 家族等價、#30 arch/50-neovim
   golden 存在、#31 golden 集合、#105、#106、#108 探針義務）。2 + 26 + 8 = 36；另外 2 條（#284、#285）
   是 §Baseline 提到的 `native-wsl` 主機例外。**先行 RED：36 條。**
+  附件 `logs/red-d388c30-L1L2L11.tap` 與 `logs/red-d388c30-L7.tap` 是提交報告前在 WSL `dev` 的
+  `d388c30` worktree 重跑的結果：`run 395, failed 36`（L1 2、L2 26、L11 8，逐名稱與上面相同）與
+  `run 54, failed 1`。Linux 主機上那 2 條 `native-wsl` 例外不失敗，所以是 36 而不是 38；重跑的 TAP
+  編號是三層連續編號，與上面引用的 Windows 首次執行編號不同。
 - 同一個 commit 在 WSL `dev` 以 `git worktree add /tmp/red-l7 d388c30` 跑 `sh tests/run.sh L7`：
   `run 54, failed 1`——`Arch 50-neovim 在 arch 上渲染成非空（S5）`。**S8/S9 的 24 條行為斷言在
   RED 時沒有執行**：渲染是空的，測試在那裡停下，所以它們個別「會不會紅」沒有被觀察到。它們的有效性
@@ -133,7 +139,7 @@ WSL 內執行，這兩條在那裡通過。
 | 層 | 結果 |
 |---|---|
 | versions | 記錄六個工具版本（見 toolchain） |
-| source-state-before / after | `491c0f2…`，`worktree=clean`，前後相同 |
+| source-state-before / after | `5e30e95d5450fa3df7ad3bff197d44ec08cb903e`，`worktree=clean`，前後相同 |
 | intent | confirmed（上方標頭逐字複製） |
 | agent-doc-invariants | OK: 84 invariants hold |
 | suite | `# run 778, failed 0, skipped 0`（base 4e6f13c 的套件是 646 條；多出來的是 omarchy 欄、S1–S9 的斷言與 Must NOT #6 的原始碼檢查） |
@@ -143,7 +149,7 @@ WSL 內執行，這兩條在那裡通過。
 | mutation | 44/44 killed，每個 mutant 跑 2 輪皆致死。本次新增或更新的六個：`platform-pkgmanager-swapped`（L1，6 條）、`neovim-mise-section-on-arch`（L2，6 條）、`platform-idlike-ignored`（L1，2 條）、`platform-idlike-substring`（L1，1 條）、`neovim-omarchy-check-gone`（L2，1 條）、`neovim-omarchy-check-inverted`（L7，17 條） |
 | supply-chain | 通過（八個 fixture 含 os-omarchy 的 external 與 winget ID 解析） |
 | pacman-ids | all pacman package names resolve（WSL distro `arch`，12 個名稱皆 core/extra：4 個前置 + 8 個工具） |
-| changed-lines | 只報告不設閘：set1 0 · set2（非可執行）696 · set3（可執行、無覆蓋率對應）493 · 合計 1189 行。UNAVAILABLE，由 Table 1 的逐單元對應與 mutation 補 |
+| changed-lines | 只報告不設閘：set1 0 · set2（非可執行）707 · set3（可執行、無覆蓋率對應）500 · 合計 1207 行（不含 `.scratch/`）。UNAVAILABLE，由 Table 1 的逐單元對應與 mutation 補 |
 
 ## Real execution（L9，在 entry point 之外）
 
@@ -151,7 +157,7 @@ WSL 內執行，這兩條在那裡通過。
 
 | 環境 | 啟動器 | commit | 結果 | 關鍵細節 |
 |---|---|---|---|---|
-| B：官方 Arch WSL 映像 `arch`，root，全新 | `tests/sandbox/omarchy.sh --distro arch --syu` | `2032f8f`（第一次）、`5e30e95`（最終 commit，distro 以 `wsl --unregister` + `wsl --install archlinux --no-launch` 重建後從零安裝） | 兩次皆 35 PASS / 0 FAIL / 3 SKIP，exit 0 | 啟動器先 `pacman -Syu`；11 個 pacman 套件全裝；`nvim config is the LazyVim starter with our marker` PASS（S10）；M4 接縫 `arch\|arch\|pacman\|`；nvim-treesitter 建出 `lua.so`；第二次 apply 不重做；linger 開啟、`/run/user/0` 存在；SKIP：omarchy 專屬環境（純 Arch）、`chezmoi update`（local 模式）、移除 neovim 重裝（pacman 套件，Must NOT #8） |
+| B：官方 Arch WSL 映像 `arch`，root，全新 | `tests/sandbox/omarchy.sh --distro arch --syu` | `2032f8f`（第一次）、`5e30e95`（最終 commit，distro 以 `wsl --unregister` + `wsl --install archlinux --no-launch` 重建後從零安裝） | 兩次皆 35 PASS / 0 FAIL / 3 SKIP，exit 0 | 啟動器先 `pacman -Syu`；12 個 pacman 套件全裝；`nvim config is the LazyVim starter with our marker` PASS（S10）；M4 接縫 `arch\|arch\|pacman\|`；nvim-treesitter 建出 `lua.so`；第二次 apply 不重做；linger 開啟、`/run/user/0` 存在；SKIP：omarchy 專屬環境（純 Arch）、`chezmoi update`（local 模式）、移除 neovim 重裝（pacman 套件，Must NOT #8） |
 | A：omarchy 4.0.2 VM（ISO），madao，ssh | `tests/sandbox/ssh.sh madao@192.168.2.155` | `72ceeb5`（首次安裝）、`491c0f2`（最終探針，同一台 VM 上再套用一次） | 兩次皆 35 PASS / 0 FAIL / 3 SKIP，exit 0 | M4 接縫 `omarchy\|omarchy\|pacman\|`（S11）；`omarchy nvim config was left in place, with our override on top` PASS；登入 zsh 解析 `omarchy-version`、`OMARCHY_PATH=/usr/share/omarchy`；`~/.config/git/config` 為受管內容（D4）；nvim-treesitter 建出 `lua.so`；第二次 apply 不重做；SKIP：linger（非 WSL，05 渲染成空）、`chezmoi update`（local 模式）、移除 neovim 重裝 |
 
 環境 A 之前的兩次失敗，各修一次啟動器／探針後重跑：
@@ -220,7 +226,7 @@ gate 的 mutation 層以同樣形狀的六個 mutant 在 WSL 內重做了這兩�
   腳本的「已裝」判斷與探針一致（環境 A 的 `pacman package installed: mise` PASS）。純 Arch
   裝的是 `extra/mise`。兩者行為相同，不需要分辨。
 - **`$p.distro` 在正式 omarchy 是 `omarchy` 而不是 `arch`**：SPEC D1 的決定。呼叫端只看
-  `pkgManager` 與 `brewPrefix`（L2 S4 / L11 B2 證明沒有任何模板分辨兩者）。
+  `pkgManager` 與 `brewPrefix`。L2 S4 / L11 B2 只證明 os-arch 與 os-omarchy 的渲染相同；「模板裡沒有分辨兩者的分支」由 L2 的 16 條原始碼檢查證明，範圍限於 `.chezmoiscripts/*.tmpl`、`dot_zshrc.tmpl`、`dot_zprofile.tmpl`、`platform.toml` 的 `{{ }}` 內容（Must NOT #6）。
 - **純 Arch 的 `.zshrc` 仍載入 omarchy 區塊**：三行都以 `[ -r ... ]` 守住，環境 B 的登入
   zsh 正常解析所有工具，`OMARCHY_PATH` 為空是預期（探針 SKIP 該條）。
 
@@ -244,6 +250,12 @@ gate 的 mutation 層以同樣形狀的六個 mutant 在 WSL 內重做了這兩�
   占位（已填）；Must NOT #6 推論過強（加了原始碼檢查）；文件對應引用了不檢查它們的測試（已改 unverified）；
   數字（pacman 12 個、RED 分項重算為 2+26+8、properties 的 35 個只驗 P0 已註明；manifest 依
   `layers-manifest` 檔案是 13 行，稽核說 14，以檔案為準）。
+- codex（`$ponytail-audit`，第二輪）在 `453f96f`（本報告的第一次提交）上稽核最終產出：13/13 層、778/0/0
+  三輪、44/44 mutant、兩份 L9 計數皆與 `.gate/` 產出相符；Must NOT #7 的標示恰當；並更正它上一輪的
+  manifest 計數（13 項，不是 14）。四項 P2 的處置：§Gate 表格的 source-state 列改為 `5e30e95`、執行環境
+  一句限定為「執行當時的 HEAD」；changed-lines 改為最終產出的 707／500／1207、環境 B 的 pacman 套件數改為
+  12；baseline、RED、verifier、codex 的原始紀錄補進 `logs/`（§Attachments）；§Dismissed concerns 裡
+  「L2 S4 / L11 B2 證明沒有任何模板分辨兩者」改為引用原始碼檢查並限定範圍。
 - codex（`$ponytail-review`，經 Herdr 委派）在 `72ceeb5` 上審查，兩項發現都已處理於 `491c0f2`：
   L11 C0 只比對 linux 卻宣稱涵蓋 macOS（補上兩份 darwin golden）；探針的 chezmoi update 區塊在
   WSL 與非 WSL 分支重複（合併成一段）。同一個 commit 更新了 `gate-mutants.py` 裡兩個 anchor 已失效的
@@ -263,3 +275,18 @@ gate 的 mutation 層以同樣形狀的六個 mutant 在 WSL 內重做了這兩�
   正確的前置條件已寫進 `tests/sandbox/README.md`。
 - Windows 主機的 Git Bash 沒有 zsh 與 pwsh，L4 全部 SKIP；這些在 WSL `dev` 的 gate 執行中
   真的跑了。
+
+## Attachments（`.scratch/arch-family-support/logs/`）
+
+與報告一起提交的原始紀錄。`.gate/` 被 git 忽略，這裡是可核對的副本；數字以這些檔案為準。
+
+| 路徑 | 內容 |
+|---|---|
+| `logs/gate/` | 最終 gate（`5e30e95`）的 `versions.txt`、`source-state-before/after.txt`、`layers-manifest`、`layers-ran`、`suite-count.txt`、`suite-health-repeat.txt`、`suite-health-shuffle.txt`、`mutants.txt`、`changed-lines.txt`，逐位元組複製自 `.gate/arch-family-support/` |
+| `logs/baseline-4e6f13c.tap` | base 的完整套件 TAP（§Baseline） |
+| `logs/red-d388c30-L1L2L11.tap`、`logs/red-d388c30-L7.tap` | RED commit `d388c30` 的 TAP（§RED reconstruction） |
+| `logs/negative-controls/` | 三個手動負向對照的腳本與 TAP（§Negative controls） |
+| `logs/l9/` | 兩個真實環境的探針 `results.tsv` 與 `transcript.txt`（§Real execution） |
+| `logs/review/verifier-round1.md` | Tier 3 `verifier` agent 的原始報告（verdict failed，F1–F5） |
+| `logs/review/codex-review-72ceeb5.txt` | codex `$ponytail-review` 的原始輸出 |
+| `logs/review/codex-audit-pane-read.txt` | codex `$ponytail-audit` 兩輪的原始輸出（Herdr pane 讀出，含第一輪的 P1 與第二輪的 P2） |

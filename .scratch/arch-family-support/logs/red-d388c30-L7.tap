@@ -1,0 +1,58 @@
+ok 1 - [L7] POSIX 50-neovim 第一次執行成功
+ok 2 - [L7] POSIX: 既有 ~/.config/nvim 被備份而非刪除
+ok 3 - [L7] POSIX: 既有 ~/.local/share/nvim 被備份
+ok 4 - [L7] POSIX: 既有 ~/.local/state/nvim 被備份
+ok 5 - [L7] POSIX: 既有 ~/.cache/nvim 被備份
+ok 6 - [L7] POSIX: starter 已放進 ~/.config/nvim
+ok 7 - [L7] POSIX: starter 的 .git 已刪除
+ok 8 - [L7] POSIX: marker 已建立
+ok 9 - [L7] POSIX 50-neovim 第二次執行成功
+ok 10 - [L7] POSIX: 重跑不會動使用者自己的設定（M3）
+ok 11 - [L7] POSIX: 重跑不會多生一份備份
+ok 12 - [L7] POSIX 50-neovim 第三次執行成功
+ok 13 - [L7] POSIX: 舊的 .bak 沒有被埋掉
+ok 14 - [L7] POSIX: 第二份備份用時間戳另存
+ok 15 - [L7] POSIX 50-neovim 第四次執行成功
+ok 16 - [L7] POSIX: 撞名時來源被搬進既有備份裡（accepted risk，位置變深一層）
+ok 17 - [L7] POSIX: 即使撞名，使用者的內容仍然存在、沒有被刪
+ok 18 - [L7] POSIX: 沒有產生序號備份（那個迴圈已依使用者決定還原掉）
+ok 19 - [L7] POSIX: 跑到的是 stub 的 mise 而不是真實的 mise（隔離生效）
+not ok 20 - [L7] Arch 50-neovim 在 arch 上渲染成非空（S5）
+#   渲染結果是空的，沒有東西可以執行
+ok 21 - [L7] Windows 50-neovim 第一次執行成功
+ok 22 - [L7] Windows: 既有 %LOCALAPPDATA%\nvim 被備份而非刪除（M2）
+ok 23 - [L7] Windows: 既有 %LOCALAPPDATA%\nvim-data 被備份（M2）
+ok 24 - [L7] Windows: 既有 %TEMP%\nvim 被備份（M2）
+ok 25 - [L7] Windows: 備份出來的目錄剛好是 nvim / nvim-data / TEMP\nvim
+ok 26 - [L7] Windows: starter 已放進 %LOCALAPPDATA%\nvim
+ok 27 - [L7] Windows: starter 的 .git 已刪除
+ok 28 - [L7] Windows: marker 已建立
+ok 29 - [L7] Windows 50-neovim 第二次執行成功
+ok 30 - [L7] Windows: 重跑不會動使用者自己的設定（M3）
+ok 31 - [L7] Windows: 重跑不會多生一份備份
+ok 32 - [L7] Windows 50-neovim 第三次執行成功
+ok 33 - [L7] Windows: 舊的 .bak 沒有被埋掉
+ok 34 - [L7] Windows: 第二份備份用時間戳另存
+ok 35 - [L7] Windows 50-neovim 第四次執行成功
+ok 36 - [L7] Windows: 撞名時來源被搬進既有備份裡（accepted risk，位置變深一層）
+ok 37 - [L7] Windows: 即使撞名，使用者的內容仍然存在、沒有被刪
+ok 38 - [L7] Windows: 沒有產生序號備份（與 POSIX 對稱）
+ok 39 - [L7] Windows: 跑到的是 stub 的 mise 而不是主機上的 mise（隔離生效）
+ok 40 - [L7] Windows: mise 不存在時退出碼是 0（跳過，不是中止整個 apply）
+ok 41 - [L7] Windows: mise 不存在時什麼都不建立
+ok 42 - [L7] loader partial 不自己決定目標路徑
+ok 43 - [L7] profile loader 跑三次恰好留下一行、且內容逐字正確（M10）
+ok 44 - [L7] profile loader 保留原本就有的內容
+ok 45 - [L7] WSL linger 已開啟時腳本成功結束
+ok 46 - [L7] WSL linger 已開啟時不呼叫 sudo
+ok 47 - [L7] WSL 無 linger 時腳本成功結束
+ok 48 - [L7] WSL 無 linger 時先 sudo -v 再 enable-linger 目前使用者
+ok 49 - [L7] WSL Linger=no 時同樣 enable-linger
+ok 50 - [L7] WSL sudo 認證失敗時腳本以非零結束
+ok 51 - [L7] WSL sudo 認證失敗時印出手動指令
+ok 52 - [L7] WSL sudo 認證失敗時不再呼叫 enable-linger
+ok 53 - [L7] 沒有 systemd 時腳本安靜退出
+ok 54 - [L7] 沒有 systemd 時不呼叫 loginctl
+1..54
+# run 54, failed 1, skipped 0
+exit=0

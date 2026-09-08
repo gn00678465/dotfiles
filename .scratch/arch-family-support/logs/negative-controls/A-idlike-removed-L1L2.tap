@@ -1,0 +1,1153 @@
+ok 1 - [L1] linux/amd64 的平台事實
+ok 2 - [L1] darwin/arm64 的平台事實（Apple Silicon 的 brew prefix）
+ok 3 - [L1] darwin/amd64 的平台事實（Intel Mac 的 brew prefix）
+ok 4 - [L1] windows/amd64 的平台事實（沒有 brew prefix）
+ok 5 - [L1] arch（linux/amd64 + distroOverride=arch）的平台事實：pacman、沒有 brew prefix
+not ok 6 - [L1] omarchy（distroOverride=omarchy + distroLikeOverride=arch）的平台事實：distro 保留 omarchy、pacman、沒有 brew prefix
+#   --- expected ---
+#   | linux|amd64|false|true||omarchy|pacman
+#   --- actual ---
+#   | linux|amd64|false|true|/home/linuxbrew/.linuxbrew|omarchy|apt
+ok 7 - [L1] ID_LIKE 含多個字時逐字比對："ubuntu debian" 走 apt
+not ok 8 - [L1] ID_LIKE 含多個字時逐字比對："foo arch" 走 pacman
+#   --- expected ---
+#   | pacman
+#   --- actual ---
+#   | apt
+ok 9 - [L1] ID_LIKE 是子字串命中不算："archarch" 走 apt
+ok 10 - [L1] 沒有 distroOverride 時 partial 退回 .chezmoi.osRelease.id（不存在時為空）
+ok 11 - [L1] 沒有 osOverride 時 partial 退回 .chezmoi.os/.chezmoi.arch
+ok 12 - [L1] 生產用的 .chezmoi.toml.tmpl 原始碼沒有 osOverride
+ok 13 - [L1] 生產用的 .chezmoi.toml.tmpl 原始碼沒有 archOverride
+ok 14 - [L1] 渲染後的生產 config 沒有 osOverride
+ok 15 - [L1] 渲染後的生產 config 沒有 archOverride
+ok 16 - [L1] 生產用的 .chezmoi.toml.tmpl 原始碼沒有 distroOverride
+ok 17 - [L1] 渲染後的生產 config 沒有 distroOverride
+ok 18 - [L1] 生產用的 .chezmoi.toml.tmpl 原始碼沒有 distroLikeOverride
+ok 19 - [L1] 渲染後的生產 config 沒有 distroLikeOverride
+ok 20 - [L2] 腳本存在：run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl
+ok 21 - [L2] 腳本存在：run_onchange_before_10-install-packages.sh.tmpl
+ok 22 - [L2] 腳本存在：run_once_before_20-install-homebrew.sh.tmpl
+ok 23 - [L2] 腳本存在：run_onchange_before_30-install-brew-packages.sh.tmpl
+ok 24 - [L2] 腳本存在：run_onchange_before_30-install-pacman-packages.sh.tmpl
+ok 25 - [L2] 腳本存在：run_onchange_before_30-install-winget-packages.ps1.tmpl
+ok 26 - [L2] 腳本存在：run_onchange_before_35-install-ps-modules.ps1.tmpl
+ok 27 - [L2] 腳本存在：run_onchange_after_40-git-lfs.sh.tmpl
+ok 28 - [L2] 腳本存在：run_onchange_after_40-git-lfs.ps1.tmpl
+ok 29 - [L2] 腳本存在：run_before_50-neovim.sh.tmpl
+ok 30 - [L2] 腳本存在：run_before_50-neovim.ps1.tmpl
+ok 31 - [L2] 腳本存在：run_after_60-pwsh-profile.ps1.tmpl
+ok 32 - [L2] 腳本存在：run_after_default-shell.sh.tmpl
+ok 33 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 linux 上渲染成空
+ok 34 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 35 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 arch 上渲染成空
+ok 36 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 omarchy 上渲染成空
+ok 37 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 38 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 39 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 windows 上非空
+ok 40 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 windows-arm64 上非空
+ok 41 - [L2] run_after_default-shell.sh.tmpl 在 linux 上非空
+ok 42 - [L2] run_after_default-shell.sh.tmpl 在 linux-arm64 上非空
+ok 43 - [L2] run_after_default-shell.sh.tmpl 在 arch 上非空
+ok 44 - [L2] run_after_default-shell.sh.tmpl 在 omarchy 上非空
+ok 45 - [L2] run_after_default-shell.sh.tmpl 在 darwin-arm64 上渲染成空
+ok 46 - [L2] run_after_default-shell.sh.tmpl 在 darwin-amd64 上渲染成空
+ok 47 - [L2] run_after_default-shell.sh.tmpl 在 windows 上渲染成空
+ok 48 - [L2] run_after_default-shell.sh.tmpl 在 windows-arm64 上渲染成空
+ok 49 - [L2] run_before_50-neovim.ps1.tmpl 在 linux 上渲染成空
+ok 50 - [L2] run_before_50-neovim.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 51 - [L2] run_before_50-neovim.ps1.tmpl 在 arch 上渲染成空
+ok 52 - [L2] run_before_50-neovim.ps1.tmpl 在 omarchy 上渲染成空
+ok 53 - [L2] run_before_50-neovim.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 54 - [L2] run_before_50-neovim.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 55 - [L2] run_before_50-neovim.ps1.tmpl 在 windows 上非空
+ok 56 - [L2] run_before_50-neovim.ps1.tmpl 在 windows-arm64 上非空
+ok 57 - [L2] run_before_50-neovim.sh.tmpl 在 linux 上非空
+ok 58 - [L2] run_before_50-neovim.sh.tmpl 在 linux-arm64 上非空
+ok 59 - [L2] run_before_50-neovim.sh.tmpl 在 arch 上非空
+ok 60 - [L2] run_before_50-neovim.sh.tmpl 在 omarchy 上非空
+ok 61 - [L2] run_before_50-neovim.sh.tmpl 在 darwin-arm64 上非空
+ok 62 - [L2] run_before_50-neovim.sh.tmpl 在 darwin-amd64 上非空
+ok 63 - [L2] run_before_50-neovim.sh.tmpl 在 windows 上渲染成空
+ok 64 - [L2] run_before_50-neovim.sh.tmpl 在 windows-arm64 上渲染成空
+ok 65 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 linux 上非空
+ok 66 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 linux-arm64 上非空
+ok 67 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 arch 上渲染成空
+not ok 68 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 omarchy 上渲染成空
+#   expected blank (chezmoi 才會跳過這支腳本)
+#   --- actual ---
+#   | #!/bin/zsh
+#   | # Runs after 10-install-packages, which installs zsh itself plus Homebrew's
+#   | # Linux build requirements.
+#   | set -euo pipefail
+#   | 
+#   | if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+#   |   exit 0
+#   | fi
+#   | 
+#   | # NONINTERACTIVE skips the "Press RETURN to continue" prompt. On Linux the
+#   | # installer still needs sudo to create /home/linuxbrew; 10-install-packages has
+#   | # already primed the credential cache.
+#   | echo "chezmoi: installing Homebrew"
+#   | NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | brew analytics off
+ok 69 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 darwin-arm64 上非空
+ok 70 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 darwin-amd64 上非空
+ok 71 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 windows 上渲染成空
+ok 72 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 windows-arm64 上渲染成空
+ok 73 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 linux 上渲染成空
+ok 74 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 75 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 arch 上渲染成空
+ok 76 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 omarchy 上渲染成空
+ok 77 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 78 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 79 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 windows 上非空
+ok 80 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 windows-arm64 上非空
+ok 81 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 linux 上非空
+ok 82 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 linux-arm64 上非空
+ok 83 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 arch 上非空
+ok 84 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 omarchy 上非空
+ok 85 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 darwin-arm64 上非空
+ok 86 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 darwin-amd64 上非空
+ok 87 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 windows 上渲染成空
+ok 88 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 windows-arm64 上渲染成空
+ok 89 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 linux 上渲染成空
+ok 90 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 linux-arm64 上渲染成空
+ok 91 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 arch 上渲染成空
+ok 92 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 omarchy 上渲染成空
+ok 93 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 darwin-arm64 上渲染成空
+ok 94 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 darwin-amd64 上渲染成空
+ok 95 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 windows 上渲染成空
+ok 96 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 windows-arm64 上渲染成空
+ok 97 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 linux 上非空
+ok 98 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 linux-arm64 上非空
+ok 99 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 arch 上非空
+ok 100 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 omarchy 上非空
+ok 101 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 darwin-arm64 上渲染成空
+ok 102 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 darwin-amd64 上渲染成空
+ok 103 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 windows 上渲染成空
+ok 104 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 windows-arm64 上渲染成空
+ok 105 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 linux 上非空
+ok 106 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 linux-arm64 上非空
+ok 107 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 arch 上渲染成空
+not ok 108 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 omarchy 上渲染成空
+#   expected blank (chezmoi 才會跳過這支腳本)
+#   --- actual ---
+#   | #!/bin/zsh
+#   | # brew packages shared by Linux and macOS. Add new tools here, not to
+#   | # 10-install-packages (apt, Linux only).
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | # Homebrew 6 made ask mode the default, so a bare `brew install` stops at
+#   | # "Do you want to proceed with the installation? [y/n]". chezmoi runs this
+#   | # unattended. The env var is preferred over `-y`: older Homebrew ignores an
+#   | # unknown variable but would abort on an unknown flag.
+#   | export HOMEBREW_NO_ASK=1
+#   | 
+#   | # tree-sitter-cli, not tree-sitter: since 0.27 the `tree-sitter` formula ships
+#   | # only libtree-sitter and the CLI lives in `tree-sitter-cli`. nvim-treesitter
+#   | # needs the CLI. Without it on PATH LazyVim falls back to mason's GitHub
+#   | # prebuilt binary, which wants glibc 2.39 and fails on Debian 12 (2.36); the
+#   | # brew bottle runs against brew's own glibc, so it works there.
+#   | for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli; do
+#   |   brew list --formula "$formula" &>/dev/null || brew install "$formula"
+#   | done
+ok 109 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 darwin-arm64 上非空
+ok 110 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 darwin-amd64 上非空
+ok 111 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 windows 上渲染成空
+ok 112 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 windows-arm64 上渲染成空
+ok 113 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 linux 上渲染成空
+ok 114 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 linux-arm64 上渲染成空
+ok 115 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 arch 上非空
+not ok 116 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 omarchy 上非空
+#   expected non-blank
+ok 117 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 darwin-arm64 上渲染成空
+ok 118 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 darwin-amd64 上渲染成空
+ok 119 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 windows 上渲染成空
+ok 120 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 windows-arm64 上渲染成空
+ok 121 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 linux 上渲染成空
+ok 122 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 123 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 arch 上渲染成空
+ok 124 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 omarchy 上渲染成空
+ok 125 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 126 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 127 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 windows 上非空
+ok 128 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 windows-arm64 上非空
+ok 129 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 linux 上渲染成空
+ok 130 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 131 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 arch 上渲染成空
+ok 132 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 omarchy 上渲染成空
+ok 133 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 134 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 135 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 windows 上非空
+ok 136 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 windows-arm64 上非空
+ok 137 - [L2] 不變式：run_after_default-shell.sh.tmpl 在 windows 上必須是空的
+ok 138 - [L2] 不變式：run_before_50-neovim.sh.tmpl 在 windows 上必須是空的
+ok 139 - [L2] 不變式：run_once_before_20-install-homebrew.sh.tmpl 在 windows 上必須是空的
+ok 140 - [L2] 不變式：run_onchange_after_40-git-lfs.sh.tmpl 在 windows 上必須是空的
+ok 141 - [L2] 不變式：run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 windows 上必須是空的
+ok 142 - [L2] 不變式：run_onchange_before_10-install-packages.sh.tmpl 在 windows 上必須是空的
+ok 143 - [L2] 不變式：run_onchange_before_30-install-brew-packages.sh.tmpl 在 windows 上必須是空的
+ok 144 - [L2] 不變式：run_onchange_before_30-install-pacman-packages.sh.tmpl 在 windows 上必須是空的
+ok 145 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 linux 上必須是空的
+ok 146 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 147 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 arch 上必須是空的
+ok 148 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 omarchy 上必須是空的
+ok 149 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 150 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 151 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 linux 上必須是空的
+ok 152 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 153 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 arch 上必須是空的
+ok 154 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 omarchy 上必須是空的
+ok 155 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 156 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 157 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 linux 上必須是空的
+ok 158 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 159 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 arch 上必須是空的
+ok 160 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 omarchy 上必須是空的
+ok 161 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 162 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 163 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 linux 上必須是空的
+ok 164 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 165 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 arch 上必須是空的
+ok 166 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 omarchy 上必須是空的
+ok 167 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 168 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 169 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 linux 上必須是空的
+ok 170 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 171 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 arch 上必須是空的
+ok 172 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 omarchy 上必須是空的
+ok 173 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 174 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 175 - [L2] 05-wsl-user-runtime-dir 在 isWSL = true 時非空
+ok 176 - [L2] 05-wsl-user-runtime-dir 用 loginctl enable-linger（不是 mkdir，那個目錄歸 logind 管）
+ok 177 - [L2] 05-wsl-user-runtime-dir 在原生 Linux（isWSL = false）渲染成空
+ok 178 - [L2] POSIX 50-neovim 有釘住的 neovim 版本
+ok 179 - [L2] 兩個平台的 50-neovim 釘同一個 neovim 版本
+ok 180 - [L2] POSIX 50-neovim 有 marker 檔名
+ok 181 - [L2] 兩個平台的 50-neovim 用同一個 marker 檔名
+ok 182 - [L2] 兩個平台的 50-neovim clone 同一個 starter repo
+ok 183 - [L2] 50-neovim 是 run_ 不是 run_onchange_：run_before_50-neovim.sh.tmpl
+ok 184 - [L2] 50-neovim 是 run_ 不是 run_onchange_：run_before_50-neovim.ps1.tmpl
+ok 185 - [L2] 60-pwsh-profile 把 $target 指向 $PROFILE.CurrentUserAllHosts
+ok 186 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 有套用 windows-path partial
+ok 187 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 的 PATH 補強有含 mise shims
+ok 188 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 有套用 windows-path partial
+ok 189 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 的 PATH 補強有含 mise shims
+ok 190 - [L2] run_before_50-neovim.ps1.tmpl 有套用 windows-path partial
+ok 191 - [L2] run_before_50-neovim.ps1.tmpl 的 PATH 補強有含 mise shims
+ok 192 - [L2] external 有裝一個 oh-my-posh 主題檔
+ok 193 - [L2] profile 讀的主題檔名與 external 裝的那一個一致
+ok 194 - [L2] profile 有初始化 oh-my-posh
+ok 195 - [L2] profile 有開啟 PSReadLine 的歷史預測（對應 zsh-autosuggestions）
+ok 196 - [L2] profile 有載入 PSFzf 的 TabExpansion（對應 fzf-tab）
+ok 197 - [L2] profile 有啟用 mise
+ok 198 - [L2] brew 清單裝的是 tree-sitter-cli（CLI）
+ok 199 - [L2] brew 清單沒有只裝函式庫的 tree-sitter formula
+ok 200 - [L2] winget 清單裝的是 tree-sitter.tree-sitter-cli
+ok 201 - [L2] 10-install-packages 在 arch 上用 pacman -S --needed --noconfirm
+ok 202 - [L2] 10-install-packages 在 arch 上沒有 apt-get
+ok 203 - [L2] 10-install-packages 在 arch 上沒有 dpkg-query
+ok 204 - [L2] 10-install-packages 在 arch 上沒有 pacman -Sy（部分升級／全系統升級都不准）
+ok 205 - [L2] 10-install-packages 在 arch 上沒有 pacman -R（不移除套件）
+ok 206 - [L2] 10-install-packages 在 arch 上沒有 --overwrite
+ok 207 - [L2] 10-install-packages 在 linux 上沒有 pacman
+ok 208 - [L2] 10-install-packages 在 arch 上的前置套件清單
+ok 209 - [L2] brew 清單可解析
+ok 210 - [L2] pacman 工具清單 = brew 工具清單 + neovim
+ok 211 - [L2] pacman 清單裝的是 tree-sitter-cli（CLI）
+ok 212 - [L2] 30-install-pacman-packages 用 -S --needed --noconfirm
+ok 213 - [L2] 30-install-pacman-packages 沒有 pacman -Sy
+ok 214 - [L2] 30-install-pacman-packages 沒有 pacman -R
+ok 215 - [L2] 30-install-pacman-packages 沒有 --overwrite
+ok 216 - [L2] arch / run_after_default-shell.sh.tmpl 沒有 linuxbrew
+ok 217 - [L2] arch / run_after_default-shell.sh.tmpl 沒有 brew shellenv
+ok 218 - [L2] arch / run_before_50-neovim.sh.tmpl 沒有 linuxbrew
+ok 219 - [L2] arch / run_before_50-neovim.sh.tmpl 沒有 brew shellenv
+ok 220 - [L2] arch / run_once_before_20-install-homebrew.sh.tmpl 沒有 linuxbrew
+ok 221 - [L2] arch / run_once_before_20-install-homebrew.sh.tmpl 沒有 brew shellenv
+ok 222 - [L2] arch / run_onchange_after_40-git-lfs.sh.tmpl 沒有 linuxbrew
+ok 223 - [L2] arch / run_onchange_after_40-git-lfs.sh.tmpl 沒有 brew shellenv
+ok 224 - [L2] arch / run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 沒有 linuxbrew
+ok 225 - [L2] arch / run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 沒有 brew shellenv
+ok 226 - [L2] arch / run_onchange_before_10-install-packages.sh.tmpl 沒有 linuxbrew
+ok 227 - [L2] arch / run_onchange_before_10-install-packages.sh.tmpl 沒有 brew shellenv
+ok 228 - [L2] arch / run_onchange_before_30-install-brew-packages.sh.tmpl 沒有 linuxbrew
+ok 229 - [L2] arch / run_onchange_before_30-install-brew-packages.sh.tmpl 沒有 brew shellenv
+ok 230 - [L2] arch / run_onchange_before_30-install-pacman-packages.sh.tmpl 沒有 linuxbrew
+ok 231 - [L2] arch / run_onchange_before_30-install-pacman-packages.sh.tmpl 沒有 brew shellenv
+ok 232 - [L2] arch / dot_zshrc.tmpl 沒有 linuxbrew
+ok 233 - [L2] arch / dot_zshrc.tmpl 沒有 brew shellenv
+ok 234 - [L2] arch / dot_zprofile.tmpl 沒有 linuxbrew
+ok 235 - [L2] arch / dot_zprofile.tmpl 沒有 brew shellenv
+ok 236 - [L2] omarchy / run_after_default-shell.sh.tmpl 沒有 linuxbrew
+ok 237 - [L2] omarchy / run_after_default-shell.sh.tmpl 沒有 brew shellenv
+not ok 238 - [L2] omarchy / run_before_50-neovim.sh.tmpl 沒有 linuxbrew
+#   expected NOT to contain: linuxbrew
+#   --- haystack ---
+#   | #!/bin/zsh
+#   | # Neovim (via mise) + the LazyVim starter config.
+#   | # `before`, because `git clone` refuses a non-empty target and chezmoi owns
+#   | # files *inside* ~/.config/nvim (private_dot_config/nvim/...). The starter has
+#   | # to land first; chezmoi then writes our overrides on top of it.
+#   | # `run_` rather than `run_onchange_`: the script is idempotent (`mise use` is a
+#   | # no-op for an installed version, the marker below stops the re-clone), so
+#   | # running it on every apply is what makes a removed neovim come back. With
+#   | # run_onchange_ it only re-ran when its own hash changed, and chezmoi keeps
+#   | # that hash in two state buckets, so "reinstall" meant hand-editing state.
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | if ! command -v mise &>/dev/null; then
+#   |   echo "chezmoi: mise not found, skipping neovim" >&2
+#   |   exit 0
+#   | fi
+#   | 
+#   | # `yes` is a mise setting, not a flag on `use`; the env var form is the one
+#   | # that is guaranteed to work here, and chezmoi runs this unattended.
+#   | export MISE_YES=1
+#   | 
+#   | # Writes neovim = "0.12.5" to ~/.config/mise/config.toml and installs it.
+#   | #
+#   | # Pinned rather than @latest, for two risks the other tools here do not carry:
+#   | #   - mise installs neovim's *official prebuilt* Linux binary, built on
+#   | #     ubuntu-22.04 (glibc 2.35). Debian 11 (2.31) cannot run it; 12 and 13 can.
+#   | #     That floor rises whenever neovim's CI moves to a newer runner.
+#   | #   - nvim-treesitter's `main` branch -- the one LazyVim tracks -- has already
+#   | #     tightened its minimum neovim version mid-flight once and broke installs
+#   | #     (LazyVim#7092). LazyVim guards against "too old", not against "too new".
+#   | # So bumping this is a deliberate act: re-read the Requirements sections of
+#   | # nvim-treesitter `main` and LazyVim first.
+#   | # Background: docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md
+#   | mise use --global neovim@0.12.5
+#   | 
+#   | # The LazyVim starter is a template, not a tracked dependency: clone it once and
+#   | # drop its .git. Whatever chezmoi does not explicitly own under
+#   | # private_dot_config/nvim/ is then the user's to edit in place -- nothing here
+#   | # is `exact`, so chezmoi will not delete or revert it.
+#   | nvim_config="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+#   | nvim_data="${XDG_DATA_HOME:-$HOME/.local/share}/nvim"
+#   | nvim_state="${XDG_STATE_HOME:-$HOME/.local/state}/nvim"
+#   | nvim_cache="${XDG_CACHE_HOME:-$HOME/.cache}/nvim"
+#   | 
+#   | # Our own marker, not LazyVim's. Directory existence is not a usable guard once
+#   | # this script moves things aside: on a re-run (this is run_, it runs on every
+#   | # apply) an existing ~/.config/nvim is the user's own config, not a foreign one,
+#   | # and must not be backed up and re-cloned over. Delete this file to deliberately
+#   | # force a clean re-bootstrap on the next apply.
+#   | marker="$nvim_config/.chezmoi-lazyvim-starter"
+#   | 
+#   | # `mv dir dir.bak` moves dir *inside* dir.bak when dir.bak already exists, which
+#   | # silently buries the older backup. Fall back to a timestamp instead.
+#   | backup_dir() {
+#   |   [[ -e $1 ]] || return 0
+#   |   local dest="$1.bak"
+#   |   if [[ -e $dest ]]; then
+#   |     dest="$1.bak.$(date +%Y%m%d%H%M%S)"
+#   |   fi
+#   |   echo "chezmoi: backing up $1 -> $dest"
+#   |   mv "$1" "$dest"
+#   | }
+#   | 
+#   | if [[ ! -e $marker ]]; then
+#   |   # LazyVim wants a clean slate: any pre-existing config and plugin data is
+#   |   # moved aside rather than merged. Nothing is deleted.
+#   |   backup_dir "$nvim_config"
+#   |   backup_dir "$nvim_data"
+#   |   backup_dir "$nvim_state"
+#   |   backup_dir "$nvim_cache"
+#   | 
+#   |   echo "chezmoi: cloning the LazyVim starter into $nvim_config"
+#   |   git clone --depth 1 https://github.com/LazyVim/starter "$nvim_config"
+#   |   rm -rf "$nvim_config/.git"
+#   |   touch "$marker"
+#   | fi
+not ok 239 - [L2] omarchy / run_before_50-neovim.sh.tmpl 沒有 brew shellenv
+#   expected NOT to contain: brew shellenv
+#   --- haystack ---
+#   | #!/bin/zsh
+#   | # Neovim (via mise) + the LazyVim starter config.
+#   | # `before`, because `git clone` refuses a non-empty target and chezmoi owns
+#   | # files *inside* ~/.config/nvim (private_dot_config/nvim/...). The starter has
+#   | # to land first; chezmoi then writes our overrides on top of it.
+#   | # `run_` rather than `run_onchange_`: the script is idempotent (`mise use` is a
+#   | # no-op for an installed version, the marker below stops the re-clone), so
+#   | # running it on every apply is what makes a removed neovim come back. With
+#   | # run_onchange_ it only re-ran when its own hash changed, and chezmoi keeps
+#   | # that hash in two state buckets, so "reinstall" meant hand-editing state.
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | if ! command -v mise &>/dev/null; then
+#   |   echo "chezmoi: mise not found, skipping neovim" >&2
+#   |   exit 0
+#   | fi
+#   | 
+#   | # `yes` is a mise setting, not a flag on `use`; the env var form is the one
+#   | # that is guaranteed to work here, and chezmoi runs this unattended.
+#   | export MISE_YES=1
+#   | 
+#   | # Writes neovim = "0.12.5" to ~/.config/mise/config.toml and installs it.
+#   | #
+#   | # Pinned rather than @latest, for two risks the other tools here do not carry:
+#   | #   - mise installs neovim's *official prebuilt* Linux binary, built on
+#   | #     ubuntu-22.04 (glibc 2.35). Debian 11 (2.31) cannot run it; 12 and 13 can.
+#   | #     That floor rises whenever neovim's CI moves to a newer runner.
+#   | #   - nvim-treesitter's `main` branch -- the one LazyVim tracks -- has already
+#   | #     tightened its minimum neovim version mid-flight once and broke installs
+#   | #     (LazyVim#7092). LazyVim guards against "too old", not against "too new".
+#   | # So bumping this is a deliberate act: re-read the Requirements sections of
+#   | # nvim-treesitter `main` and LazyVim first.
+#   | # Background: docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md
+#   | mise use --global neovim@0.12.5
+#   | 
+#   | # The LazyVim starter is a template, not a tracked dependency: clone it once and
+#   | # drop its .git. Whatever chezmoi does not explicitly own under
+#   | # private_dot_config/nvim/ is then the user's to edit in place -- nothing here
+#   | # is `exact`, so chezmoi will not delete or revert it.
+#   | nvim_config="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+#   | nvim_data="${XDG_DATA_HOME:-$HOME/.local/share}/nvim"
+#   | nvim_state="${XDG_STATE_HOME:-$HOME/.local/state}/nvim"
+#   | nvim_cache="${XDG_CACHE_HOME:-$HOME/.cache}/nvim"
+#   | 
+#   | # Our own marker, not LazyVim's. Directory existence is not a usable guard once
+#   | # this script moves things aside: on a re-run (this is run_, it runs on every
+#   | # apply) an existing ~/.config/nvim is the user's own config, not a foreign one,
+#   | # and must not be backed up and re-cloned over. Delete this file to deliberately
+#   | # force a clean re-bootstrap on the next apply.
+#   | marker="$nvim_config/.chezmoi-lazyvim-starter"
+#   | 
+#   | # `mv dir dir.bak` moves dir *inside* dir.bak when dir.bak already exists, which
+#   | # silently buries the older backup. Fall back to a timestamp instead.
+#   | backup_dir() {
+#   |   [[ -e $1 ]] || return 0
+#   |   local dest="$1.bak"
+#   |   if [[ -e $dest ]]; then
+#   |     dest="$1.bak.$(date +%Y%m%d%H%M%S)"
+#   |   fi
+#   |   echo "chezmoi: backing up $1 -> $dest"
+#   |   mv "$1" "$dest"
+#   | }
+#   | 
+#   | if [[ ! -e $marker ]]; then
+#   |   # LazyVim wants a clean slate: any pre-existing config and plugin data is
+#   |   # moved aside rather than merged. Nothing is deleted.
+#   |   backup_dir "$nvim_config"
+#   |   backup_dir "$nvim_data"
+#   |   backup_dir "$nvim_state"
+#   |   backup_dir "$nvim_cache"
+#   | 
+#   |   echo "chezmoi: cloning the LazyVim starter into $nvim_config"
+#   |   git clone --depth 1 https://github.com/LazyVim/starter "$nvim_config"
+#   |   rm -rf "$nvim_config/.git"
+#   |   touch "$marker"
+#   | fi
+not ok 240 - [L2] omarchy / run_once_before_20-install-homebrew.sh.tmpl 沒有 linuxbrew
+#   expected NOT to contain: linuxbrew
+#   --- haystack ---
+#   | #!/bin/zsh
+#   | # Runs after 10-install-packages, which installs zsh itself plus Homebrew's
+#   | # Linux build requirements.
+#   | set -euo pipefail
+#   | 
+#   | if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+#   |   exit 0
+#   | fi
+#   | 
+#   | # NONINTERACTIVE skips the "Press RETURN to continue" prompt. On Linux the
+#   | # installer still needs sudo to create /home/linuxbrew; 10-install-packages has
+#   | # already primed the credential cache.
+#   | echo "chezmoi: installing Homebrew"
+#   | NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | brew analytics off
+not ok 241 - [L2] omarchy / run_once_before_20-install-homebrew.sh.tmpl 沒有 brew shellenv
+#   expected NOT to contain: brew shellenv
+#   --- haystack ---
+#   | #!/bin/zsh
+#   | # Runs after 10-install-packages, which installs zsh itself plus Homebrew's
+#   | # Linux build requirements.
+#   | set -euo pipefail
+#   | 
+#   | if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+#   |   exit 0
+#   | fi
+#   | 
+#   | # NONINTERACTIVE skips the "Press RETURN to continue" prompt. On Linux the
+#   | # installer still needs sudo to create /home/linuxbrew; 10-install-packages has
+#   | # already primed the credential cache.
+#   | echo "chezmoi: installing Homebrew"
+#   | NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | brew analytics off
+not ok 242 - [L2] omarchy / run_onchange_after_40-git-lfs.sh.tmpl 沒有 linuxbrew
+#   expected NOT to contain: linuxbrew
+#   --- haystack ---
+#   | #!/bin/zsh
+#   | # `git lfs install` is a `git config --global` write. It must run AFTER files
+#   | # are applied: create_empty_dot_gitconfig guarantees ~/.gitconfig exists by
+#   | # then, so git writes there and not into chezmoi-owned ~/.config/git/config.
+#   | # That is also why [filter "lfs"] is deliberately absent from that file.
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | if ! command -v git-lfs &>/dev/null; then
+#   |   exit 0
+#   | fi
+#   | 
+#   | # --skip-repo: only write the global filter config, never touch the cwd repo.
+#   | git lfs install --skip-repo >/dev/null
+not ok 243 - [L2] omarchy / run_onchange_after_40-git-lfs.sh.tmpl 沒有 brew shellenv
+#   expected NOT to contain: brew shellenv
+#   --- haystack ---
+#   | #!/bin/zsh
+#   | # `git lfs install` is a `git config --global` write. It must run AFTER files
+#   | # are applied: create_empty_dot_gitconfig guarantees ~/.gitconfig exists by
+#   | # then, so git writes there and not into chezmoi-owned ~/.config/git/config.
+#   | # That is also why [filter "lfs"] is deliberately absent from that file.
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | if ! command -v git-lfs &>/dev/null; then
+#   |   exit 0
+#   | fi
+#   | 
+#   | # --skip-repo: only write the global filter config, never touch the cwd repo.
+#   | git lfs install --skip-repo >/dev/null
+ok 244 - [L2] omarchy / run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 沒有 linuxbrew
+ok 245 - [L2] omarchy / run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 沒有 brew shellenv
+ok 246 - [L2] omarchy / run_onchange_before_10-install-packages.sh.tmpl 沒有 linuxbrew
+ok 247 - [L2] omarchy / run_onchange_before_10-install-packages.sh.tmpl 沒有 brew shellenv
+not ok 248 - [L2] omarchy / run_onchange_before_30-install-brew-packages.sh.tmpl 沒有 linuxbrew
+#   expected NOT to contain: linuxbrew
+#   --- haystack ---
+#   | #!/bin/zsh
+#   | # brew packages shared by Linux and macOS. Add new tools here, not to
+#   | # 10-install-packages (apt, Linux only).
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | # Homebrew 6 made ask mode the default, so a bare `brew install` stops at
+#   | # "Do you want to proceed with the installation? [y/n]". chezmoi runs this
+#   | # unattended. The env var is preferred over `-y`: older Homebrew ignores an
+#   | # unknown variable but would abort on an unknown flag.
+#   | export HOMEBREW_NO_ASK=1
+#   | 
+#   | # tree-sitter-cli, not tree-sitter: since 0.27 the `tree-sitter` formula ships
+#   | # only libtree-sitter and the CLI lives in `tree-sitter-cli`. nvim-treesitter
+#   | # needs the CLI. Without it on PATH LazyVim falls back to mason's GitHub
+#   | # prebuilt binary, which wants glibc 2.39 and fails on Debian 12 (2.36); the
+#   | # brew bottle runs against brew's own glibc, so it works there.
+#   | for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli; do
+#   |   brew list --formula "$formula" &>/dev/null || brew install "$formula"
+#   | done
+not ok 249 - [L2] omarchy / run_onchange_before_30-install-brew-packages.sh.tmpl 沒有 brew shellenv
+#   expected NOT to contain: brew shellenv
+#   --- haystack ---
+#   | #!/bin/zsh
+#   | # brew packages shared by Linux and macOS. Add new tools here, not to
+#   | # 10-install-packages (apt, Linux only).
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | # Homebrew 6 made ask mode the default, so a bare `brew install` stops at
+#   | # "Do you want to proceed with the installation? [y/n]". chezmoi runs this
+#   | # unattended. The env var is preferred over `-y`: older Homebrew ignores an
+#   | # unknown variable but would abort on an unknown flag.
+#   | export HOMEBREW_NO_ASK=1
+#   | 
+#   | # tree-sitter-cli, not tree-sitter: since 0.27 the `tree-sitter` formula ships
+#   | # only libtree-sitter and the CLI lives in `tree-sitter-cli`. nvim-treesitter
+#   | # needs the CLI. Without it on PATH LazyVim falls back to mason's GitHub
+#   | # prebuilt binary, which wants glibc 2.39 and fails on Debian 12 (2.36); the
+#   | # brew bottle runs against brew's own glibc, so it works there.
+#   | for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli; do
+#   |   brew list --formula "$formula" &>/dev/null || brew install "$formula"
+#   | done
+ok 250 - [L2] omarchy / run_onchange_before_30-install-pacman-packages.sh.tmpl 沒有 linuxbrew
+ok 251 - [L2] omarchy / run_onchange_before_30-install-pacman-packages.sh.tmpl 沒有 brew shellenv
+not ok 252 - [L2] omarchy / dot_zshrc.tmpl 沒有 linuxbrew
+#   expected NOT to contain: linuxbrew
+#   --- haystack ---
+#   | # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+#   | # Initialization code that may require console input (password prompts, [y/n]
+#   | # confirmations, etc.) must go above this block; everything else may go below.
+#   | if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+#   |   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+#   | fi
+#   | 
+#   | # ---- PATH ---------------------------------------------------------------
+#   | export PATH="$HOME/.local/bin:$PATH"
+#   | 
+#   | 
+#   | # homebrew setup
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | 
+#   | # ---- Oh My Zsh ----------------------------------------------------------
+#   | export ZSH="$HOME/.oh-my-zsh"
+#   | ZSH_THEME="powerlevel10k/powerlevel10k"
+#   | # fzf-tab must come before zsh-autosuggestions/zsh-syntax-highlighting: those
+#   | # wrap ZLE widgets, and fzf-tab has to wrap them first.
+#   | plugins=(git mise fzf-tab zsh-autosuggestions zsh-syntax-highlighting)
+#   | # chezmoi owns the OMZ version via .chezmoiexternal.toml refreshPeriod.
+#   | zstyle ':omz:update' mode disabled
+#   | source "$ZSH/oh-my-zsh.sh"
+#   | 
+#   | # mise is NOT activated here: the OMZ `mise` plugin above already runs
+#   | # `mise activate zsh` and additionally wires up completions. mise comes from
+#   | # brew, which is why the shellenv above has to precede oh-my-zsh.sh -- the
+#   | # plugin bails out early if mise is not already on PATH.
+#   | 
+#   | # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+#   | [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+not ok 253 - [L2] omarchy / dot_zshrc.tmpl 沒有 brew shellenv
+#   expected NOT to contain: brew shellenv
+#   --- haystack ---
+#   | # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+#   | # Initialization code that may require console input (password prompts, [y/n]
+#   | # confirmations, etc.) must go above this block; everything else may go below.
+#   | if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+#   |   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+#   | fi
+#   | 
+#   | # ---- PATH ---------------------------------------------------------------
+#   | export PATH="$HOME/.local/bin:$PATH"
+#   | 
+#   | 
+#   | # homebrew setup
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | 
+#   | # ---- Oh My Zsh ----------------------------------------------------------
+#   | export ZSH="$HOME/.oh-my-zsh"
+#   | ZSH_THEME="powerlevel10k/powerlevel10k"
+#   | # fzf-tab must come before zsh-autosuggestions/zsh-syntax-highlighting: those
+#   | # wrap ZLE widgets, and fzf-tab has to wrap them first.
+#   | plugins=(git mise fzf-tab zsh-autosuggestions zsh-syntax-highlighting)
+#   | # chezmoi owns the OMZ version via .chezmoiexternal.toml refreshPeriod.
+#   | zstyle ':omz:update' mode disabled
+#   | source "$ZSH/oh-my-zsh.sh"
+#   | 
+#   | # mise is NOT activated here: the OMZ `mise` plugin above already runs
+#   | # `mise activate zsh` and additionally wires up completions. mise comes from
+#   | # brew, which is why the shellenv above has to precede oh-my-zsh.sh -- the
+#   | # plugin bails out early if mise is not already on PATH.
+#   | 
+#   | # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+#   | [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+not ok 254 - [L2] omarchy / dot_zprofile.tmpl 沒有 linuxbrew
+#   expected NOT to contain: linuxbrew
+#   --- haystack ---
+#   | # mise shims for non-interactive login shells (see mise docs: shims for
+#   | # non-interactive, `mise activate` for interactive).
+#   | # ~/.local/bin is NOT on the default login PATH, so prepend it before probing.
+#   | export PATH="$HOME/.local/bin:$PATH"
+#   | 
+#   | # mise is installed by brew, so brew has to come first. `typeset -U path` keeps
+#   | # the entries unique when .zshrc runs shellenv again for interactive shells.
+#   | typeset -U path
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | if (( $+commands[mise] )); then
+#   |   eval "$(mise activate zsh --shims)"
+#   | fi
+not ok 255 - [L2] omarchy / dot_zprofile.tmpl 沒有 brew shellenv
+#   expected NOT to contain: brew shellenv
+#   --- haystack ---
+#   | # mise shims for non-interactive login shells (see mise docs: shims for
+#   | # non-interactive, `mise activate` for interactive).
+#   | # ~/.local/bin is NOT on the default login PATH, so prepend it before probing.
+#   | export PATH="$HOME/.local/bin:$PATH"
+#   | 
+#   | # mise is installed by brew, so brew has to come first. `typeset -U path` keeps
+#   | # the entries unique when .zshrc runs shellenv again for interactive shells.
+#   | typeset -U path
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | if (( $+commands[mise] )); then
+#   |   eval "$(mise activate zsh --shims)"
+#   | fi
+not ok 256 - [L2] omarchy / run_after_default-shell.sh.tmpl 的渲染與 arch 逐位元組相同
+#   /tmp/dotfiles-tests.OjAjwn/l2-arch-run_after_default-shell.sh.tmpl /tmp/dotfiles-tests.OjAjwn/l2-omarchy-run_after_default-shell.sh.tmpl differ: byte 100, line 9
+#   expected 1514 bytes, actual 950 bytes
+#   --- expected ---
+#   | #!/bin/sh
+#   | set -eu
+#   | 
+#   | zsh_path="$(command -v zsh || true)"
+#   | if [ -z "$zsh_path" ]; then
+#   |     exit 0
+#   | fi
+#   | 
+#   | # Arch merges /usr/sbin into /usr/bin and its default PATH lists /usr/sbin
+#   | # first, so `command -v zsh` reports /usr/sbin/zsh (omarchy, measured) while
+#   | # /etc/shells lists /usr/bin/zsh and /bin/zsh. pam_shells compares strings,
+#   | # so hand chsh the /etc/shells entry that resolves to the same file.
+#   | zsh_real="$(readlink -f "$zsh_path")"
+#   | while IFS= read -r candidate; do
+#   |     case "$candidate" in /*) ;; *) continue ;; esac
+#   |     if [ "$(readlink -f "$candidate" 2>/dev/null)" = "$zsh_real" ]; then
+#   |         zsh_path="$candidate"
+#   |         break
+#   |     fi
+#   | done < /etc/shells
+#   | 
+#   | current="$(getent passwd "$(id -un)" | cut -d: -f7)"
+#   | if [ "$current" = "$zsh_path" ]; then
+#   |     exit 0            # already converged: silent no-op
+#   | fi
+#   | 
+#   | # /etc/pam.d/chsh has `auth required pam_shells.so`, so a shell outside
+#   | # /etc/shells is refused outright.
+#   | if ! grep -qxF "$zsh_path" /etc/shells; then
+#   |     echo "chezmoi: $zsh_path is not in /etc/shells, so chsh will refuse." >&2
+#   |     echo "chezmoi: run: echo '$zsh_path' | sudo tee -a /etc/shells" >&2
+#   |     exit 0
+#   | fi
+#   | 
+#   | if [ ! -t 0 ]; then
+#   |     echo "chezmoi: login shell is $current. From a terminal run: chsh -s $zsh_path" >&2
+#   |     exit 0
+#   | fi
+#   | 
+#   | echo "chezmoi: changing login shell to $zsh_path (chsh asks for YOUR password)"
+#   | if chsh -s "$zsh_path"; then
+#   |     echo "chezmoi: log out and back in for the change to take effect."
+#   | else
+#   |     echo "chezmoi: chsh failed. Run it manually: chsh -s $zsh_path" >&2
+#   | fi
+#   --- actual ---
+#   | #!/bin/sh
+#   | set -eu
+#   | 
+#   | zsh_path="$(command -v zsh || true)"
+#   | if [ -z "$zsh_path" ]; then
+#   |     exit 0
+#   | fi
+#   | 
+#   | current="$(getent passwd "$(id -un)" | cut -d: -f7)"
+#   | if [ "$current" = "$zsh_path" ]; then
+#   |     exit 0            # already converged: silent no-op
+#   | fi
+#   | 
+#   | # /etc/pam.d/chsh has `auth required pam_shells.so`, so a shell outside
+#   | # /etc/shells is refused outright.
+#   | if ! grep -qxF "$zsh_path" /etc/shells; then
+#   |     echo "chezmoi: $zsh_path is not in /etc/shells, so chsh will refuse." >&2
+#   |     echo "chezmoi: run: echo '$zsh_path' | sudo tee -a /etc/shells" >&2
+#   |     exit 0
+#   | fi
+#   | 
+#   | if [ ! -t 0 ]; then
+#   |     echo "chezmoi: login shell is $current. From a terminal run: chsh -s $zsh_path" >&2
+#   |     exit 0
+#   | fi
+#   | 
+#   | echo "chezmoi: changing login shell to $zsh_path (chsh asks for YOUR password)"
+#   | if chsh -s "$zsh_path"; then
+#   |     echo "chezmoi: log out and back in for the change to take effect."
+#   | else
+#   |     echo "chezmoi: chsh failed. Run it manually: chsh -s $zsh_path" >&2
+#   | fi
+not ok 257 - [L2] omarchy / run_before_50-neovim.sh.tmpl 的渲染與 arch 逐位元組相同
+#   /tmp/dotfiles-tests.OjAjwn/l2-arch-run_before_50-neovim.sh.tmpl /tmp/dotfiles-tests.OjAjwn/l2-omarchy-run_before_50-neovim.sh.tmpl differ: byte 14, line 2
+#   expected 2499 bytes, actual 3557 bytes
+#   --- expected ---
+#   | #!/bin/zsh
+#   | # The LazyVim starter config on the pacman platforms. neovim itself is a pacman
+#   | # package (30-install-pacman-packages); the versions.toml pin does not apply
+#   | # here. Same `before` / `run_` reasoning as the Debian branch of this template.
+#   | set -euo pipefail
+#   | 
+#   | # omarchy ships its own LazyVim config through the omarchy-nvim package and
+#   | # puts it in ~/.config/nvim at useradd time. That config must stay exactly where
+#   | # it is (theme hot-reload, omarchy's plugins), so on such a machine this script
+#   | # does nothing: no backup, no clone, no marker. The check is at run time rather
+#   | # than render time because both omarchy flavours (WSL image with ID=arch,
+#   | # ISO install with ID=omarchy) and plain Arch reach this same rendering.
+#   | if pacman -Q omarchy-nvim &>/dev/null; then
+#   |   exit 0
+#   | fi
+#   | 
+#   | # The LazyVim starter is a template, not a tracked dependency: clone it once and
+#   | # drop its .git. Whatever chezmoi does not explicitly own under
+#   | # private_dot_config/nvim/ is then the user's to edit in place -- nothing here
+#   | # is `exact`, so chezmoi will not delete or revert it.
+#   | nvim_config="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+#   | nvim_data="${XDG_DATA_HOME:-$HOME/.local/share}/nvim"
+#   | nvim_state="${XDG_STATE_HOME:-$HOME/.local/state}/nvim"
+#   | nvim_cache="${XDG_CACHE_HOME:-$HOME/.cache}/nvim"
+#   | 
+#   | # Our own marker, not LazyVim's. Directory existence is not a usable guard once
+#   | # this script moves things aside: on a re-run (this is run_, it runs on every
+#   | # apply) an existing ~/.config/nvim is the user's own config, not a foreign one,
+#   | # and must not be backed up and re-cloned over. Delete this file to deliberately
+#   | # force a clean re-bootstrap on the next apply.
+#   | marker="$nvim_config/.chezmoi-lazyvim-starter"
+#   | 
+#   | # `mv dir dir.bak` moves dir *inside* dir.bak when dir.bak already exists, which
+#   | # silently buries the older backup. Fall back to a timestamp instead.
+#   | backup_dir() {
+#   |   [[ -e $1 ]] || return 0
+#   |   local dest="$1.bak"
+#   |   if [[ -e $dest ]]; then
+#   |     dest="$1.bak.$(date +%Y%m%d%H%M%S)"
+#   |   fi
+#   |   echo "chezmoi: backing up $1 -> $dest"
+#   |   mv "$1" "$dest"
+#   | }
+#   | 
+#   | if [[ ! -e $marker ]]; then
+#   |   # LazyVim wants a clean slate: any pre-existing config and plugin data is
+#   |   # moved aside rather than merged. Nothing is deleted.
+#   |   backup_dir "$nvim_config"
+#   |   backup_dir "$nvim_data"
+#   |   backup_dir "$nvim_state"
+#   |   backup_dir "$nvim_cache"
+#   | 
+#   |   echo "chezmoi: cloning the LazyVim starter into $nvim_config"
+#   |   git clone --depth 1 https://github.com/LazyVim/starter "$nvim_config"
+#   |   rm -rf "$nvim_config/.git"
+#   |   touch "$marker"
+#   | fi
+#   --- actual ---
+#   | #!/bin/zsh
+#   | # Neovim (via mise) + the LazyVim starter config.
+#   | # `before`, because `git clone` refuses a non-empty target and chezmoi owns
+#   | # files *inside* ~/.config/nvim (private_dot_config/nvim/...). The starter has
+#   | # to land first; chezmoi then writes our overrides on top of it.
+#   | # `run_` rather than `run_onchange_`: the script is idempotent (`mise use` is a
+#   | # no-op for an installed version, the marker below stops the re-clone), so
+#   | # running it on every apply is what makes a removed neovim come back. With
+#   | # run_onchange_ it only re-ran when its own hash changed, and chezmoi keeps
+#   | # that hash in two state buckets, so "reinstall" meant hand-editing state.
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | if ! command -v mise &>/dev/null; then
+#   |   echo "chezmoi: mise not found, skipping neovim" >&2
+#   |   exit 0
+#   | fi
+#   | 
+#   | # `yes` is a mise setting, not a flag on `use`; the env var form is the one
+#   | # that is guaranteed to work here, and chezmoi runs this unattended.
+#   | export MISE_YES=1
+#   | 
+#   | # Writes neovim = "0.12.5" to ~/.config/mise/config.toml and installs it.
+#   | #
+#   | # Pinned rather than @latest, for two risks the other tools here do not carry:
+#   | #   - mise installs neovim's *official prebuilt* Linux binary, built on
+#   | #     ubuntu-22.04 (glibc 2.35). Debian 11 (2.31) cannot run it; 12 and 13 can.
+#   | #     That floor rises whenever neovim's CI moves to a newer runner.
+#   | #   - nvim-treesitter's `main` branch -- the one LazyVim tracks -- has already
+#   | #     tightened its minimum neovim version mid-flight once and broke installs
+#   | #     (LazyVim#7092). LazyVim guards against "too old", not against "too new".
+#   | # So bumping this is a deliberate act: re-read the Requirements sections of
+#   | # nvim-treesitter `main` and LazyVim first.
+#   | # Background: docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md
+#   | mise use --global neovim@0.12.5
+#   | 
+#   | # The LazyVim starter is a template, not a tracked dependency: clone it once and
+#   | # drop its .git. Whatever chezmoi does not explicitly own under
+#   | # private_dot_config/nvim/ is then the user's to edit in place -- nothing here
+#   | # is `exact`, so chezmoi will not delete or revert it.
+#   | nvim_config="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+#   | nvim_data="${XDG_DATA_HOME:-$HOME/.local/share}/nvim"
+#   | nvim_state="${XDG_STATE_HOME:-$HOME/.local/state}/nvim"
+#   | nvim_cache="${XDG_CACHE_HOME:-$HOME/.cache}/nvim"
+#   | 
+#   | # Our own marker, not LazyVim's. Directory existence is not a usable guard once
+#   | # this script moves things aside: on a re-run (this is run_, it runs on every
+#   | # apply) an existing ~/.config/nvim is the user's own config, not a foreign one,
+#   | # and must not be backed up and re-cloned over. Delete this file to deliberately
+#   | # force a clean re-bootstrap on the next apply.
+#   | marker="$nvim_config/.chezmoi-lazyvim-starter"
+#   | 
+#   | # `mv dir dir.bak` moves dir *inside* dir.bak when dir.bak already exists, which
+#   | # silently buries the older backup. Fall back to a timestamp instead.
+#   | backup_dir() {
+#   |   [[ -e $1 ]] || return 0
+#   |   local dest="$1.bak"
+#   |   if [[ -e $dest ]]; then
+#   |     dest="$1.bak.$(date +%Y%m%d%H%M%S)"
+#   |   fi
+#   |   echo "chezmoi: backing up $1 -> $dest"
+#   |   mv "$1" "$dest"
+#   | }
+#   | 
+#   | if [[ ! -e $marker ]]; then
+#   |   # LazyVim wants a clean slate: any pre-existing config and plugin data is
+#   |   # moved aside rather than merged. Nothing is deleted.
+#   |   backup_dir "$nvim_config"
+#   |   backup_dir "$nvim_data"
+#   |   backup_dir "$nvim_state"
+#   |   backup_dir "$nvim_cache"
+#   | 
+#   |   echo "chezmoi: cloning the LazyVim starter into $nvim_config"
+#   |   git clone --depth 1 https://github.com/LazyVim/starter "$nvim_config"
+#   |   rm -rf "$nvim_config/.git"
+#   |   touch "$marker"
+#   | fi
+not ok 258 - [L2] omarchy / run_once_before_20-install-homebrew.sh.tmpl 的渲染與 arch 逐位元組相同
+#   cmp: EOF on ‘/tmp/dotfiles-tests.OjAjwn/l2-arch-run_once_before_20-install-homebrew.sh.tmpl’ which is empty
+#   expected 0 bytes, actual 619 bytes
+#   --- expected ---
+#   | 
+#   --- actual ---
+#   | #!/bin/zsh
+#   | # Runs after 10-install-packages, which installs zsh itself plus Homebrew's
+#   | # Linux build requirements.
+#   | set -euo pipefail
+#   | 
+#   | if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+#   |   exit 0
+#   | fi
+#   | 
+#   | # NONINTERACTIVE skips the "Press RETURN to continue" prompt. On Linux the
+#   | # installer still needs sudo to create /home/linuxbrew; 10-install-packages has
+#   | # already primed the credential cache.
+#   | echo "chezmoi: installing Homebrew"
+#   | NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | brew analytics off
+not ok 259 - [L2] omarchy / run_onchange_after_40-git-lfs.sh.tmpl 的渲染與 arch 逐位元組相同
+#   /tmp/dotfiles-tests.OjAjwn/l2-arch-run_onchange_after_40-git-lfs.sh.tmpl /tmp/dotfiles-tests.OjAjwn/l2-omarchy-run_onchange_after_40-git-lfs.sh.tmpl differ: byte 335, line 8
+#   expected 507 bytes, actual 562 bytes
+#   --- expected ---
+#   | #!/bin/zsh
+#   | # `git lfs install` is a `git config --global` write. It must run AFTER files
+#   | # are applied: create_empty_dot_gitconfig guarantees ~/.gitconfig exists by
+#   | # then, so git writes there and not into chezmoi-owned ~/.config/git/config.
+#   | # That is also why [filter "lfs"] is deliberately absent from that file.
+#   | set -euo pipefail
+#   | 
+#   | 
+#   | if ! command -v git-lfs &>/dev/null; then
+#   |   exit 0
+#   | fi
+#   | 
+#   | # --skip-repo: only write the global filter config, never touch the cwd repo.
+#   | git lfs install --skip-repo >/dev/null
+#   --- actual ---
+#   | #!/bin/zsh
+#   | # `git lfs install` is a `git config --global` write. It must run AFTER files
+#   | # are applied: create_empty_dot_gitconfig guarantees ~/.gitconfig exists by
+#   | # then, so git writes there and not into chezmoi-owned ~/.config/git/config.
+#   | # That is also why [filter "lfs"] is deliberately absent from that file.
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | if ! command -v git-lfs &>/dev/null; then
+#   |   exit 0
+#   | fi
+#   | 
+#   | # --skip-repo: only write the global filter config, never touch the cwd repo.
+#   | git lfs install --skip-repo >/dev/null
+ok 260 - [L2] omarchy / run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 的渲染與 arch 逐位元組相同
+not ok 261 - [L2] omarchy / run_onchange_before_10-install-packages.sh.tmpl 的渲染與 arch 逐位元組相同
+#   /tmp/dotfiles-tests.OjAjwn/l2-arch-run_onchange_before_10-install-packages.sh.tmpl /tmp/dotfiles-tests.OjAjwn/l2-omarchy-run_onchange_before_10-install-packages.sh.tmpl differ: byte 40, line 2
+#   expected 2148 bytes, actual 1091 bytes
+#   --- expected ---
+#   | #!/bin/sh
+#   | # OS-level prerequisites only, Arch flavour: zsh for default-shell, git/curl for
+#   | # chezmoi and the externals, base-devel for the C compiler nvim-treesitter
+#   | # needs. The tools themselves are in 30-install-pacman-packages, the pacman
+#   | # twin of the brew list. No Homebrew on Arch (SPEC archlinux-support Must NOT #4).
+#   | set -eu
+#   | 
+#   | # Shared by 10-install-packages (Arch branch) and 30-install-pacman-packages.
+#   | # Usage: pacman_install_missing <pkg>...  -- installs only the packages that
+#   | # `pacman -Q` does not know, with the same root/sudo handling as the apt path.
+#   | #
+#   | # -S --needed --noconfirm and nothing else. No -Sy: refreshing the database
+#   | # without upgrading is the partial-upgrade state Arch does not support. No
+#   | # -Syu: a full system upgrade is the user's (or omarchy-update's) decision, not
+#   | # an apply side effect. The price is that a stale database makes -S fail with
+#   | # 404s, so that case gets an explicit hint instead of a silent retry.
+#   | pacman_install_missing() {
+#   |     missing=""
+#   |     for _pkg in "$@"; do
+#   |         if ! pacman -Q "$_pkg" >/dev/null 2>&1; then
+#   |             missing="$missing $_pkg"
+#   |         fi
+#   |     done
+#   |     if [ -z "$missing" ]; then
+#   |         return 0
+#   |     fi
+#   | 
+#   |     echo "chezmoi: installing missing packages:$missing"
+#   |     if [ "$(id -u)" -eq 0 ]; then
+#   |         pacman -S --needed --noconfirm $missing && return 0
+#   |     elif command -v sudo >/dev/null 2>&1; then
+#   |         # Prime the sudo credential cache first: fails fast and loudly with no
+#   |         # tty, instead of hanging or half-installing.
+#   |         if ! sudo -v; then
+#   |             echo "chezmoi: sudo authentication failed. Run: sudo pacman -S --needed$missing" >&2
+#   |             return 1
+#   |         fi
+#   |         sudo pacman -S --needed --noconfirm $missing && return 0
+#   |     else
+#   |         echo "chezmoi: sudo not available. Run as root: pacman -S --needed$missing" >&2
+#   |         return 1
+#   |     fi
+#   |     echo "chezmoi: pacman failed. A stale package database is the usual cause: update the system first (omarchy: Update > Omarchy; plain Arch: a full system upgrade), then re-run chezmoi apply." >&2
+#   |     return 1
+#   | }
+#   | 
+#   | for pkg in zsh git curl base-devel; do
+#   |     pacman_install_missing "$pkg"
+#   | done
+#   --- actual ---
+#   | #!/bin/sh
+#   | # OS-level prerequisites only: zsh/git/curl plus what the Homebrew installer
+#   | # needs on Linux. Everything else (fzf, mise, git-lfs, ...) is a brew formula
+#   | # in 30-install-brew-packages so the list is shared with macOS.
+#   | set -eu
+#   | 
+#   | missing=""
+#   | for pkg in zsh git curl build-essential procps file; do
+#   |     if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q '^install ok installed$'; then
+#   |         missing="$missing $pkg"
+#   |     fi
+#   | done
+#   | if [ -z "$missing" ]; then
+#   |     exit 0
+#   | fi
+#   | 
+#   | echo "chezmoi: installing missing packages:$missing"
+#   | if [ "$(id -u)" -eq 0 ]; then
+#   |     apt-get update && apt-get install -y $missing
+#   | elif command -v sudo >/dev/null 2>&1; then
+#   |     # Prime the sudo credential cache first: fails fast and loudly with no tty,
+#   |     # instead of hanging or half-installing.
+#   |     if ! sudo -v; then
+#   |         echo "chezmoi: sudo authentication failed. Run: sudo apt-get install -y$missing" >&2
+#   |         exit 1
+#   |     fi
+#   |     sudo apt-get update && sudo apt-get install -y $missing
+#   | else
+#   |     echo "chezmoi: sudo not available. Run as root: apt-get install -y$missing" >&2
+#   |     exit 1
+#   | fi
+not ok 262 - [L2] omarchy / run_onchange_before_30-install-brew-packages.sh.tmpl 的渲染與 arch 逐位元組相同
+#   cmp: EOF on ‘/tmp/dotfiles-tests.OjAjwn/l2-arch-run_onchange_before_30-install-brew-packages.sh.tmpl’ which is empty
+#   expected 0 bytes, actual 1022 bytes
+#   --- expected ---
+#   | 
+#   --- actual ---
+#   | #!/bin/zsh
+#   | # brew packages shared by Linux and macOS. Add new tools here, not to
+#   | # 10-install-packages (apt, Linux only).
+#   | set -euo pipefail
+#   | 
+#   | eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#   | 
+#   | # Homebrew 6 made ask mode the default, so a bare `brew install` stops at
+#   | # "Do you want to proceed with the installation? [y/n]". chezmoi runs this
+#   | # unattended. The env var is preferred over `-y`: older Homebrew ignores an
+#   | # unknown variable but would abort on an unknown flag.
+#   | export HOMEBREW_NO_ASK=1
+#   | 
+#   | # tree-sitter-cli, not tree-sitter: since 0.27 the `tree-sitter` formula ships
+#   | # only libtree-sitter and the CLI lives in `tree-sitter-cli`. nvim-treesitter
+#   | # needs the CLI. Without it on PATH LazyVim falls back to mason's GitHub
+#   | # prebuilt binary, which wants glibc 2.39 and fails on Debian 12 (2.36); the
+#   | # brew bottle runs against brew's own glibc, so it works there.
+#   | for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli; do
+#   |   brew list --formula "$formula" &>/dev/null || brew install "$formula"
+#   | done
+not ok 263 - [L2] omarchy / run_onchange_before_30-install-pacman-packages.sh.tmpl 的渲染與 arch 逐位元組相同
+#   cmp: EOF on ‘/tmp/dotfiles-tests.OjAjwn/l2-omarchy-run_onchange_before_30-install-pacman-packages.sh.tmpl’ which is empty
+#   expected 2241 bytes, actual 0 bytes
+#   --- expected ---
+#   | #!/bin/sh
+#   | # pacman twin of 30-install-brew-packages: the same tools from Arch's own repos
+#   | # (all in `extra`, no AUR), plus neovim itself. On Arch neovim is a pacman
+#   | # package, not a mise pin, and the LazyVim config comes from omarchy's
+#   | # omarchy-nvim package, so 50-neovim renders empty here (SPEC archlinux-support
+#   | # D1). Keep this list and the brew list in sync; L2 compares them.
+#   | set -eu
+#   | 
+#   | # Shared by 10-install-packages (Arch branch) and 30-install-pacman-packages.
+#   | # Usage: pacman_install_missing <pkg>...  -- installs only the packages that
+#   | # `pacman -Q` does not know, with the same root/sudo handling as the apt path.
+#   | #
+#   | # -S --needed --noconfirm and nothing else. No -Sy: refreshing the database
+#   | # without upgrading is the partial-upgrade state Arch does not support. No
+#   | # -Syu: a full system upgrade is the user's (or omarchy-update's) decision, not
+#   | # an apply side effect. The price is that a stale database makes -S fail with
+#   | # 404s, so that case gets an explicit hint instead of a silent retry.
+#   | pacman_install_missing() {
+#   |     missing=""
+#   |     for _pkg in "$@"; do
+#   |         if ! pacman -Q "$_pkg" >/dev/null 2>&1; then
+#   |             missing="$missing $_pkg"
+#   |         fi
+#   |     done
+#   |     if [ -z "$missing" ]; then
+#   |         return 0
+#   |     fi
+#   | 
+#   |     echo "chezmoi: installing missing packages:$missing"
+#   |     if [ "$(id -u)" -eq 0 ]; then
+#   |         pacman -S --needed --noconfirm $missing && return 0
+#   |     elif command -v sudo >/dev/null 2>&1; then
+#   |         # Prime the sudo credential cache first: fails fast and loudly with no
+#   |         # tty, instead of hanging or half-installing.
+#   |         if ! sudo -v; then
+#   |             echo "chezmoi: sudo authentication failed. Run: sudo pacman -S --needed$missing" >&2
+#   |             return 1
+#   |         fi
+#   |         sudo pacman -S --needed --noconfirm $missing && return 0
+#   |     else
+#   |         echo "chezmoi: sudo not available. Run as root: pacman -S --needed$missing" >&2
+#   |         return 1
+#   |     fi
+#   |     echo "chezmoi: pacman failed. A stale package database is the usual cause: update the system first (omarchy: Update > Omarchy; plain Arch: a full system upgrade), then re-run chezmoi apply." >&2
+#   |     return 1
+#   | }
+#   | 
+#   | for pkg in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim; do
+#   |     pacman_install_missing "$pkg"
+#   | done
+#   --- actual ---
+#   | 
+ok 264 - [L2] 50-neovim 在 arch 上以 pacman -Q omarchy-nvim 決定是否跳過
+ok 265 - [L2] 50-neovim 在 arch 上沒有 mise
+ok 266 - [L2] 50-neovim 在 arch 上沒有 neovim@ 釘版本
+ok 267 - [L2] 50-neovim 在 arch 上沒有 brew
+ok 268 - [L2] 50-neovim 在 arch 上仍會 clone LazyVim starter
+ok 269 - [L2] 50-neovim 在 arch 上仍用同一個 marker
+ok 270 - [L2] 50-neovim 在 linux 上沒有 pacman
+ok 271 - [L2] 40-git-lfs 在 arch 上仍執行 git lfs install --skip-repo
+ok 272 - [L2] 40-git-lfs 在 linux 上先載入 brew shellenv
+ok 273 - [L2] default-shell 在 arch 上用 readlink -f 把 zsh 對回 /etc/shells 的條目
+ok 274 - [L2] default-shell 在 arch 上逐行讀 /etc/shells
+ok 275 - [L2] default-shell 在 linux 上沒有這段（渲染不變）
+ok 276 - [L2] Windows 的設定有釘住 .ps1 的直譯器
+ok 277 - [L2] 直譯器是 pwsh（不是 Windows PowerShell 5.1）
+ok 278 - [L2] 直譯器帶 -ExecutionPolicy Bypass（Restricted 下腳本一律拒載）
+ok 279 - [L2] 直譯器帶 -NoProfile
+ok 280 - [L2] 直譯器的最後一個參數是 -File（腳本路徑接在後面）
+ok 281 - [L2] linux 的設定沒有 interpreters 區段
+ok 282 - [L2] linux-arm64 的設定沒有 interpreters 區段
+ok 283 - [L2] darwin-arm64 的設定沒有 interpreters 區段
+ok 284 - [L2] darwin-amd64 的設定沒有 interpreters 區段
+ok 285 - [L2] winget 清單有 WinLibs 的 gcc（nvim-treesitter 認得的 C compiler）
+ok 286 - [L2] zig 已從 winget 清單移除（它的唯一理由已不成立）
+1..286
+# run 286, failed 24, skipped 0

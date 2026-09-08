@@ -1,0 +1,35 @@
+changed-line accounting vs 4e6f13c
+  set 1  executable + instrumented : 0
+  set 2  not executable            : 707
+  set 3  executable, NO mapping    : 500
+  total added lines                : 1207
+
+  不含 .scratch/（evidence report 本身）的產品/測試數字：set2=707 set3=500 total=1207
+
+  set 3 是全部 —— 這個 repo 的三種語言（chezmoi Go template、POSIX/zsh shell、PowerShell）在這個環境裡都沒有覆蓋率工具。
+  evidence report 因此把 coverage 那一層記成 UNAVAILABLE，改用 Table 1 的逐單元對應與 mutation 兩層去補。
+
+     9 set3    11 set2  .chezmoiscripts/run_before_50-neovim.sh.tmpl
+    11 set3     1 set2  .chezmoitemplates/platform.toml
+     0 set3    41 set2  AGENTS.md
+     0 set3    28 set2  README.md
+     0 set3     8 set2  docs/research/archlinux-omarchy-support.md
+     0 set3   209 set2  specs/arch-family-support/SPEC.md
+    13 set3     7 set2  tests/cases/L1-platform.sh
+    30 set3    15 set2  tests/cases/L11-render-golden.sh
+    37 set3    18 set2  tests/cases/L2-script-render-matrix.sh
+    62 set3    16 set2  tests/cases/L7-behavior.sh
+     6 set3     4 set2  tests/fixtures/os-omarchy.toml
+    27 set3    30 set2  tests/golden/render/arch/50-neovim.sh
+    31 set3    47 set2  tests/golden/render/darwin-amd64/50-neovim.sh
+    31 set3    47 set2  tests/golden/render/darwin-arm64/50-neovim.sh
+    31 set3    47 set2  tests/golden/render/linux/50-neovim.sh
+    29 set3    21 set2  tests/golden/verbatim/_probe.sh
+     2 set3     2 set2  tests/lib.sh
+     0 set3    36 set2  tests/sandbox/README.md
+    29 set3    21 set2  tests/sandbox/_probe.sh
+    19 set3    29 set2  tests/sandbox/omarchy.sh
+    69 set3    57 set2  tests/sandbox/ssh.sh
+    39 set3     1 set2  tools/gate-mutants.py
+    24 set3    11 set2  tools/gate-pacman-ids.sh
+     1 set3     0 set2  tools/gate-supply-chain.py

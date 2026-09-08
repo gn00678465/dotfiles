@@ -1,0 +1,91 @@
+��───
+
+─ Conversation recap ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  目標是透過 Herdr 委派 claude-fable 修正。已確認位於 Herdr，並停止先前直接啟動的 Claude CLI；目前控制介面連線遭沙箱拒絕，
+  尚未委派，待解除連線限制後繼續。
+
+
+› $ponytail-review 請審查分支 feat/arch-family-support 相對 main（4e6f13c）的全部變更。SPEC 在
+  specs/arch-family-support/SPEC.md（v1，approved，Tier 3）。重點：.chezmoitemplates/platform.toml 的 ID_LIKE
+  判斷、.chezmoiscripts/run_before_50-neovim.sh.tmpl 的兩段結構與 pacman -Q omarchy-nvim
+  執行期判斷、tests/sandbox/_probe.sh 與 ssh.sh/omarchy.sh、以及 SPEC 的 Must NOT
+  是否都有對應測試。只回報可採取行動的發現，按嚴重度排序，每一條附檔案與行號。不要修改任何檔案。
+
+
+⚠ Skill descriptions were shortened to fit the skills context budget. Codex can still see every skill, but some
+  descriptions are shorter. Disable unused skills or plugins to leave more room for the rest.
+
+↳ Hook · PONYTAIL:REVIEW
+
+• 我會使用 ponytail-review 技能，檢查完整差異與 SPEC 的 Must NOT 測試對應，只回報可採取行動的發現，不改檔。
+
+• Ran git status --short; git branch --show-current; git rev-parse HEAD main; git diff --stat 4e6f13c...feat/
+  │ arch-family-support; git diff --name-only 4e6f13c...feat/arch-family-support; Get-Content specs/arch-family-support/
+  │ SPEC.md
+  └ feat/arch-family-support
+    72ceeb516a4db9ecfc2f254037fc5554e4ddb67a
+    核准。
+
+• Ran git diff 4e6f13c...HEAD -- .chezmoitemplates/platform.toml .chezmoiscripts/run_before_50-neovim.sh.tmpl tests/cases
+  │ tests/lib.sh tests/sandbox/_probe.sh tests/sandbox/omarchy.sh tests/sandbox/ssh.sh tools/gate-pacman-ids.sh tools/
+  │ gate-supply-chain.py
+  └ diff --git a/.chezmoiscripts/run_before_50-neovim.sh.tmpl b/.chezmoiscripts/run_before_50-neovim.sh.tmpl
+    index 98f45b2..4c60519 100644
+    … +824 lines (ctrl + t to view transcript)
+         "os-windows.toml", "os-windows-arm64.toml",
+     ]
+
+• Ran $paths=@('.chezmoiscripts/run_before_50-neovim.sh.tmpl','tests/sandbox/_probe.sh','tests/cases/L7-behavior.sh');
+  │ foreach($path in $paths){ Write-Output $path; $i=0; Get-Content $path | ForEach-Object { $i++; if(($path -like
+  │ '*_probe*' -and (($i -le 150) -or ($i -ge 340 -and $i -le 410) -or $i -ge 460)) -or ($path -like '*L7*' -and $i -ge
+  │ … +2 lines
+  └ .chezmoiscripts/run_before_50-neovim.sh.tmpl
+    1: {{- $p := includeTemplate "platform.toml" . | fromToml -}}
+    … +656 lines (ctrl + t to view transcript)
+         skip '05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists' 'no systemd in this sandbox'
+         skip 'chezmoi update completes' 'no systemd in this sandbox (and local mode has no remote)'
+
+• Ran git diff 4e6f13c...HEAD -- AGENTS.md README.md docs/research/archlinux-omarchy-support.md tests/sandbox/README.md;
+  │ Get-Content tests/cases/L7-behavior.sh | Select-Object -First 90; git grep -n -E 'Must NOT|ID=omarchy|
+  │ distro.*omarchy|darwin.*50-neovim|50-neovim.*darwin|pacman -Syu|pacman -R|--overwrite' -- tests/cases tools/
+  │ … +2 lines
+  └ diff --git a/AGENTS.md b/AGENTS.md
+    index e4afc50..973af71 100644
+    … +392 lines (ctrl + t to view transcript)
+    echo "omarchy.sh: probe exit $rc; results in $OUT/results.tsv"
+    exit "$rc"
+
+⚠ Heads up, you have less than 50% of your 5h limit left. Run /status for a breakdown.
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• 50-neovim 已共用 starter 段落，沒有需要再抽出的共用層。可刪減的重複在 _probe.sh：WSL 與非 WSL 的 chezmoi update 區塊完全   相同。另有一項 SPEC 測試缺口：S6 要求 macOS 輸出不變，但新增 golden 只比對 Linux。
+
+• Ran Get-Content tests/cases/L1-platform.sh | Select-Object -First 38; Get-Content .chezmoitemplates/platform.toml;
+  │ Get-Content tests/fixtures/os-linux.toml; git diff --check 4e6f13c...HEAD; git grep -n -E 'ssh.sh|omarchy.sh|
+  │ distroLikeOverride' -- tests tools; Get-Content tests/cases/L11-render-golden.sh | Select-Object -Skip 225 -First 45;
+  │ … +1 lines
+  └ # L1 — .chezmoitemplates/platform.toml 是平台判斷的唯一來源。
+    # 這一層釘住它的輸出，以及「測試接縫在沒有 override 時會退回真實 OS」這個性質
+    … +201 lines (ctrl + t to view transcript)
+    # ---------- Linux 探針（_probe.sh）：Windows 探針的義務，加上「第二次之後」 ----------
+    # 這個 repo 真正出過的錯都在第二次執行才出現（chezmoi update 撞 /run/user/<uid>、
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• - P2 — 測試缺口：/D:/Projects/dotfiles-dev/dotfiles/tests/cases/L11-render-golden.sh:77 宣稱保障 Debian／macOS 渲染不變，    實際只比較 Linux 的 50-neovim.sh。macOS 的矩陣檢查只確認非空，無法承接 SPEC S6／Must NOT #2。補上兩個 Darwin fixture 相
+    對 4e6f13c 的逐位元組檢查；基準須取自修改前版本。
+
+  - P3 — shrink：/D:/Projects/dotfiles-dev/dotfiles/tests/sandbox/_probe.sh:513 新增的非 WSL 分支完整複製 c_update() 與
+    remote／local 判斷。改成外層判斷 systemd、內層只分流 linger，兩者共用一次 update 區塊；同步更新 golden:513 (/D:/
+    Projects/dotfiles-dev/dotfiles/tests/golden/verbatim/_probe.sh:513)，保留既有退出碼檢查與 SKIP 原因。
+
+  net: -16 lines possible.（重複區塊及其 golden，不含補測試）
+
+─ Worked for 2m 25s ───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+› Ask Codex to do anything
+
+  gpt-6-astra medium · D:\Projects\dotfiles-dev\dotfiles · dotfiles · 5h 45% left · weekly 76% left · 258K window · 204K u…
