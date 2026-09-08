@@ -84,6 +84,14 @@ if [ "$user" != root ]; then
     }
 fi
 if [ "$syu" = 1 ]; then
+    # A distro registered with `wsl --install --no-launch` has not run the
+    # image's first-setup.sh (/etc/wsl-distribution.conf [oobe]), which is
+    # what creates the pacman keyring; without it -Syu fails with "keyring is
+    # not writable". Do the same two steps the image does on first launch.
+    run_root 'test -s /etc/pacman.d/gnupg/trustdb.gpg' >/dev/null 2>&1 || {
+        echo "omarchy.sh: --syu: initialising the pacman keyring in $NAME (the image's first-launch step)"
+        run_root 'pacman-key --init >/dev/null 2>&1 && pacman-key --populate archlinux >/dev/null 2>&1'             || { echo "omarchy.sh: pacman-key --init/--populate failed" >&2; exit 2; }
+    }
     echo "omarchy.sh: --syu: running pacman -Syu --noconfirm as root in $NAME (launcher-side, not the dotfiles)"
     run_root 'pacman -Syu --noconfirm' || { echo "omarchy.sh: pacman -Syu failed" >&2; exit 2; }
 elif [ -z "$(run_root 'ls /var/lib/pacman/sync 2>/dev/null' | tr -d '\0\r')" ]; then
