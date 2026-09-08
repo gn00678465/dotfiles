@@ -75,12 +75,21 @@ echo "probe: mode=$([ $remote = 1 ] && echo "remote branch $branch" || echo loca
 echo "probe: $(uname -srm); $(cat /etc/debian_version 2>/dev/null || echo 'not debian'); glibc $(ldd --version 2>/dev/null | head -1 | sed 's/.* //')"
 
 # Which package path the dotfiles take on this machine, decided the way
-# platform.toml decides it: ID= in /etc/os-release. Everything below that
-# differs between Debian (apt + Homebrew + mise-pinned neovim) and Arch (pacman
-# only, omarchy's own LazyVim) keys off this one flag.
+# platform.toml decides it: ID= in /etc/os-release, or ID_LIKE= containing the
+# word arch (the ISO-installed omarchy reports ID=omarchy ID_LIKE=arch; the WSL
+# image and plain Arch report ID=arch). Everything below that differs between
+# Debian (apt + Homebrew + mise-pinned neovim) and the Arch family (pacman only)
+# keys off $arch. Within the family, $omarchy separates omarchy (its own
+# LazyVim config from omarchy-nvim, left untouched) from plain Arch (the
+# starter is cloned). It is the same signal 50-neovim uses at run time, so the
+# probe and the script cannot disagree (SPEC arch-family-support M6).
 distro=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID:-}")
-arch=0; [ "$distro" = arch ] && arch=1
-echo "probe: distro=${distro:-unknown}; path=$([ $arch = 1 ] && echo 'pacman (Arch)' || echo 'apt + Homebrew')"
+distro_like=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID_LIKE:-}")
+arch=0
+case " $distro $distro_like " in *" arch "*) arch=1 ;; esac
+omarchy=0
+if [ $arch = 1 ] && pacman -Q omarchy-nvim >/dev/null 2>&1; then omarchy=1; fi
+echo "probe: distro=${distro:-unknown}${distro_like:+ (ID_LIKE=$distro_like)}; path=$([ $arch = 1 ] && echo 'pacman (Arch family)' || echo 'apt + Homebrew'); omarchy=$omarchy"
 
 add_result() { # status name detail
     _line=$(printf '%s\t%s\t%s' "$1" "$2" "$(printf '%s' "$3" | tr '\n' '|' | tr -s '|' | sed 's/|/ | /g')")
@@ -237,7 +246,7 @@ c_login_shell() {
 }
 check 'interactive login zsh resolves mise, fzf, nvim, tree-sitter' c_login_shell
 
-if [ $arch = 1 ]; then
+if [ $omarchy = 1 ]; then
     # M6: making zsh the login shell must not lose omarchy's own environment.
     # .zshrc/.zprofile source omarchy's env-bootstrap, which sets OMARCHY_PATH
     # and puts omarchy-* on PATH (in dev-link mode; production has them in
@@ -249,6 +258,8 @@ if [ $arch = 1 ]; then
         printf '%s' "$_out" | tr '\n' ' '
     }
     check 'login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH' c_omarchy_env
+elif [ $arch = 1 ]; then
+    skip 'login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH' 'plain Arch: no omarchy on this machine'
 fi
 
 c_windows_files() {
@@ -258,10 +269,12 @@ c_windows_files() {
 }
 check 'Windows-only files did NOT land' c_windows_files
 
-if [ $arch = 1 ]; then
-    # D1 / M2: 50-neovim renders empty on Arch, so omarchy's LazyVim config
-    # must still be exactly where useradd put it -- no .bak, no starter marker,
-    # omarchy's own plugins intact -- with our override layered on top.
+if [ $omarchy = 1 ]; then
+    # D2 / M3: on omarchy 50-neovim sees omarchy-nvim and exits, so omarchy's
+    # LazyVim config must still be exactly where useradd put it -- no .bak, no
+    # starter marker, omarchy's own plugins intact -- with our override layered
+    # on top. Plain Arch takes the else branch: the starter is cloned there
+    # like on Debian (SPEC arch-family-support S10).
     c_nvim_omarchy() {
         _cfg="$HOME/.config/nvim"
         [ -z "$(ls -d "$HOME"/.config/nvim.bak* "$HOME"/.local/share/nvim.bak* 2>/dev/null)" ] \
@@ -324,13 +337,19 @@ if [ $arch = 1 ]; then
     # M4: distroOverride in the test fixtures is only a stand-in. Here the real
     # chezmoi reads /etc/os-release, and the partial has to reach the same
     # answer the os-arch fixture gives L1/L2.
+    # ID=arch (WSL omarchy, plain Arch) and ID=omarchy (ISO omarchy, via
+    # ID_LIKE=arch) must both end at pacman with an empty brewPrefix; distro
+    # keeps the raw id (SPEC arch-family-support S11).
     c_seam() {
         _out=$(printf '%s' '{{ .chezmoi.osRelease.id }}|{{- $p := includeTemplate "platform.toml" . | fromToml -}}{{ $p.distro }}|{{ $p.pkgManager }}|{{ $p.brewPrefix }}' \
             | chezmoi execute-template 2>&1) || { echo "execute-template failed: $_out"; return 1; }
-        [ "$_out" = 'arch|arch|pacman|' ] || { echo "expected arch|arch|pacman|, got: $_out"; return 1; }
+        case "$_out" in
+            'arch|arch|pacman|'|'omarchy|omarchy|pacman|') ;;
+            *) echo "expected arch|arch|pacman| or omarchy|omarchy|pacman|, got: $_out"; return 1 ;;
+        esac
         echo "$_out"
     }
-    check 'real chezmoi osRelease.id reaches the partial: distro=arch pkgManager=pacman brewPrefix empty (M4)' c_seam
+    check 'real chezmoi osRelease.id reaches the partial: distro kept, pkgManager=pacman, brewPrefix empty (M4)' c_seam
 
     # D4: the file omarchy wrote at install time is replaced by the managed one.
     c_git_config() {
@@ -449,8 +468,8 @@ check 'second chezmoi apply completes without a prompt' c_second_apply
 
 c_idempotent() {
     [ -z "$(ls -d "$HOME"/.config/nvim.bak* 2>/dev/null)" ] || { echo 'a re-run backed up ~/.config/nvim again'; return 1; }
-    if [ $arch = 1 ]; then
-        [ ! -e "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'starter marker appeared: 50-neovim ran on Arch'; return 1; }
+    if [ $omarchy = 1 ]; then
+        [ ! -e "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'starter marker appeared: 50-neovim bootstrapped over omarchy-nvim'; return 1; }
     else
         [ -f "$HOME/.config/nvim/.chezmoi-lazyvim-starter" ] || { echo 'marker gone'; return 1; }
     fi

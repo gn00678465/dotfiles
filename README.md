@@ -2,15 +2,15 @@
 
 用 chezmoi 管理開發環境：Linux（Debian 系與 Arch）、macOS、native Windows。
 
-| | Linux（Debian 系）/ macOS | Arch（omarchy） | Windows |
+| | Linux（Debian 系）/ macOS | Arch 家族（omarchy、純 Arch） | Windows |
 |---|---|---|---|
-| Shell | zsh + Oh My Zsh | zsh + Oh My Zsh，並載入 omarchy 的 `env-bootstrap` | PowerShell 7 |
+| Shell | zsh + Oh My Zsh | zsh + Oh My Zsh；omarchy 上另載入其 `env-bootstrap` | PowerShell 7 |
 | Prompt | Powerlevel10k | Powerlevel10k | oh-my-posh（powerlevel10k_rainbow） |
 | 補全／建議 | zsh-autosuggestions + zsh-syntax-highlighting | 同左 | PSReadLine（內建） |
 | 模糊搜尋 | fzf + fzf-tab | fzf + fzf-tab | fzf + PSFzf |
 | 套件 | apt（前置）+ Homebrew | pacman（不裝 Homebrew） | winget |
 | 版本管理 | mise | mise（pacman） | mise |
-| neovim | mise 釘版本 + LazyVim starter | pacman 的 neovim，沿用 omarchy 出廠的 LazyVim 設定 | mise 釘版本 + LazyVim starter |
+| neovim | mise 釘版本 + LazyVim starter | pacman 的 neovim；omarchy 沿用出廠的 LazyVim 設定，純 Arch clone LazyVim starter | mise 釘版本 + LazyVim starter |
 
 ---
 
@@ -50,9 +50,10 @@ branch 合併刪除後要回 main：`chezmoi cd && git checkout main`。
 
 已經裝過的機器重跑 `init.sh` 不會重新 clone，`--branch` 會被忽略；要換 branch 用下面的方式。
 
-### Arch / omarchy
+### Arch 家族：omarchy 與純 Arch
 
-同一行 `init.sh`。發行版由 `/etc/os-release` 的 `ID` 決定，Arch 走 pacman，不裝
+同一行 `init.sh`。發行版由 `/etc/os-release` 決定：`ID=arch`，或 `ID_LIKE` 含
+`arch`（正式安裝的 omarchy 是 `ID=omarchy`、`ID_LIKE=arch`），都走 pacman，不裝
 Homebrew：
 
 | 時機 | 做什麼 | 問什麼 |
@@ -63,6 +64,28 @@ Homebrew：
 
 只用 `pacman -S --needed --noconfirm`，不做 `-Sy` 或 `-Syu`；套件資料庫過期時腳本
 會停下來並提示先更新系統（omarchy：*Update > Omarchy*）。
+
+**全新的 Arch 要先更新系統。** 官方 WSL 映像（`wsl --install archlinux`）沒有 pacman
+同步資料庫，不先更新就會停在第一支腳本。以 root 執行：
+
+```sh
+pacman -Syu
+```
+
+WSL 映像預設只有 root。以 root 執行 `init.sh` 可以直接安裝，腳本不需要 sudo。要改用
+一般使用者時，先以 root 建好使用者與 sudo，再以該使用者執行 `init.sh`：
+
+```sh
+pacman -S --needed sudo
+useradd -m -G wheel <name>
+passwd <name>
+echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/10-wheel
+printf '[user]\ndefault=%s\n' <name> >> /etc/wsl.conf
+# 在 Windows 執行 wsl --shutdown，重開後就是 <name>
+```
+
+純 Arch 沒有 `omarchy-nvim`，`50-neovim` 會把既有的 `~/.config/nvim` 等目錄搬到
+`.bak`，再 clone LazyVim starter，與 Debian 相同。
 
 在 omarchy 上要知道的三件事：
 
