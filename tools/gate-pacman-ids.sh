@@ -5,17 +5,19 @@
 #
 #   tools/gate-pacman-ids.sh [--distro <name>]
 #
-# Runs pacman directly when this host is Arch; otherwise through the `omarchy`
-# WSL distro (wsl.exe interop, from Git Bash or another WSL distro). When
-# neither is reachable it prints SKIPPED and exits 0 -- the same shape as the
-# winget check -- so the evidence report records UNAVAILABLE instead of a pass.
-# Any other failure (a name that does not resolve, a render error) is exit 1.
+# Runs pacman directly when this host is Arch; otherwise through an
+# Arch-family WSL distro (wsl.exe interop, from Git Bash or another WSL
+# distro): the first of `omarchy` and `arch` that exists, or the one given
+# with --distro. When none is reachable it prints SKIPPED and exits 0 -- the
+# same shape as the winget check -- so the evidence report records UNAVAILABLE
+# instead of a pass. Any other failure (a name that does not resolve, a render
+# error) is exit 1.
 set -eu
 
 REPO=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$REPO"
 
-DISTRO=omarchy
+DISTRO=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --distro) DISTRO=$2; shift 2 ;;
@@ -63,10 +65,18 @@ else
         [ -x "$_c" ] && { WSL=$_c; break; }
     done
     [ -n "$WSL" ] || WSL=$(command -v wsl.exe 2>/dev/null || true)
-    if [ -z "$WSL" ] || ! "$WSL" --list --quiet 2>/dev/null | tr -d '\0\r' | grep -qx "$DISTRO"; then
-        echo "SKIPPED: no pacman on this host and no WSL distro named $DISTRO -- package names NOT verified"
+    _found=""
+    if [ -n "$WSL" ]; then
+        _list=$("$WSL" --list --quiet 2>/dev/null | tr -d '\0\r' || true)
+        for _d in ${DISTRO:-omarchy arch}; do
+            if printf '%s\n' "$_list" | grep -qx "$_d"; then _found=$_d; break; fi
+        done
+    fi
+    if [ -z "$_found" ]; then
+        echo "SKIPPED: no pacman on this host and no WSL distro named ${DISTRO:-omarchy or arch} -- package names NOT verified"
         exit 0
     fi
+    DISTRO=$_found
     where="WSL distro $DISTRO"
 fi
 # Git Bash rewrites POSIX-looking arguments of native executables; the
