@@ -237,7 +237,6 @@ requests full verification. Report checks that could not run.
 | L6 | Expected file output, including data preservation |
 | L7 | Script behavior in a redirected environment |
 | L8 | Platform overrides with Windows chezmoi |
-| L10 | Regression against the SPEC base ref: the six pre-Arch fixtures render byte-identical |
 | L11 | Exact rendered output for `init.ps1`, `_probe.ps1`, Windows scripts, and Arch zsh files |
 
 L4, L7, and L8 skip without WSL interop. The other listed layers do not

@@ -29,5 +29,10 @@ AppData
 # `dir/**` matches the directory itself as well as everything beneath it.
 .oh-my-zsh/cache/**
 .oh-my-zsh/log/**
+# powerlevel10k zcompiles nine of its own files into *.zwc whenever its
+# directory is writable, with no switch to turn it off. Under `exact = true`
+# chezmoi removes them and records them as removed; zsh recompiles them, and
+# the next `apply --no-tty` stops at an overwrite prompt.
+.oh-my-zsh/**/*.zwc
 
 .git
