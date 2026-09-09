@@ -1,18 +1,24 @@
 #!/bin/sh
-# L9 (Arch): run tests/sandbox/_probe.sh inside the user's `omarchy` WSL distro.
+# L9 (Arch family): run tests/sandbox/_probe.sh inside an Arch-family WSL distro.
 #
 #   tests/sandbox/omarchy.sh                   # local mode: HEAD of this repo
 #   tests/sandbox/omarchy.sh --branch <name>   # remote mode: init.sh from GitHub
-#   tests/sandbox/omarchy.sh --distro <name>   # another Arch distro (default: omarchy)
+#   tests/sandbox/omarchy.sh --distro <name>   # another Arch-family distro (default: omarchy)
+#   tests/sandbox/omarchy.sh --distro arch --syu   # fresh official image: pacman -Syu first
 #
-# Unlike wsl.sh this is NOT a throwaway distro. It is the omarchy install the
-# user keeps for verification and will rebuild afterwards (SPEC
-# archlinux-support §6), so the launcher does as little as possible to it:
-# copy the source tree and the probe in, run the probe, copy /out back. It
-# never runs pacman itself and never touches $HOME; the probe's `chezmoi init
-# --apply` is the only system change (Must NOT #8). Precondition: the distro's
-# default user has passwordless sudo (omarchy's WSL image does), because the
-# install scripts run pacman through sudo with no tty.
+# Unlike wsl.sh this is NOT a throwaway distro by default. It was written for
+# the omarchy install the user keeps for verification (SPEC archlinux-support
+# §6), so the launcher does as little as possible to it: copy the source tree
+# and the probe in, run the probe, copy /out back. It never touches $HOME; the
+# probe's `chezmoi init --apply` is the only system change (Must NOT #8).
+# Precondition: the distro's default user is root, or has passwordless sudo
+# (omarchy's WSL image does), because the install scripts run pacman with no tty.
+#
+# The official Arch WSL image (`wsl --install archlinux`) is root-only and ships
+# with no pacman sync database, so 10-install-packages stops there by design
+# (SPEC arch-family-support F6/F7, D3). `--syu` runs `pacman -Syu --noconfirm`
+# as root once before the probe. That is the launcher's system change, not
+# the dotfiles' (Must NOT #5), and it is only for a distro you will rebuild.
 #
 # No DrvFs mounts: the tree goes in through a pipe (git archive | tar) and the
 # results come back the same way, so this runs from Git Bash on the host and
@@ -24,13 +30,14 @@ set -eu
 
 REPO=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 NAME=omarchy
-branch=""
+branch=""; syu=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --branch) branch=$2; shift 2 ;;
         --branch=*) branch=${1#*=}; shift ;;
         --distro) NAME=$2; shift 2 ;;
         --distro=*) NAME=${1#*=}; shift ;;
+        --syu) syu=1; shift ;;
         *) echo "omarchy.sh: unknown argument: $1" >&2; exit 2 ;;
     esac
 done
@@ -60,13 +67,38 @@ run_root() { printf '%s\n' "$1" | wslx -d "$NAME" -u root -- sh; }
 run_user() { printf '%s\n' "$1" | wslx -d "$NAME" -- sh; }
 
 w --list --quiet | grep -qx "$NAME" || { echo "omarchy.sh: no WSL distro named $NAME" >&2; exit 2; }
-distro_id=$(run_user '. /etc/os-release && printf %s "$ID"' | tr -d '\0\r')
-[ "$distro_id" = arch ] || { echo "omarchy.sh: $NAME reports ID=$distro_id, not arch" >&2; exit 2; }
+# Arch family the way platform.toml sees it: ID=arch, or ID_LIKE containing
+# the word arch (the ISO omarchy reports ID=omarchy ID_LIKE=arch).
+distro_id=$(run_user '. /etc/os-release && printf "%s %s" "$ID" "${ID_LIKE:-}"' | tr -d '\0\r')
+case " $distro_id " in
+    *" arch "*) ;;
+    *) echo "omarchy.sh: $NAME reports ID/ID_LIKE '$distro_id', not the Arch family" >&2; exit 2 ;;
+esac
 user=$(run_user 'id -un' | tr -d '\0\r')
-run_user 'sudo -n true' >/dev/null 2>&1 || {
-    echo "omarchy.sh: user $user in $NAME has no passwordless sudo; the install scripts cannot run pacman without a tty" >&2
+if [ "$user" != root ]; then
+    # `sudo -n -v`, the call the install scripts make: see ssh.sh for why
+    # `sudo -n true` is not the same test.
+    run_user 'sudo -n -v' >/dev/null 2>&1 || {
+        echo "omarchy.sh: user $user in $NAME cannot 'sudo -v' without a password; the install scripts cannot run pacman without a tty" >&2
+        exit 2
+    }
+fi
+if [ "$syu" = 1 ]; then
+    # A distro registered with `wsl --install --no-launch` has not run the
+    # image's first-setup.sh (/etc/wsl-distribution.conf [oobe]), which is
+    # what creates the pacman keyring; without it -Syu fails with "keyring is
+    # not writable" and "required key missing". The image ships a trustdb but
+    # no usable public keyring, so there is no file to test for: run the same
+    # two steps the image runs on first launch, unconditionally (both are
+    # idempotent on an initialised keyring; measured).
+    echo "omarchy.sh: --syu: pacman-key --init and --populate archlinux in $NAME (the image's first-launch step)"
+    run_root 'pacman-key --init >/dev/null 2>&1 && pacman-key --populate archlinux >/dev/null 2>&1'         || { echo "omarchy.sh: pacman-key --init/--populate failed" >&2; exit 2; }
+    echo "omarchy.sh: --syu: running pacman -Syu --noconfirm as root in $NAME (launcher-side, not the dotfiles)"
+    run_root 'pacman -Syu --noconfirm' || { echo "omarchy.sh: pacman -Syu failed" >&2; exit 2; }
+elif [ -z "$(run_root 'ls /var/lib/pacman/sync 2>/dev/null' | tr -d '\0\r')" ]; then
+    echo "omarchy.sh: $NAME has no pacman sync database (fresh image); 10-install-packages would stop. Re-run with --syu, or update the system yourself first" >&2
     exit 2
-}
+fi
 
 OUT="$REPO/.gate/l9-omarchy"
 mkdir -p "$OUT"

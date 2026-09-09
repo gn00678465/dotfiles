@@ -1,0 +1,10 @@
+# 與 os-arch.toml 相同，再加 distroLikeOverride = "arch"，distroOverride 改成
+# "omarchy"：正式安裝的 omarchy 4.0.2 把 /etc/os-release 換成 ID=omarchy、
+# ID_LIKE=arch（SPEC arch-family-support F1）。WSL 版 omarchy 仍是 ID=arch，由
+# os-arch.toml 代表。這個 fixture 證明 platform.toml 靠 ID_LIKE 也能走到 pacman。
+[data]
+    osOverride = "linux"
+    archOverride = "amd64"
+    distroOverride = "omarchy"
+    distroLikeOverride = "arch"
+    isWSL = false

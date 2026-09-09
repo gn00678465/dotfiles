@@ -154,6 +154,14 @@ VERSION_ID=20260830.0.582275
 （沒有 `ID_LIKE` 這一行——Arch 是 base distro，`.chezmoi.osRelease.idLike` 在這台
 機器上會是空值/不存在。）
 
+> **更正（2026-09-08，SPEC arch-family-support F1）**：上面只對 WSL 版 omarchy dev
+> 映像成立。ISO 正式安裝的 omarchy 4.0.2 把 `/etc/os-release` 換成
+> `/usr/share/omarchy/etc-overrides/os-release`，內容是 `ID=omarchy`、`ID_LIKE=arch`、
+> `VERSION_ID="4.0.2"`；`/usr/lib/os-release` 仍是 `ID=arch`。chezmoi 讀到
+> `.chezmoi.osRelease.id = "omarchy"`、`.idLike = "arch"`。只比對 `id` 會把它當成
+> Debian 走 apt + Homebrew（實測，第一支腳本就停）。`platform.toml` 因此改成
+> 「`id` 是 `arch`，或 `idLike` 逐字含 `arch`」。
+
 ```
 $ uname -a
 Linux MADAO 6.18.40.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC ... x86_64 GNU/Linux

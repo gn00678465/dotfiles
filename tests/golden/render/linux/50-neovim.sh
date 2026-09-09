@@ -1,10 +1,3 @@
-{{- $p := includeTemplate "platform.toml" . | fromToml -}}
-{{- $v := includeTemplate "versions.toml" . | fromToml -}}
-{{- /* 兩段：前段依平台決定 neovim 從哪裡來（brew 平台走 mise 釘版本；pacman 平台
-       由 30-install-pacman-packages 裝，這裡只判斷 omarchy），後段的 LazyVim starter
-       兩者共用。Debian/macOS 的渲染結果與拆段前逐位元組相同（L11 golden）。 */ -}}
-{{ if $p.isPosix -}}
-{{ if ne $p.brewPrefix "" -}}
 #!/bin/zsh
 # Neovim (via mise) + the LazyVim starter config.
 # `before`, because `git clone` refuses a non-empty target and chezmoi owns
@@ -17,7 +10,7 @@
 # that hash in two state buckets, so "reinstall" meant hand-editing state.
 set -euo pipefail
 
-eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 if ! command -v mise &>/dev/null; then
   echo "chezmoi: mise not found, skipping neovim" >&2
@@ -40,24 +33,8 @@ export MISE_YES=1
 # So bumping this is a deliberate act: re-read the Requirements sections of
 # nvim-treesitter `main` and LazyVim first.
 # Background: docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md
-mise use --global neovim@{{ $v.neovim }}
-{{ else -}}
-#!/bin/zsh
-# The LazyVim starter config on the pacman platforms. neovim itself is a pacman
-# package (30-install-pacman-packages); the versions.toml pin does not apply
-# here. Same `before` / `run_` reasoning as the Debian branch of this template.
-set -euo pipefail
+mise use --global neovim@0.12.5
 
-# omarchy ships its own LazyVim config through the omarchy-nvim package and
-# puts it in ~/.config/nvim at useradd time. That config must stay exactly where
-# it is (theme hot-reload, omarchy's plugins), so on such a machine this script
-# does nothing: no backup, no clone, no marker. The check is at run time rather
-# than render time because both omarchy flavours (WSL image with ID=arch,
-# ISO install with ID=omarchy) and plain Arch reach this same rendering.
-if pacman -Q omarchy-nvim &>/dev/null; then
-  exit 0
-fi
-{{ end }}
 # The LazyVim starter is a template, not a tracked dependency: clone it once and
 # drop its .git. Whatever chezmoi does not explicitly own under
 # private_dot_config/nvim/ is then the user's to edit in place -- nothing here
@@ -72,7 +49,7 @@ nvim_cache="${XDG_CACHE_HOME:-$HOME/.cache}/nvim"
 # apply) an existing ~/.config/nvim is the user's own config, not a foreign one,
 # and must not be backed up and re-cloned over. Delete this file to deliberately
 # force a clean re-bootstrap on the next apply.
-marker="$nvim_config/{{ $v.lazyvimMarker }}"
+marker="$nvim_config/.chezmoi-lazyvim-starter"
 
 # `mv dir dir.bak` moves dir *inside* dir.bak when dir.bak already exists, which
 # silently buries the older backup. Fall back to a timestamp instead.
@@ -95,8 +72,7 @@ if [[ ! -e $marker ]]; then
   backup_dir "$nvim_cache"
 
   echo "chezmoi: cloning the LazyVim starter into $nvim_config"
-  git clone --depth 1 {{ $v.lazyvimStarter }} "$nvim_config"
+  git clone --depth 1 https://github.com/LazyVim/starter "$nvim_config"
   rm -rf "$nvim_config/.git"
   touch "$marker"
 fi
-{{ end -}}

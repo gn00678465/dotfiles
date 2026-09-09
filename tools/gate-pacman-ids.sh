@@ -5,17 +5,19 @@
 #
 #   tools/gate-pacman-ids.sh [--distro <name>]
 #
-# Runs pacman directly when this host is Arch; otherwise through the `omarchy`
-# WSL distro (wsl.exe interop, from Git Bash or another WSL distro). When
-# neither is reachable it prints SKIPPED and exits 0 -- the same shape as the
-# winget check -- so the evidence report records UNAVAILABLE instead of a pass.
-# Any other failure (a name that does not resolve, a render error) is exit 1.
+# Runs pacman directly when this host is Arch; otherwise through an
+# Arch-family WSL distro (wsl.exe interop, from Git Bash or another WSL
+# distro): the first of `omarchy` and `arch` that exists, or the one given
+# with --distro. When none is reachable it prints SKIPPED and exits 0 -- the
+# same shape as the winget check -- so the evidence report records UNAVAILABLE
+# instead of a pass. Any other failure (a name that does not resolve, a render
+# error) is exit 1.
 set -eu
 
 REPO=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$REPO"
 
-DISTRO=omarchy
+DISTRO=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --distro) DISTRO=$2; shift 2 ;;
@@ -31,19 +33,28 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 # Each script must render, and each must yield a list: a render failure or a
 # missing `for pkg in` line is a hard failure, not an empty contribution to a
 # merged list (that shape let one whole script go unverified).
-render_list() { # script
-    if ! _out=$(chezmoi --source "$REPO" --config "$REPO/tests/fixtures/os-arch.toml" \
-            --destination "$TMP/dest" --persistent-state "$TMP/state.boltdb" --no-tty \
-            execute-template < "$REPO/.chezmoiscripts/$1" 2>&1); then
-        echo "gate-pacman-ids: render failed for $1: $_out" >&2
+render_list() { # fixture script
+    if ! _out=$(chezmoi --source "$REPO" --config "$REPO/tests/fixtures/$1" \
+            --destination "$TMP/dest-$1" --persistent-state "$TMP/state-$1.boltdb" --no-tty \
+            execute-template < "$REPO/.chezmoiscripts/$2" 2>&1); then
+        echo "gate-pacman-ids: render failed for $2 ($1): $_out" >&2
         return 1
     fi
     _list=$(printf '%s\n' "$_out" | sed -n 's/^for pkg in \(.*\); do$/\1/p' | head -1)
-    [ -n "$(printf '%s' "$_list" | tr -d ' ')" ] || { echo "gate-pacman-ids: no 'for pkg in' list in $1" >&2; return 1; }
+    [ -n "$(printf '%s' "$_list" | tr -d ' ')" ] || { echo "gate-pacman-ids: no 'for pkg in' list in $2 ($1)" >&2; return 1; }
     printf '%s' "$_list"
 }
-pre=$(render_list run_onchange_before_10-install-packages.sh.tmpl) || exit 1
-tools=$(render_list run_onchange_before_30-install-pacman-packages.sh.tmpl) || exit 1
+pre=$(render_list os-arch.toml run_onchange_before_10-install-packages.sh.tmpl) || exit 1
+tools=$(render_list os-arch.toml run_onchange_before_30-install-pacman-packages.sh.tmpl) || exit 1
+# SPEC arch-family-support S12: the omarchy fixture (ID=omarchy, ID_LIKE=arch)
+# must yield the same lists, or the production omarchy would install a
+# different set than the one resolved below.
+pre_om=$(render_list os-omarchy.toml run_onchange_before_10-install-packages.sh.tmpl) || exit 1
+tools_om=$(render_list os-omarchy.toml run_onchange_before_30-install-pacman-packages.sh.tmpl) || exit 1
+if [ "$pre $tools" != "$pre_om $tools_om" ]; then
+    echo "gate-pacman-ids: os-omarchy renders different lists than os-arch: '$pre_om $tools_om' vs '$pre $tools'" >&2
+    exit 1
+fi
 pkgs=$(printf '%s\n' $pre $tools | LC_ALL=C sort -u | tr '\n' ' ')
 
 WSL=""
@@ -54,10 +65,18 @@ else
         [ -x "$_c" ] && { WSL=$_c; break; }
     done
     [ -n "$WSL" ] || WSL=$(command -v wsl.exe 2>/dev/null || true)
-    if [ -z "$WSL" ] || ! "$WSL" --list --quiet 2>/dev/null | tr -d '\0\r' | grep -qx "$DISTRO"; then
-        echo "SKIPPED: no pacman on this host and no WSL distro named $DISTRO -- package names NOT verified"
+    _found=""
+    if [ -n "$WSL" ]; then
+        _list=$("$WSL" --list --quiet 2>/dev/null | tr -d '\0\r' || true)
+        for _d in ${DISTRO:-omarchy arch}; do
+            if printf '%s\n' "$_list" | grep -qx "$_d"; then _found=$_d; break; fi
+        done
+    fi
+    if [ -z "$_found" ]; then
+        echo "SKIPPED: no pacman on this host and no WSL distro named ${DISTRO:-omarchy or arch} -- package names NOT verified"
         exit 0
     fi
+    DISTRO=$_found
     where="WSL distro $DISTRO"
 fi
 # Git Bash rewrites POSIX-looking arguments of native executables; the

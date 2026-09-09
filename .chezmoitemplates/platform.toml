@@ -22,16 +22,25 @@
 {{- if hasKey . "archOverride" -}}{{- $arch = .archOverride -}}{{- end -}}
 {{- /* 發行版：chezmoi 只在 Linux 讀 /etc/os-release；其他平台 .chezmoi.osRelease
        是空 map，所以兩層 hasKey 都要擋。distroOverride 是第三個測試接縫，性質同上：
-       這個 repo 的渲染主機不是 Arch，Arch 的證據只能靠它取得。 */ -}}
+       這個 repo 的渲染主機不是 Arch，Arch 的證據只能靠它取得。
+       distroLike 是 ID_LIKE：正式安裝的 omarchy 把 /etc/os-release 換成 ID=omarchy、
+       ID_LIKE=arch（實測 4.0.2），只看 ID 會把它當成 Debian。純 Arch 沒有 ID_LIKE 這一行，
+       所以這個 key 也要 hasKey。distroLikeOverride 是第四個接縫，只給 os-omarchy fixture。 */ -}}
 {{- $distro := "" -}}
+{{- $distroLike := "" -}}
 {{- if and (eq $os "linux") (hasKey .chezmoi "osRelease") -}}
 {{-   if hasKey .chezmoi.osRelease "id" -}}{{- $distro = .chezmoi.osRelease.id -}}{{- end -}}
+{{-   if hasKey .chezmoi.osRelease "idLike" -}}{{- $distroLike = .chezmoi.osRelease.idLike -}}{{- end -}}
 {{- end -}}
 {{- if hasKey . "distroOverride" -}}{{- $distro = .distroOverride -}}{{- end -}}
-{{- /* Linux 的系統套件管理員。沒認出來的發行版退回 apt，與 Arch 支援之前的行為相同。 */ -}}
+{{- if hasKey . "distroLikeOverride" -}}{{- $distroLike = .distroLikeOverride -}}{{- end -}}
+{{- /* Linux 的系統套件管理員。Arch 家族 = ID 是 arch，或 ID_LIKE 以空白分割後含有 arch
+       這個字（逐字比對，"archarch" 不算）。沒認出來的發行版退回 apt，與 Arch 支援之前的
+       行為相同。distro 保留原值，呼叫端只看 pkgManager 與 brewPrefix。 */ -}}
+{{- $archFamily := or (eq $distro "arch") (has "arch" (splitList " " $distroLike)) -}}
 {{- $pkgManager := "" -}}
 {{- if eq $os "linux" -}}
-{{-   $pkgManager = (eq $distro "arch") | ternary "pacman" "apt" -}}
+{{-   $pkgManager = $archFamily | ternary "pacman" "apt" -}}
 {{- end -}}
 {{- /* Windows 與 Arch 沒有 brew。這裡留空字串而不是任何路徑，好讓忘了守的呼叫端
        拼出明顯壞掉的字串，而不是一條看似合理、實際不存在的路徑。「brewPrefix 非空」

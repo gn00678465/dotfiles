@@ -1,0 +1,8 @@
+chezmoi: chezmoi version v2.72.0, commit f81cb321789aa3df62871248f5e4d361a59e7cc1, built at 2026-08-02T18:45:48Z, built by goreleaser
+git:     git version 2.53.0
+zsh:     zsh 5.9 (x86_64-ubuntu-linux-gnu)
+python3: Python 3.14.4
+sh:      lrwxrwxrwx 1 root root 4 Feb  3  2026 /bin/sh -> dash
+pwsh:    7.6.5
+base:    4e6f13c
+scope:   arch-family-support

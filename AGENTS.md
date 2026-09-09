@@ -55,17 +55,23 @@ distribution decisions. Callers use
 `.chezmoi.osRelease` elsewhere.
 
 `$p.distro` is `.chezmoi.osRelease.id` on Linux and empty elsewhere.
-`$p.pkgManager` is `pacman` when `$p.distro` is `arch`, `apt` on other Linux,
-and empty on macOS and Windows. `$p.brewPrefix` is empty on Windows and Arch.
+`$p.pkgManager` is `pacman` on the Arch family, `apt` on other Linux, and
+empty on macOS and Windows. The Arch family is `ID=arch`, or an `ID_LIKE`
+that contains the word `arch`: the ISO-installed omarchy 4.0.2 reports
+`ID=omarchy` and `ID_LIKE=arch`, while the omarchy WSL image and plain Arch
+report `ID=arch`. `$p.distro` keeps the raw id, so it is `omarchy` on the
+ISO install. Do not branch on `eq $p.distro "arch"` or on `omarchy`; read
+`$p.pkgManager`. `$p.brewPrefix` is empty on Windows and the Arch family.
 A non-empty `$p.brewPrefix` is the only signal that a platform uses Homebrew.
 Guard Homebrew scripts and the `brew shellenv` lines with
 `ne $p.brewPrefix ""`, not with `$p.isPosix`.
 
-The partial defines `osOverride`, `archOverride`, and `distroOverride` for
-tests. Use them to render all platforms on one host. No macOS hardware is
-available. `tests/cases/L8` checks the OS overrides with Windows chezmoi.
-`tests/sandbox/omarchy.sh` checks that real chezmoi on Arch reaches the same
-`distro` and `pkgManager` values as the `os-arch` fixture.
+The partial defines `osOverride`, `archOverride`, `distroOverride`, and
+`distroLikeOverride` for tests. Use them to render all platforms on one host.
+No macOS hardware is available. `tests/cases/L8` checks the OS overrides with
+Windows chezmoi. `tests/sandbox/omarchy.sh` and `tests/sandbox/ssh.sh` check
+that real chezmoi on the Arch family reaches the same `pkgManager` and
+`brewPrefix` values as the `os-arch` and `os-omarchy` fixtures.
 
 Do not run chezmoi apply against the current Windows host's actual user
 environment without explicit user approval. Template rendering, tests in
@@ -115,7 +121,10 @@ Keep the POSIX and Windows scripts consistent:
   repositories; do not add AUR packages. Both pacman scripts include
   `.chezmoitemplates/pacman-install.sh`, which runs only
   `pacman -S --needed --noconfirm`. Do not add `-Sy`, `-Syu`, `-R`, or
-  `--overwrite`. A stale package database stops the script with a message.
+  `--overwrite`. A package database that is stale or was never synced stops the
+  script with a message naming both causes, the empty keyring of a fresh image,
+  and the README section that holds the commands. L2 asserts that the rendered
+  script never contains `pacman -Sy`, so keep the exact commands out of it.
   `tools/gate-pacman-ids.sh` resolves every name with `pacman -Si`.
 - `30-install-winget-packages`: Do not add `Microsoft.PowerShell` or `Git.Git`.
   They belong in `init.ps1`: chezmoi needs git to clone and pwsh 7 to run scripts.
@@ -126,13 +135,19 @@ Keep the POSIX and Windows scripts consistent:
   `~/.gitconfig`, not the managed `~/.config/git/config`. The `brew shellenv`
   line renders only when `$p.brewPrefix` is non-empty; on Arch, git-lfs comes
   from pacman and is on PATH.
-- `50-neovim`: Renders empty on Arch. Arch installs neovim through pacman,
-  and omarchy supplies its LazyVim configuration in `~/.config/nvim` through
-  the `omarchy-nvim` package. The script must not back up, move, or replace
-  that directory. The managed `lua/plugins/completion.lua` is applied on top
-  of it. The `versions.toml` neovim pin does not apply to Arch.
-- `50-neovim`: Install neovim through mise at the version in
-  `versions.toml`. Read the script's version comment before an update.
+- `50-neovim`: On the Arch family, neovim comes from pacman and the
+  `versions.toml` pin does not apply. The script has no mise section there.
+  At run time it checks `pacman -Q omarchy-nvim`. When the package is
+  present, omarchy supplies its LazyVim configuration in `~/.config/nvim`,
+  and the script exits without backing up, moving, or replacing that
+  directory. The managed `lua/plugins/completion.lua` is applied on top of
+  it. When the package is absent, this is plain Arch, and the starter clone
+  below runs as on Debian. Detect omarchy only through this run-time check,
+  never through `ID=omarchy` in a template. `tests/cases/L7` runs both
+  branches with a stub `pacman`.
+- `50-neovim`: On Homebrew platforms, install neovim through mise at the
+  version in `versions.toml`. Read the script's version comment before an
+  update.
   Clone the LazyVim starter from `main` once into `~/.config/nvim`, then
   remove its `.git`. This clone has no pinned ref or checksum, as on POSIX
   before Windows support. It and the `.oh-my-zsh` tarball are exceptions
@@ -245,11 +260,21 @@ require it. The `native-wsl` assertions in L2 need a Linux host.
 L9 tests installation in a disposable environment. See
 `tests/sandbox/README.md`:
 
-- Arch: Run `tests/sandbox/omarchy.sh`. It runs `_probe.sh` inside the
-  user's existing `omarchy` WSL distro, which is not disposable. The
-  launcher copies the source tree in through a pipe, runs the probe, and
-  copies `/out` back to `.gate/l9-omarchy/`. It never runs pacman itself.
-  The probe does not remove packages on Arch.
+- Arch family, WSL: Run `tests/sandbox/omarchy.sh --distro <name>`. It runs
+  `_probe.sh` inside an existing Arch-family WSL distro. The launcher copies
+  the source tree in through a pipe, runs the probe, and copies `/out` back
+  to `.gate/l9-omarchy/`. The default user must be root or have passwordless
+  sudo. The official Arch WSL image is root-only and has no pacman sync
+  database; pass `--syu` so the launcher runs `pacman -Syu` once before the
+  probe. Use `--syu` only on a distro you will rebuild. Without the flag the
+  launcher never runs pacman. The probe does not remove packages on Arch.
+- Arch family, ssh: Run `tests/sandbox/ssh.sh <user@host>` against the
+  ISO-installed omarchy VM. Same pipeline as `omarchy.sh` over ssh. The
+  target user needs key authentication and passwordless sudo. Results go to
+  `.gate/l9-ssh/<host>/`.
+- The probe reads `ID` and `ID_LIKE` to select the pacman path, and
+  `pacman -Q omarchy-nvim` to select the omarchy checks. On plain Arch the
+  omarchy checks skip and the LazyVim starter check runs instead.
 
 - Windows: Run `_probe.ps1` in Windows Sandbox. Local mode uses `prepare.sh`
   and `sandbox.wsb` to test an unpushed tree. Remote mode uses `irm | iex`

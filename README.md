@@ -2,15 +2,15 @@
 
 用 chezmoi 管理開發環境：Linux（Debian 系與 Arch）、macOS、native Windows。
 
-| | Linux（Debian 系）/ macOS | Arch（omarchy） | Windows |
+| | Linux（Debian 系）/ macOS | Arch 家族（omarchy、純 Arch） | Windows |
 |---|---|---|---|
-| Shell | zsh + Oh My Zsh | zsh + Oh My Zsh，並載入 omarchy 的 `env-bootstrap` | PowerShell 7 |
+| Shell | zsh + Oh My Zsh | zsh + Oh My Zsh；omarchy 上另載入其 `env-bootstrap` | PowerShell 7 |
 | Prompt | Powerlevel10k | Powerlevel10k | oh-my-posh（powerlevel10k_rainbow） |
 | 補全／建議 | zsh-autosuggestions + zsh-syntax-highlighting | 同左 | PSReadLine（內建） |
 | 模糊搜尋 | fzf + fzf-tab | fzf + fzf-tab | fzf + PSFzf |
 | 套件 | apt（前置）+ Homebrew | pacman（不裝 Homebrew） | winget |
 | 版本管理 | mise | mise（pacman） | mise |
-| neovim | mise 釘版本 + LazyVim starter | pacman 的 neovim，沿用 omarchy 出廠的 LazyVim 設定 | mise 釘版本 + LazyVim starter |
+| neovim | mise 釘版本 + LazyVim starter | pacman 的 neovim；omarchy 沿用出廠的 LazyVim 設定，純 Arch clone LazyVim starter | mise 釘版本 + LazyVim starter |
 
 ---
 
@@ -50,9 +50,10 @@ branch 合併刪除後要回 main：`chezmoi cd && git checkout main`。
 
 已經裝過的機器重跑 `init.sh` 不會重新 clone，`--branch` 會被忽略；要換 branch 用下面的方式。
 
-### Arch / omarchy
+### Arch 家族：omarchy 與純 Arch
 
-同一行 `init.sh`。發行版由 `/etc/os-release` 的 `ID` 決定，Arch 走 pacman，不裝
+同一行 `init.sh`。發行版由 `/etc/os-release` 決定：`ID=arch`，或 `ID_LIKE` 含
+`arch`（正式安裝的 omarchy 是 `ID=omarchy`、`ID_LIKE=arch`），都走 pacman，不裝
 Homebrew：
 
 | 時機 | 做什麼 | 問什麼 |
@@ -61,8 +62,45 @@ Homebrew：
 | `run_onchange_before_30-install-pacman-packages` | 裝 `mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim`（omarchy 出廠大多已裝） | `sudo` 密碼（快取通常還在） |
 | `run_after_default-shell` | 改登入 shell 為 zsh | **你自己的**密碼 |
 
-只用 `pacman -S --needed --noconfirm`，不做 `-Sy` 或 `-Syu`；套件資料庫過期時腳本
-會停下來並提示先更新系統（omarchy：*Update > Omarchy*）。
+只用 `pacman -S --needed --noconfirm`，不做 `-Sy` 或 `-Syu`。`-Sy` 之後接 `-S` 會進入
+Arch 不支援的部分升級狀態，`-Syu` 則是把整台機器的升級變成套用 dotfiles 的副作用。
+代價是資料庫過期或從未同步時 `-S` 會失敗，腳本停下來並印出該執行什麼。
+
+**全新的 Arch 要先更新系統。** 官方 WSL 映像（`wsl --install archlinux`）沒有 pacman
+同步資料庫，不先更新就會停在第一支腳本。以 root 執行：
+
+```sh
+pacman -Syu
+```
+
+若映像連金鑰環都是空的（`-Syu` 報簽章或 keyring 錯誤），先初始化再更新：
+
+```sh
+pacman-key --init
+pacman-key --populate archlinux
+pacman -Syu
+```
+
+omarchy 用它自己的 *Update > Omarchy*，不需要手動下 pacman。
+
+更新完重跑同一行 `init.sh` 或 `chezmoi apply` 即可。套件腳本是 `run_onchange_`：
+失敗不會被記成完成，下次 apply 會自動重試；成功之後除非清單改變才會再跑，而且
+`pacman -Q` 會跳過已安裝的套件。
+
+WSL 映像預設只有 root。以 root 執行 `init.sh` 可以直接安裝，腳本不需要 sudo。要改用
+一般使用者時，先以 root 建好使用者與 sudo，再以該使用者執行 `init.sh`：
+
+```sh
+pacman -S --needed sudo
+useradd -m -G wheel <name>
+passwd <name>
+echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/10-wheel
+printf '[user]\ndefault=%s\n' <name> >> /etc/wsl.conf
+# 在 Windows 執行 wsl --shutdown，重開後就是 <name>
+```
+
+純 Arch 沒有 `omarchy-nvim`，`50-neovim` 會把既有的 `~/.config/nvim` 等目錄搬到
+`.bak`，再 clone LazyVim starter，與 Debian 相同。
 
 在 omarchy 上要知道的三件事：
 
@@ -72,6 +110,23 @@ Homebrew：
   與 `omarchy-*` 指令在 zsh 裡照常可用；omarchy 的 bash 專用 `rc` 不載入。
 - `~/.config/git/config` 由這個 repo 全檔接管，omarchy 安裝時寫入的 alias 與
   `init.defaultbranch=master` 會被取代。`omarchy reinstall configs` 不會碰這個檔案。
+
+**終端機（選配）。** omarchy 4 預設 foot，官方同時支援 Alacritty、Ghostty 與 Kitty：
+四種都有出廠設定（`~/.config/<name>`），主題切換也涵蓋它們。想要 GPU 加速與內建的
+字型與連字處理，Ghostty 是合理選擇；foot 較輕，而且是預設值。換裝用 omarchy 自己的
+機制，以一般使用者執行：
+
+```sh
+sudo pacman -S ghostty
+omarchy-default-terminal ghostty
+```
+
+`ghostty` 在官方 `extra` 倉庫，不是 AUR。也可以走選單：*Install > Package* 安裝，
+*Setup > Default > Terminal* 切換；選單只列出已安裝的終端機。切換改的是
+`xdg-terminal-exec` 的預設項目，omarchy 的視窗規則與主題會跟著套用。
+
+這個 repo 不安裝終端機，也不管它的設定。換或不換都不影響 `chezmoi apply` 的結果，
+你的終端機設定也不會被這個 repo 覆蓋。
 
 ---
 

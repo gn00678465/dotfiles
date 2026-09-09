@@ -1,0 +1,649 @@
+ok 1 - [L1] linux/amd64 的平台事實
+ok 2 - [L1] darwin/arm64 的平台事實（Apple Silicon 的 brew prefix）
+ok 3 - [L1] darwin/amd64 的平台事實（Intel Mac 的 brew prefix）
+ok 4 - [L1] windows/amd64 的平台事實（沒有 brew prefix）
+ok 5 - [L1] arch（linux/amd64 + distroOverride=arch）的平台事實：pacman、沒有 brew prefix
+ok 6 - [L1] 沒有 distroOverride 時 partial 退回 .chezmoi.osRelease.id（不存在時為空）
+ok 7 - [L1] 沒有 osOverride 時 partial 退回 .chezmoi.os/.chezmoi.arch
+ok 8 - [L1] 生產用的 .chezmoi.toml.tmpl 原始碼沒有 osOverride
+ok 9 - [L1] 生產用的 .chezmoi.toml.tmpl 原始碼沒有 archOverride
+ok 10 - [L1] 渲染後的生產 config 沒有 osOverride
+ok 11 - [L1] 渲染後的生產 config 沒有 archOverride
+ok 12 - [L1] 生產用的 .chezmoi.toml.tmpl 原始碼沒有 distroOverride
+ok 13 - [L1] 渲染後的生產 config 沒有 distroOverride
+ok 14 - [L11] nvim completion plugin：POSIX 與 Windows 的落點內容逐位元組相同
+ok 15 - [L11] uv 設定：POSIX 與 Windows 的落點內容逐位元組相同
+ok 16 - [L11] 30-install-winget-packages.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 17 - [L11] 35-install-ps-modules.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 18 - [L11] 40-git-lfs.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 19 - [L11] 50-neovim.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 20 - [L11] 60-pwsh-profile.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 21 - [L11] profile.ps1：windows 與 windows-arm64 的渲染相同（腳本不該依賴 arch）
+ok 22 - [L11] 50-neovim.sh：linux 與 linux-arm64 的渲染相同（腳本不該依賴 arch）
+ok 23 - [L11] golden：30-install-winget-packages.ps1 的 Windows 渲染沒有悄悄改變
+ok 24 - [L11] golden：35-install-ps-modules.ps1 的 Windows 渲染沒有悄悄改變
+ok 25 - [L11] golden：40-git-lfs.ps1 的 Windows 渲染沒有悄悄改變
+ok 26 - [L11] golden：50-neovim.ps1 的 Windows 渲染沒有悄悄改變
+ok 27 - [L11] golden：60-pwsh-profile.ps1 的 Windows 渲染沒有悄悄改變
+ok 28 - [L11] golden：profile.ps1 的 Windows 渲染沒有悄悄改變
+ok 29 - [L11] golden/render/windows 的檔案集合
+ok 30 - [L11] golden：.zshrc 的 arch 渲染沒有悄悄改變
+ok 31 - [L11] arch / .zshrc 載入 omarchy 的 env-bootstrap（M6）
+ok 32 - [L11] arch / .zshrc 不載入 bash 專用的 default/bash/rc（M7）
+ok 33 - [L11] arch / .zshrc 讀 /etc/omarchy.conf（dev 模式的 OMARCHY_PATH）
+ok 34 - [L11] golden：.zprofile 的 arch 渲染沒有悄悄改變
+ok 35 - [L11] arch / .zprofile 載入 omarchy 的 env-bootstrap（M6）
+ok 36 - [L11] arch / .zprofile 不載入 bash 專用的 default/bash/rc（M7）
+ok 37 - [L11] arch / .zprofile 讀 /etc/omarchy.conf（dev 模式的 OMARCHY_PATH）
+ok 38 - [L11] golden/render/arch 的檔案集合
+ok 39 - [L11] init.ps1 會自舉 Microsoft.PowerShell
+ok 40 - [L11] init.ps1 用 pwsh 判斷 Microsoft.PowerShell 是否已存在
+ok 41 - [L11] init.ps1 會自舉 Git.Git
+ok 42 - [L11] init.ps1 用 git 判斷 Git.Git 是否已存在
+ok 43 - [L11] init.ps1 會自舉 twpayne.chezmoi
+ok 44 - [L11] init.ps1 用 chezmoi 判斷 twpayne.chezmoi 是否已存在
+ok 45 - [L11] init.ps1 clone 的是正確的 GitHub 帳號
+ok 46 - [L11] init.ps1 會在 symlink 權限不足時警告
+ok 47 - [L11] init.ps1 的 symlink 警告有指出開發人員模式
+ok 48 - [L11] sandbox 探針會問 M12（treesitter parser 編不編得出來）
+ok 49 - [L11] sandbox 探針會檢查 symlink
+ok 50 - [L11] sandbox 探針會檢查 zsh 專屬檔案沒有落地
+ok 51 - [L11] sandbox 探針收 -Branch（名稱與 init.ps1 對齊）
+ok 52 - [L11] 遠端模式讓 chezmoi 自己 clone 指定分支
+ok 53 - [L11] 遠端模式 clone 的是正確的 GitHub 帳號
+ok 54 - [L11] 遠端模式改從 chezmoi source-path 取來源樹
+ok 55 - [L11] 沒有對應 C:\out 時輸出改寫到桌面
+ok 56 - [L11] 結尾把 results.tsv 全文印到主控台（Sandbox 關掉就沒了）
+ok 57 - [L11] 探針裡沒有寫死的 C:\out 輸出路徑
+ok 58 - [L11] 探針裡每一處 Get-Content 都帶 -ErrorAction Stop（缺檔要炸，不是回 $null）
+ok 59 - [L11] chezmoi 失敗時，FAIL 的 detail 要帶 chezmoi 輸出的尾段
+ok 60 - [L11] 結尾要印出 treesitter.log（遠端模式關掉就沒了）
+ok 61 - [L11] 主控台編碼統一成 UTF-8（winget 的輸出是 UTF-8，5.1 預設用 ANSI 代碼頁解）
+ok 62 - [L11] 子程序輸出邊收邊印，不是整段收完才印
+ok 63 - [L11] 長步驟開始前先報「正在做什麼、預期多久」
+ok 64 - [L11] treesitter 那段等待中要有心跳，不能整段靜止
+ok 65 - [L11] PATH 判定用有 scope 的 GetEnvironmentVariable，不經 registry provider
+ok 66 - [L11] Machine 與 User 兩個範圍都讀
+ok 67 - [L11] PATH 重建的結果要記進 results，不能只留在主控台
+ok 68 - [L11] PATH 重建本身是一條可以 FAIL 的檢查（靜靜失敗就是這次的問題）
+ok 69 - [L11] 套件檢查失敗時要帶 winget 的輸出尾段
+ok 70 - [L11] 子程序查找機制已移除（SPEC v6）
+ok 71 - [L11] tool on PATH 那組檢查已移除（SPEC v6）
+ok 72 - [L11] 改用 winget list --exact --id 確認套件已安裝
+ok 73 - [L11] 套件檢查的名稱進得了 results
+ok 74 - [L11] 探針讀得到 winget 套件清單
+ok 75 - [L11] 探針的套件清單與 30-install-winget-packages 完全相同
+ok 76 - [L11] 探針不再靠寫死的 ProgramFiles 目錄清單判定 PATH
+ok 77 - [L11] verbatim golden：init.ps1 沒有被改動（含註解掉、改序、覆寫）
+ok 78 - [L11] verbatim golden：_probe.ps1 沒有被改動（含註解掉、改序、覆寫）
+ok 79 - [L11] verbatim golden：_probe.sh 沒有被改動（含註解掉、改序、覆寫）
+ok 80 - [L11] Linux 探針收 --branch（遠端模式）
+ok 81 - [L11] 遠端模式跑的是 GitHub 上那個分支的 init.sh（使用者的第一次安裝路徑）
+ok 82 - [L11] 遠端模式改從 chezmoi source-path 取來源樹
+ok 83 - [L11] 沒有掛 /out 時輸出改寫到 $HOME/chezmoi-probe
+ok 84 - [L11] 結尾把 results.tsv 全文印到主控台
+ok 85 - [L11] 結尾要印出 treesitter.log
+ok 86 - [L11] 子程序輸出邊收邊印
+ok 87 - [L11] 長步驟開始前先報預期多久
+ok 88 - [L11] Linux 探針會問 M12（treesitter parser 編不編得出來）
+ok 89 - [L11] Linux 探針釘 tree-sitter CLI 是 brew 的、而且跑得起來（Debian 12 的 glibc 回歸）
+ok 90 - [L11] Linux 探針釘 nvim 是 versions.toml 的 pin
+ok 91 - [L11] Linux 探針會檢查 Windows 專屬檔案沒有落地
+ok 92 - [L11] Linux 探針會檢查 symlink
+ok 93 - [L11] 第二次 apply 必須不互動（--no-tty）
+ok 94 - [L11] 第二次 apply 不得重新 bootstrap nvim
+ok 95 - [L11] 走一次 chezmoi git（chezmoi update 的 code path）
+ok 96 - [L11] 有 systemd 時檢查 linger 與 /run/user/<uid>
+ok 97 - [L11] 沒有 systemd 時那幾條是 SKIP，不是 PASS
+ok 98 - [L11] 刪掉 neovim 再 apply 要裝回來（50-neovim 是 run_）
+ok 99 - [L11] Linux 探針讀得到 apt 套件清單
+ok 100 - [L11] Linux 探針的 apt 清單與 10-install-packages 完全相同
+ok 101 - [L11] Linux 探針讀得到 brew 清單
+ok 102 - [L11] Linux 探針的 brew 清單與 30-install-brew-packages 完全相同
+ok 103 - [L11] Linux 探針讀得到 pacman 前置套件清單
+ok 104 - [L11] Linux 探針的 pacman 前置清單與 10-install-packages（arch）完全相同
+ok 105 - [L11] Linux 探針讀得到 pacman 工具清單
+ok 106 - [L11] Linux 探針的 pacman 工具清單與 30-install-pacman-packages 完全相同
+ok 107 - [L11] 探針在 Arch 上檢查 ~/.config/nvim 沒有被搬進 .bak（M2）
+ok 108 - [L11] 探針在 Arch 上檢查沒有 /home/linuxbrew（M3）
+ok 109 - [L11] 探針在 Arch 上用真實 chezmoi 驗證 osRelease 接縫（M4）
+ok 110 - [L11] 探針在 Arch 上檢查登入 zsh 有 OMARCHY_PATH（M6）
+ok 111 - [L11] 探針在 Arch 上不移除 pacman 的 neovim（Must NOT #8）
+ok 112 - [L11] 測試層的檔案集合
+ok 113 - [L2] 腳本存在：run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl
+ok 114 - [L2] 腳本存在：run_onchange_before_10-install-packages.sh.tmpl
+ok 115 - [L2] 腳本存在：run_once_before_20-install-homebrew.sh.tmpl
+ok 116 - [L2] 腳本存在：run_onchange_before_30-install-brew-packages.sh.tmpl
+ok 117 - [L2] 腳本存在：run_onchange_before_30-install-pacman-packages.sh.tmpl
+ok 118 - [L2] 腳本存在：run_onchange_before_30-install-winget-packages.ps1.tmpl
+ok 119 - [L2] 腳本存在：run_onchange_before_35-install-ps-modules.ps1.tmpl
+ok 120 - [L2] 腳本存在：run_onchange_after_40-git-lfs.sh.tmpl
+ok 121 - [L2] 腳本存在：run_onchange_after_40-git-lfs.ps1.tmpl
+ok 122 - [L2] 腳本存在：run_before_50-neovim.sh.tmpl
+ok 123 - [L2] 腳本存在：run_before_50-neovim.ps1.tmpl
+ok 124 - [L2] 腳本存在：run_after_60-pwsh-profile.ps1.tmpl
+ok 125 - [L2] 腳本存在：run_after_default-shell.sh.tmpl
+ok 126 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 linux 上渲染成空
+ok 127 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 128 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 arch 上渲染成空
+ok 129 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 130 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 131 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 windows 上非空
+ok 132 - [L2] run_after_60-pwsh-profile.ps1.tmpl 在 windows-arm64 上非空
+ok 133 - [L2] run_after_default-shell.sh.tmpl 在 linux 上非空
+ok 134 - [L2] run_after_default-shell.sh.tmpl 在 linux-arm64 上非空
+ok 135 - [L2] run_after_default-shell.sh.tmpl 在 arch 上非空
+ok 136 - [L2] run_after_default-shell.sh.tmpl 在 darwin-arm64 上渲染成空
+ok 137 - [L2] run_after_default-shell.sh.tmpl 在 darwin-amd64 上渲染成空
+ok 138 - [L2] run_after_default-shell.sh.tmpl 在 windows 上渲染成空
+ok 139 - [L2] run_after_default-shell.sh.tmpl 在 windows-arm64 上渲染成空
+ok 140 - [L2] run_before_50-neovim.ps1.tmpl 在 linux 上渲染成空
+ok 141 - [L2] run_before_50-neovim.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 142 - [L2] run_before_50-neovim.ps1.tmpl 在 arch 上渲染成空
+ok 143 - [L2] run_before_50-neovim.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 144 - [L2] run_before_50-neovim.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 145 - [L2] run_before_50-neovim.ps1.tmpl 在 windows 上非空
+ok 146 - [L2] run_before_50-neovim.ps1.tmpl 在 windows-arm64 上非空
+ok 147 - [L2] run_before_50-neovim.sh.tmpl 在 linux 上非空
+ok 148 - [L2] run_before_50-neovim.sh.tmpl 在 linux-arm64 上非空
+ok 149 - [L2] run_before_50-neovim.sh.tmpl 在 arch 上渲染成空
+ok 150 - [L2] run_before_50-neovim.sh.tmpl 在 darwin-arm64 上非空
+ok 151 - [L2] run_before_50-neovim.sh.tmpl 在 darwin-amd64 上非空
+ok 152 - [L2] run_before_50-neovim.sh.tmpl 在 windows 上渲染成空
+ok 153 - [L2] run_before_50-neovim.sh.tmpl 在 windows-arm64 上渲染成空
+ok 154 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 linux 上非空
+ok 155 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 linux-arm64 上非空
+ok 156 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 arch 上渲染成空
+ok 157 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 darwin-arm64 上非空
+ok 158 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 darwin-amd64 上非空
+ok 159 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 windows 上渲染成空
+ok 160 - [L2] run_once_before_20-install-homebrew.sh.tmpl 在 windows-arm64 上渲染成空
+ok 161 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 linux 上渲染成空
+ok 162 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 163 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 arch 上渲染成空
+ok 164 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 165 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 166 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 windows 上非空
+ok 167 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 在 windows-arm64 上非空
+ok 168 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 linux 上非空
+ok 169 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 linux-arm64 上非空
+ok 170 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 arch 上非空
+ok 171 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 darwin-arm64 上非空
+ok 172 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 darwin-amd64 上非空
+ok 173 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 windows 上渲染成空
+ok 174 - [L2] run_onchange_after_40-git-lfs.sh.tmpl 在 windows-arm64 上渲染成空
+ok 175 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 linux 上渲染成空
+ok 176 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 linux-arm64 上渲染成空
+ok 177 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 arch 上渲染成空
+ok 178 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 darwin-arm64 上渲染成空
+ok 179 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 darwin-amd64 上渲染成空
+ok 180 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 windows 上渲染成空
+ok 181 - [L2] run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 windows-arm64 上渲染成空
+ok 182 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 linux 上非空
+ok 183 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 linux-arm64 上非空
+ok 184 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 arch 上非空
+ok 185 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 darwin-arm64 上渲染成空
+ok 186 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 darwin-amd64 上渲染成空
+ok 187 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 windows 上渲染成空
+ok 188 - [L2] run_onchange_before_10-install-packages.sh.tmpl 在 windows-arm64 上渲染成空
+ok 189 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 linux 上非空
+ok 190 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 linux-arm64 上非空
+ok 191 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 arch 上渲染成空
+ok 192 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 darwin-arm64 上非空
+ok 193 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 darwin-amd64 上非空
+ok 194 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 windows 上渲染成空
+ok 195 - [L2] run_onchange_before_30-install-brew-packages.sh.tmpl 在 windows-arm64 上渲染成空
+ok 196 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 linux 上渲染成空
+ok 197 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 linux-arm64 上渲染成空
+ok 198 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 arch 上非空
+ok 199 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 darwin-arm64 上渲染成空
+ok 200 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 darwin-amd64 上渲染成空
+ok 201 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 windows 上渲染成空
+ok 202 - [L2] run_onchange_before_30-install-pacman-packages.sh.tmpl 在 windows-arm64 上渲染成空
+ok 203 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 linux 上渲染成空
+ok 204 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 205 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 arch 上渲染成空
+ok 206 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 207 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 208 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 windows 上非空
+ok 209 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 在 windows-arm64 上非空
+ok 210 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 linux 上渲染成空
+ok 211 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 linux-arm64 上渲染成空
+ok 212 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 arch 上渲染成空
+ok 213 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 darwin-arm64 上渲染成空
+ok 214 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 darwin-amd64 上渲染成空
+ok 215 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 windows 上非空
+ok 216 - [L2] run_onchange_before_35-install-ps-modules.ps1.tmpl 在 windows-arm64 上非空
+ok 217 - [L2] 不變式：run_after_default-shell.sh.tmpl 在 windows 上必須是空的
+ok 218 - [L2] 不變式：run_before_50-neovim.sh.tmpl 在 windows 上必須是空的
+ok 219 - [L2] 不變式：run_once_before_20-install-homebrew.sh.tmpl 在 windows 上必須是空的
+ok 220 - [L2] 不變式：run_onchange_after_40-git-lfs.sh.tmpl 在 windows 上必須是空的
+ok 221 - [L2] 不變式：run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 在 windows 上必須是空的
+ok 222 - [L2] 不變式：run_onchange_before_10-install-packages.sh.tmpl 在 windows 上必須是空的
+ok 223 - [L2] 不變式：run_onchange_before_30-install-brew-packages.sh.tmpl 在 windows 上必須是空的
+ok 224 - [L2] 不變式：run_onchange_before_30-install-pacman-packages.sh.tmpl 在 windows 上必須是空的
+ok 225 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 linux 上必須是空的
+ok 226 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 227 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 arch 上必須是空的
+ok 228 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 229 - [L2] 不變式：run_after_60-pwsh-profile.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 230 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 linux 上必須是空的
+ok 231 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 232 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 arch 上必須是空的
+ok 233 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 234 - [L2] 不變式：run_before_50-neovim.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 235 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 linux 上必須是空的
+ok 236 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 237 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 arch 上必須是空的
+ok 238 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 239 - [L2] 不變式：run_onchange_after_40-git-lfs.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 240 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 linux 上必須是空的
+ok 241 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 242 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 arch 上必須是空的
+ok 243 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 244 - [L2] 不變式：run_onchange_before_30-install-winget-packages.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 245 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 linux 上必須是空的
+ok 246 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 linux-arm64 上必須是空的
+ok 247 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 arch 上必須是空的
+ok 248 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 darwin-arm64 上必須是空的
+ok 249 - [L2] 不變式：run_onchange_before_35-install-ps-modules.ps1.tmpl 在 darwin-amd64 上必須是空的
+ok 250 - [L2] 05-wsl-user-runtime-dir 在 isWSL = true 時非空
+ok 251 - [L2] 05-wsl-user-runtime-dir 用 loginctl enable-linger（不是 mkdir，那個目錄歸 logind 管）
+ok 252 - [L2] 05-wsl-user-runtime-dir 在原生 Linux（isWSL = false）渲染成空
+ok 253 - [L2] POSIX 50-neovim 有釘住的 neovim 版本
+ok 254 - [L2] 兩個平台的 50-neovim 釘同一個 neovim 版本
+ok 255 - [L2] POSIX 50-neovim 有 marker 檔名
+ok 256 - [L2] 兩個平台的 50-neovim 用同一個 marker 檔名
+ok 257 - [L2] 兩個平台的 50-neovim clone 同一個 starter repo
+ok 258 - [L2] 50-neovim 是 run_ 不是 run_onchange_：run_before_50-neovim.sh.tmpl
+ok 259 - [L2] 50-neovim 是 run_ 不是 run_onchange_：run_before_50-neovim.ps1.tmpl
+ok 260 - [L2] 60-pwsh-profile 把 $target 指向 $PROFILE.CurrentUserAllHosts
+ok 261 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 有套用 windows-path partial
+ok 262 - [L2] run_onchange_before_30-install-winget-packages.ps1.tmpl 的 PATH 補強有含 mise shims
+ok 263 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 有套用 windows-path partial
+ok 264 - [L2] run_onchange_after_40-git-lfs.ps1.tmpl 的 PATH 補強有含 mise shims
+ok 265 - [L2] run_before_50-neovim.ps1.tmpl 有套用 windows-path partial
+ok 266 - [L2] run_before_50-neovim.ps1.tmpl 的 PATH 補強有含 mise shims
+ok 267 - [L2] external 有裝一個 oh-my-posh 主題檔
+ok 268 - [L2] profile 讀的主題檔名與 external 裝的那一個一致
+ok 269 - [L2] profile 有初始化 oh-my-posh
+ok 270 - [L2] profile 有開啟 PSReadLine 的歷史預測（對應 zsh-autosuggestions）
+ok 271 - [L2] profile 有載入 PSFzf 的 TabExpansion（對應 fzf-tab）
+ok 272 - [L2] profile 有啟用 mise
+ok 273 - [L2] brew 清單裝的是 tree-sitter-cli（CLI）
+ok 274 - [L2] brew 清單沒有只裝函式庫的 tree-sitter formula
+ok 275 - [L2] winget 清單裝的是 tree-sitter.tree-sitter-cli
+ok 276 - [L2] 10-install-packages 在 arch 上用 pacman -S --needed --noconfirm
+ok 277 - [L2] 10-install-packages 在 arch 上沒有 apt-get
+ok 278 - [L2] 10-install-packages 在 arch 上沒有 dpkg-query
+ok 279 - [L2] 10-install-packages 在 arch 上沒有 pacman -Sy（部分升級／全系統升級都不准）
+ok 280 - [L2] 10-install-packages 在 arch 上沒有 pacman -R（不移除套件）
+ok 281 - [L2] 10-install-packages 在 arch 上沒有 --overwrite
+ok 282 - [L2] 10-install-packages 在 linux 上沒有 pacman
+ok 283 - [L2] 10-install-packages 在 arch 上的前置套件清單
+ok 284 - [L2] brew 清單可解析
+ok 285 - [L2] pacman 工具清單 = brew 工具清單 + neovim
+ok 286 - [L2] pacman 清單裝的是 tree-sitter-cli（CLI）
+ok 287 - [L2] 30-install-pacman-packages 用 -S --needed --noconfirm
+ok 288 - [L2] 30-install-pacman-packages 沒有 pacman -Sy
+ok 289 - [L2] 30-install-pacman-packages 沒有 pacman -R
+ok 290 - [L2] 30-install-pacman-packages 沒有 --overwrite
+ok 291 - [L2] arch / run_after_default-shell.sh.tmpl 沒有 linuxbrew
+ok 292 - [L2] arch / run_after_default-shell.sh.tmpl 沒有 brew shellenv
+ok 293 - [L2] arch / run_before_50-neovim.sh.tmpl 沒有 linuxbrew
+ok 294 - [L2] arch / run_before_50-neovim.sh.tmpl 沒有 brew shellenv
+ok 295 - [L2] arch / run_once_before_20-install-homebrew.sh.tmpl 沒有 linuxbrew
+ok 296 - [L2] arch / run_once_before_20-install-homebrew.sh.tmpl 沒有 brew shellenv
+ok 297 - [L2] arch / run_onchange_after_40-git-lfs.sh.tmpl 沒有 linuxbrew
+ok 298 - [L2] arch / run_onchange_after_40-git-lfs.sh.tmpl 沒有 brew shellenv
+ok 299 - [L2] arch / run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 沒有 linuxbrew
+ok 300 - [L2] arch / run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 沒有 brew shellenv
+ok 301 - [L2] arch / run_onchange_before_10-install-packages.sh.tmpl 沒有 linuxbrew
+ok 302 - [L2] arch / run_onchange_before_10-install-packages.sh.tmpl 沒有 brew shellenv
+ok 303 - [L2] arch / run_onchange_before_30-install-brew-packages.sh.tmpl 沒有 linuxbrew
+ok 304 - [L2] arch / run_onchange_before_30-install-brew-packages.sh.tmpl 沒有 brew shellenv
+ok 305 - [L2] arch / run_onchange_before_30-install-pacman-packages.sh.tmpl 沒有 linuxbrew
+ok 306 - [L2] arch / run_onchange_before_30-install-pacman-packages.sh.tmpl 沒有 brew shellenv
+ok 307 - [L2] arch / dot_zshrc.tmpl 沒有 linuxbrew
+ok 308 - [L2] arch / dot_zshrc.tmpl 沒有 brew shellenv
+ok 309 - [L2] arch / dot_zprofile.tmpl 沒有 linuxbrew
+ok 310 - [L2] arch / dot_zprofile.tmpl 沒有 brew shellenv
+ok 311 - [L2] 40-git-lfs 在 arch 上仍執行 git lfs install --skip-repo
+ok 312 - [L2] 40-git-lfs 在 linux 上先載入 brew shellenv
+ok 313 - [L2] default-shell 在 arch 上用 readlink -f 把 zsh 對回 /etc/shells 的條目
+ok 314 - [L2] default-shell 在 arch 上逐行讀 /etc/shells
+ok 315 - [L2] default-shell 在 linux 上沒有這段（渲染不變）
+ok 316 - [L2] Windows 的設定有釘住 .ps1 的直譯器
+ok 317 - [L2] 直譯器是 pwsh（不是 Windows PowerShell 5.1）
+ok 318 - [L2] 直譯器帶 -ExecutionPolicy Bypass（Restricted 下腳本一律拒載）
+ok 319 - [L2] 直譯器帶 -NoProfile
+ok 320 - [L2] 直譯器的最後一個參數是 -File（腳本路徑接在後面）
+ok 321 - [L2] linux 的設定沒有 interpreters 區段
+ok 322 - [L2] linux-arm64 的設定沒有 interpreters 區段
+ok 323 - [L2] darwin-arm64 的設定沒有 interpreters 區段
+ok 324 - [L2] darwin-amd64 的設定沒有 interpreters 區段
+ok 325 - [L2] winget 清單有 WinLibs 的 gcc（nvim-treesitter 認得的 C compiler）
+ok 326 - [L2] zig 已從 winget 清單移除（它的唯一理由已不成立）
+ok 327 - [L3] linux 的 managed 清單
+ok 328 - [L3] linux-arm64 的 managed 清單
+ok 329 - [L3] arch 的 managed 清單
+ok 330 - [L3] darwin-arm64 的 managed 清單
+ok 331 - [L3] darwin-amd64 的 managed 清單
+ok 332 - [L3] windows 的 managed 清單
+ok 333 - [L3] windows-arm64 的 managed 清單
+ok 334 - [L3] windows 上不得管理 .zshrc
+ok 335 - [L3] windows 上不得管理 .zprofile
+ok 336 - [L3] windows 上不得管理 .p10k.zsh
+ok 337 - [L3] windows 上不得管理 .config/nvim/lua/plugins/completion.lua
+ok 338 - [L3] windows 上不得管理 .config/uv/uv.toml
+ok 339 - [L3] windows 上必須管理 .config/powershell/profile.ps1
+ok 340 - [L3] windows 上必須管理 AppData/Local/nvim/lua/plugins/completion.lua
+ok 341 - [L3] windows 上必須管理 AppData/Roaming/uv/uv.toml
+ok 342 - [L3] linux 上不得管理 AppData
+ok 343 - [L3] linux 上不得管理 .config/powershell
+ok 344 - [L3] linux 上必須管理 .zshrc
+ok 345 - [L3] linux 上必須管理 .p10k.zsh
+ok 346 - [L3] linux 上必須管理 .config/nvim/lua/plugins/completion.lua
+ok 347 - [L3] linux 上必須管理 .config/uv/uv.toml
+ok 348 - [L3] linux 不得把 tests/ 裝進 $HOME
+ok 349 - [L3] linux 不得把 docs/ 裝進 $HOME
+ok 350 - [L3] linux 不得把 .scratch/ 裝進 $HOME
+ok 351 - [L3] linux 不得把 specs/ 裝進 $HOME
+ok 352 - [L3] linux 不得把 tools/ 裝進 $HOME
+ok 353 - [L3] linux-arm64 不得把 tests/ 裝進 $HOME
+ok 354 - [L3] linux-arm64 不得把 docs/ 裝進 $HOME
+ok 355 - [L3] linux-arm64 不得把 .scratch/ 裝進 $HOME
+ok 356 - [L3] linux-arm64 不得把 specs/ 裝進 $HOME
+ok 357 - [L3] linux-arm64 不得把 tools/ 裝進 $HOME
+ok 358 - [L3] arch 不得把 tests/ 裝進 $HOME
+ok 359 - [L3] arch 不得把 docs/ 裝進 $HOME
+ok 360 - [L3] arch 不得把 .scratch/ 裝進 $HOME
+ok 361 - [L3] arch 不得把 specs/ 裝進 $HOME
+ok 362 - [L3] arch 不得把 tools/ 裝進 $HOME
+ok 363 - [L3] darwin-arm64 不得把 tests/ 裝進 $HOME
+ok 364 - [L3] darwin-arm64 不得把 docs/ 裝進 $HOME
+ok 365 - [L3] darwin-arm64 不得把 .scratch/ 裝進 $HOME
+ok 366 - [L3] darwin-arm64 不得把 specs/ 裝進 $HOME
+ok 367 - [L3] darwin-arm64 不得把 tools/ 裝進 $HOME
+ok 368 - [L3] darwin-amd64 不得把 tests/ 裝進 $HOME
+ok 369 - [L3] darwin-amd64 不得把 docs/ 裝進 $HOME
+ok 370 - [L3] darwin-amd64 不得把 .scratch/ 裝進 $HOME
+ok 371 - [L3] darwin-amd64 不得把 specs/ 裝進 $HOME
+ok 372 - [L3] darwin-amd64 不得把 tools/ 裝進 $HOME
+ok 373 - [L3] windows 不得把 tests/ 裝進 $HOME
+ok 374 - [L3] windows 不得把 docs/ 裝進 $HOME
+ok 375 - [L3] windows 不得把 .scratch/ 裝進 $HOME
+ok 376 - [L3] windows 不得把 specs/ 裝進 $HOME
+ok 377 - [L3] windows 不得把 tools/ 裝進 $HOME
+ok 378 - [L3] windows-arm64 不得把 tests/ 裝進 $HOME
+ok 379 - [L3] windows-arm64 不得把 docs/ 裝進 $HOME
+ok 380 - [L3] windows-arm64 不得把 .scratch/ 裝進 $HOME
+ok 381 - [L3] windows-arm64 不得把 specs/ 裝進 $HOME
+ok 382 - [L3] windows-arm64 不得把 tools/ 裝進 $HOME
+ok 383 - [L3] git 對 dot_codex/modify_private_config.toml 的 eol 判定是 lf
+ok 384 - [L3] git 對 .chezmoiscripts/run_before_50-neovim.ps1.tmpl 的 eol 判定是 lf
+ok 385 - [L3] git 對 .chezmoiscripts/run_onchange_before_30-install-pacman-packages.sh.tmpl 的 eol 判定是 lf
+ok 386 - [L3] git 對 tests/sandbox/_probe.ps1 的 eol 判定是 lf
+ok 387 - [L3] git 對 init.ps1 的 eol 判定是 lf
+ok 388 - [L4] linux / run_after_default-shell.sh.tmpl 通過 zsh 解析
+ok 389 - [L4] linux / run_before_50-neovim.sh.tmpl 通過 zsh 解析
+ok 390 - [L4] linux / run_once_before_20-install-homebrew.sh.tmpl 通過 zsh 解析
+ok 391 - [L4] linux / run_onchange_after_40-git-lfs.sh.tmpl 通過 zsh 解析
+ok 392 - [L4] linux / run_onchange_before_10-install-packages.sh.tmpl 通過 zsh 解析
+ok 393 - [L4] linux / run_onchange_before_30-install-brew-packages.sh.tmpl 通過 zsh 解析
+ok 394 - [L4] linux-arm64 / run_after_default-shell.sh.tmpl 通過 zsh 解析
+ok 395 - [L4] linux-arm64 / run_before_50-neovim.sh.tmpl 通過 zsh 解析
+ok 396 - [L4] linux-arm64 / run_once_before_20-install-homebrew.sh.tmpl 通過 zsh 解析
+ok 397 - [L4] linux-arm64 / run_onchange_after_40-git-lfs.sh.tmpl 通過 zsh 解析
+ok 398 - [L4] linux-arm64 / run_onchange_before_10-install-packages.sh.tmpl 通過 zsh 解析
+ok 399 - [L4] linux-arm64 / run_onchange_before_30-install-brew-packages.sh.tmpl 通過 zsh 解析
+ok 400 - [L4] arch / run_after_default-shell.sh.tmpl 通過 zsh 解析
+ok 401 - [L4] arch / run_onchange_after_40-git-lfs.sh.tmpl 通過 zsh 解析
+ok 402 - [L4] arch / run_onchange_before_10-install-packages.sh.tmpl 通過 zsh 解析
+ok 403 - [L4] arch / run_onchange_before_30-install-pacman-packages.sh.tmpl 通過 zsh 解析
+ok 404 - [L4] darwin-arm64 / run_before_50-neovim.sh.tmpl 通過 zsh 解析
+ok 405 - [L4] darwin-arm64 / run_once_before_20-install-homebrew.sh.tmpl 通過 zsh 解析
+ok 406 - [L4] darwin-arm64 / run_onchange_after_40-git-lfs.sh.tmpl 通過 zsh 解析
+ok 407 - [L4] darwin-arm64 / run_onchange_before_30-install-brew-packages.sh.tmpl 通過 zsh 解析
+ok 408 - [L4] darwin-amd64 / run_before_50-neovim.sh.tmpl 通過 zsh 解析
+ok 409 - [L4] darwin-amd64 / run_once_before_20-install-homebrew.sh.tmpl 通過 zsh 解析
+ok 410 - [L4] darwin-amd64 / run_onchange_after_40-git-lfs.sh.tmpl 通過 zsh 解析
+ok 411 - [L4] darwin-amd64 / run_onchange_before_30-install-brew-packages.sh.tmpl 通過 zsh 解析
+ok 412 - [L4] windows / run_after_60-pwsh-profile.ps1.tmpl 通過 PowerShell 解析
+ok 413 - [L4] windows / run_before_50-neovim.ps1.tmpl 通過 PowerShell 解析
+ok 414 - [L4] windows / run_onchange_after_40-git-lfs.ps1.tmpl 通過 PowerShell 解析
+ok 415 - [L4] windows / run_onchange_before_30-install-winget-packages.ps1.tmpl 通過 PowerShell 解析
+ok 416 - [L4] windows / run_onchange_before_35-install-ps-modules.ps1.tmpl 通過 PowerShell 解析
+ok 417 - [L4] windows-arm64 / run_after_60-pwsh-profile.ps1.tmpl 通過 PowerShell 解析
+ok 418 - [L4] windows-arm64 / run_before_50-neovim.ps1.tmpl 通過 PowerShell 解析
+ok 419 - [L4] windows-arm64 / run_onchange_after_40-git-lfs.ps1.tmpl 通過 PowerShell 解析
+ok 420 - [L4] windows-arm64 / run_onchange_before_30-install-winget-packages.ps1.tmpl 通過 PowerShell 解析
+ok 421 - [L4] windows-arm64 / run_onchange_before_35-install-ps-modules.ps1.tmpl 通過 PowerShell 解析
+ok 422 - [L4] native-wsl / run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl 通過 zsh 解析
+ok 423 - [L4] windows / profile.ps1 通過 PowerShell 解析
+ok 424 - [L4] linux / .zshrc 通過 zsh 解析
+ok 425 - [L4] linux / .zprofile 通過 zsh 解析
+ok 426 - [L4] linux-arm64 / .zshrc 通過 zsh 解析
+ok 427 - [L4] linux-arm64 / .zprofile 通過 zsh 解析
+ok 428 - [L4] arch / .zshrc 通過 zsh 解析
+ok 429 - [L4] arch / .zprofile 通過 zsh 解析
+ok 430 - [L4] darwin-arm64 / .zshrc 通過 zsh 解析
+ok 431 - [L4] darwin-arm64 / .zprofile 通過 zsh 解析
+ok 432 - [L4] darwin-amd64 / .zshrc 通過 zsh 解析
+ok 433 - [L4] darwin-amd64 / .zprofile 通過 zsh 解析
+ok 434 - [L4] init.ps1 通過 PowerShell 解析
+ok 435 - [L4] init.sh 通過 sh 解析
+ok 436 - [L4] init.ps1 通過 Windows PowerShell 5.1 解析
+ok 437 - [L4] sandbox _probe.ps1 是純 ASCII
+ok 438 - [L4] sandbox _probe.ps1 通過 Windows PowerShell 5.1 解析
+ok 439 - [L4] init.ps1 是純 ASCII
+ok 440 - [L5] linux 的 external 清單
+ok 441 - [L5] linux-arm64 的 external 清單
+ok 442 - [L5] arch 的 external 清單
+ok 443 - [L5] darwin-arm64 的 external 清單
+ok 444 - [L5] darwin-amd64 的 external 清單
+ok 445 - [L5] windows 的 external 清單
+ok 446 - [L5] windows 上不得有任何 .oh-my-zsh external（exact=true 會刪東西）
+ok 447 - [L5] linux 的每個 external（.oh-my-zsh 本體除外）都有 checksum
+ok 448 - [L5] linux-arm64 的每個 external（.oh-my-zsh 本體除外）都有 checksum
+ok 449 - [L5] arch 的每個 external（.oh-my-zsh 本體除外）都有 checksum
+ok 450 - [L5] darwin-arm64 的每個 external（.oh-my-zsh 本體除外）都有 checksum
+ok 451 - [L5] darwin-amd64 的每個 external（.oh-my-zsh 本體除外）都有 checksum
+ok 452 - [L5] windows 的每個 external（.oh-my-zsh 本體除外）都有 checksum
+ok 453 - [L5] windows-arm64 的每個 external（.oh-my-zsh 本體除外）都有 checksum
+ok 454 - [L5] cc-statusline win32-x64 的 sha256
+ok 455 - [L5] oh-my-posh powerlevel10k_rainbow 主題的 sha256
+ok 456 - [L5] Windows 的 cc-statusline 取 .exe
+ok 457 - [L5] PowerShell 模組安裝有帶 -Version
+ok 458 - [L5] 沒有任何 Install-PSResource 少了 -Version
+ok 459 - [L5] linux 取的是 cc-statusline-linux-x64-musl.tar.gz
+ok 460 - [L5] linux-arm64 取的是 cc-statusline-linux-arm64-musl.tar.gz
+ok 461 - [L5] arch 取的是 
+ok 462 - [L5] darwin-arm64 取的是 cc-statusline-darwin-arm64.tar.gz
+ok 463 - [L5] darwin-amd64 取的是 cc-statusline-darwin-x64.tar.gz
+ok 464 - [L5] windows 取的是 cc-statusline-win32-x64.zip
+ok 465 - [L5] windows-arm64 取的是 cc-statusline-win32-arm64.zip
+ok 466 - [L5] p10k 的 .zwc 不出現在 status
+ok 467 - [L5] 有 .zwc 時 apply --no-tty 不互動、退出碼 0
+ok 468 - [L5] 九支 .zwc 在 apply 後全數保留
+ok 469 - [L5] exact 仍會移除非 .zwc 的雜物，apply 退出碼 0
+ok 470 - [L5] linux 的 .chezmoiignore 有 .oh-my-zsh/**/*.zwc
+ok 471 - [L5] linux-arm64 的 .chezmoiignore 有 .oh-my-zsh/**/*.zwc
+ok 472 - [L5] arch 的 .chezmoiignore 有 .oh-my-zsh/**/*.zwc
+ok 473 - [L5] darwin-arm64 的 .chezmoiignore 有 .oh-my-zsh/**/*.zwc
+ok 474 - [L5] darwin-amd64 的 .chezmoiignore 有 .oh-my-zsh/**/*.zwc
+ok 475 - [L6] c1-absent linux apply 無錯誤
+ok 476 - [L6] c1-absent: ~/.codex/config.toml（linux）
+ok 477 - [L6] c1-absent: ~/.claude/settings.json（linux）
+ok 478 - [L6] c1-absent windows apply 無錯誤
+ok 479 - [L6] c1-absent: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 480 - [L6] c1-absent: ~/.claude/settings.json（windows）
+ok 481 - [L6] c10-empty-tui linux apply 無錯誤
+ok 482 - [L6] c10-empty-tui: ~/.codex/config.toml（linux）
+ok 483 - [L6] c10-empty-tui: ~/.claude/settings.json（linux）
+ok 484 - [L6] c10-empty-tui windows apply 無錯誤
+ok 485 - [L6] c10-empty-tui: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 486 - [L6] c10-empty-tui: ~/.claude/settings.json（windows）
+ok 487 - [L6] c11-tui-then-table linux apply 無錯誤
+ok 488 - [L6] c11-tui-then-table: ~/.codex/config.toml（linux）
+ok 489 - [L6] c11-tui-then-table: ~/.claude/settings.json（linux）
+ok 490 - [L6] c11-tui-then-table windows apply 無錯誤
+ok 491 - [L6] c11-tui-then-table: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 492 - [L6] c11-tui-then-table: ~/.claude/settings.json（windows）
+ok 493 - [L6] c12-tui-subtable linux apply 無錯誤
+ok 494 - [L6] c12-tui-subtable: ~/.codex/config.toml（linux）
+ok 495 - [L6] c12-tui-subtable: ~/.claude/settings.json（linux）
+ok 496 - [L6] c12-tui-subtable windows apply 無錯誤
+ok 497 - [L6] c12-tui-subtable: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 498 - [L6] c12-tui-subtable: ~/.claude/settings.json（windows）
+ok 499 - [L6] c13-tui-no-newline linux apply 無錯誤
+ok 500 - [L6] c13-tui-no-newline: ~/.codex/config.toml（linux）
+ok 501 - [L6] c13-tui-no-newline: ~/.claude/settings.json（linux）
+ok 502 - [L6] c13-tui-no-newline windows apply 無錯誤
+ok 503 - [L6] c13-tui-no-newline: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 504 - [L6] c13-tui-no-newline: ~/.claude/settings.json（windows）
+ok 505 - [L6] c14-tui-space-only-line linux apply 無錯誤
+ok 506 - [L6] c14-tui-space-only-line: ~/.codex/config.toml（linux）
+ok 507 - [L6] c14-tui-space-only-line: ~/.claude/settings.json（linux）
+ok 508 - [L6] c14-tui-space-only-line windows apply 無錯誤
+ok 509 - [L6] c14-tui-space-only-line: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 510 - [L6] c14-tui-space-only-line: ~/.claude/settings.json（windows）
+ok 511 - [L6] c2-comments-and-tables linux apply 無錯誤
+ok 512 - [L6] c2-comments-and-tables: ~/.codex/config.toml（linux）
+ok 513 - [L6] c2-comments-and-tables: ~/.claude/settings.json（linux）
+ok 514 - [L6] c2-comments-and-tables windows apply 無錯誤
+ok 515 - [L6] c2-comments-and-tables: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 516 - [L6] c2-comments-and-tables: ~/.claude/settings.json（windows）
+ok 517 - [L6] c3-missing-one linux apply 無錯誤
+ok 518 - [L6] c3-missing-one: ~/.codex/config.toml（linux）
+ok 519 - [L6] c3-missing-one: ~/.claude/settings.json（linux）
+ok 520 - [L6] c3-missing-one windows apply 無錯誤
+ok 521 - [L6] c3-missing-one: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 522 - [L6] c3-missing-one: ~/.claude/settings.json（windows）
+ok 523 - [L6] c4-duplicate linux apply 無錯誤
+ok 524 - [L6] c4-duplicate: ~/.codex/config.toml（linux）
+ok 525 - [L6] c4-duplicate: ~/.claude/settings.json（linux）
+ok 526 - [L6] c4-duplicate windows apply 無錯誤
+ok 527 - [L6] c4-duplicate: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 528 - [L6] c4-duplicate: ~/.claude/settings.json（windows）
+ok 529 - [L6] c5-no-tui linux apply 無錯誤
+ok 530 - [L6] c5-no-tui: ~/.codex/config.toml（linux）
+ok 531 - [L6] c5-no-tui: ~/.claude/settings.json（linux）
+ok 532 - [L6] c5-no-tui windows apply 無錯誤
+ok 533 - [L6] c5-no-tui: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 534 - [L6] c5-no-tui: ~/.claude/settings.json（windows）
+ok 535 - [L6] c6-tui-then-table linux apply 無錯誤
+ok 536 - [L6] c6-tui-then-table: ~/.codex/config.toml（linux）
+ok 537 - [L6] c6-tui-then-table: ~/.claude/settings.json（linux）
+ok 538 - [L6] c6-tui-then-table windows apply 無錯誤
+ok 539 - [L6] c6-tui-then-table: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 540 - [L6] c6-tui-then-table: ~/.claude/settings.json（windows）
+ok 541 - [L6] c7-tricky-values linux apply 無錯誤
+ok 542 - [L6] c7-tricky-values: ~/.codex/config.toml（linux）
+ok 543 - [L6] c7-tricky-values: ~/.claude/settings.json（linux）
+ok 544 - [L6] c7-tricky-values windows apply 無錯誤
+ok 545 - [L6] c7-tricky-values: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 546 - [L6] c7-tricky-values: ~/.claude/settings.json（windows）
+ok 547 - [L6] c8-empty-file linux apply 無錯誤
+ok 548 - [L6] c8-empty-file: ~/.codex/config.toml（linux）
+ok 549 - [L6] c8-empty-file: ~/.claude/settings.json（linux）
+ok 550 - [L6] c8-empty-file windows apply 無錯誤
+ok 551 - [L6] c8-empty-file: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 552 - [L6] c8-empty-file: ~/.claude/settings.json（windows）
+ok 553 - [L6] c9-blank-only linux apply 無錯誤
+ok 554 - [L6] c9-blank-only: ~/.codex/config.toml（linux）
+ok 555 - [L6] c9-blank-only: ~/.claude/settings.json（linux）
+ok 556 - [L6] c9-blank-only windows apply 無錯誤
+ok 557 - [L6] c9-blank-only: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 558 - [L6] c9-blank-only: ~/.claude/settings.json（windows）
+ok 559 - [L6] s2-existing-settings linux apply 無錯誤
+ok 560 - [L6] s2-existing-settings: ~/.codex/config.toml（linux）
+ok 561 - [L6] s2-existing-settings: ~/.claude/settings.json（linux）
+ok 562 - [L6] s2-existing-settings windows apply 無錯誤
+ok 563 - [L6] s2-existing-settings: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 564 - [L6] s2-existing-settings: ~/.claude/settings.json（windows）
+ok 565 - [L6] s3-conflicting-statusline linux apply 無錯誤
+ok 566 - [L6] s3-conflicting-statusline: ~/.codex/config.toml（linux）
+ok 567 - [L6] s3-conflicting-statusline: ~/.claude/settings.json（linux）
+ok 568 - [L6] s3-conflicting-statusline windows apply 無錯誤
+ok 569 - [L6] s3-conflicting-statusline: ~/.codex/config.toml（windows，必須與 linux 同一份輸出）
+ok 570 - [L6] s3-conflicting-statusline: ~/.claude/settings.json（windows）
+ok 571 - [L6] dot_codex/modify_private_config.toml 是 modify-template（Windows 上不會被 exec）
+ok 572 - [L6] dot_codex/modify_private_config.toml 不得是 shell 腳本
+ok 573 - [L6] dot_claude/modify_settings.json 是 modify-template（Windows 上不會被 exec）
+ok 574 - [L6] dot_claude/modify_settings.json 不得是 shell 腳本
+ok 575 - [L7] POSIX 50-neovim 第一次執行成功
+ok 576 - [L7] POSIX: 既有 ~/.config/nvim 被備份而非刪除
+ok 577 - [L7] POSIX: 既有 ~/.local/share/nvim 被備份
+ok 578 - [L7] POSIX: 既有 ~/.local/state/nvim 被備份
+ok 579 - [L7] POSIX: 既有 ~/.cache/nvim 被備份
+ok 580 - [L7] POSIX: starter 已放進 ~/.config/nvim
+ok 581 - [L7] POSIX: starter 的 .git 已刪除
+ok 582 - [L7] POSIX: marker 已建立
+ok 583 - [L7] POSIX 50-neovim 第二次執行成功
+ok 584 - [L7] POSIX: 重跑不會動使用者自己的設定（M3）
+ok 585 - [L7] POSIX: 重跑不會多生一份備份
+ok 586 - [L7] POSIX 50-neovim 第三次執行成功
+ok 587 - [L7] POSIX: 舊的 .bak 沒有被埋掉
+ok 588 - [L7] POSIX: 第二份備份用時間戳另存
+ok 589 - [L7] POSIX 50-neovim 第四次執行成功
+ok 590 - [L7] POSIX: 撞名時來源被搬進既有備份裡（accepted risk，位置變深一層）
+ok 591 - [L7] POSIX: 即使撞名，使用者的內容仍然存在、沒有被刪
+ok 592 - [L7] POSIX: 沒有產生序號備份（那個迴圈已依使用者決定還原掉）
+ok 593 - [L7] POSIX: 跑到的是 stub 的 mise 而不是真實的 mise（隔離生效）
+ok 594 - [L7] Windows 50-neovim 第一次執行成功
+ok 595 - [L7] Windows: 既有 %LOCALAPPDATA%\nvim 被備份而非刪除（M2）
+ok 596 - [L7] Windows: 既有 %LOCALAPPDATA%\nvim-data 被備份（M2）
+ok 597 - [L7] Windows: 既有 %TEMP%\nvim 被備份（M2）
+ok 598 - [L7] Windows: 備份出來的目錄剛好是 nvim / nvim-data / TEMP\nvim
+ok 599 - [L7] Windows: starter 已放進 %LOCALAPPDATA%\nvim
+ok 600 - [L7] Windows: starter 的 .git 已刪除
+ok 601 - [L7] Windows: marker 已建立
+ok 602 - [L7] Windows 50-neovim 第二次執行成功
+ok 603 - [L7] Windows: 重跑不會動使用者自己的設定（M3）
+ok 604 - [L7] Windows: 重跑不會多生一份備份
+ok 605 - [L7] Windows 50-neovim 第三次執行成功
+ok 606 - [L7] Windows: 舊的 .bak 沒有被埋掉
+ok 607 - [L7] Windows: 第二份備份用時間戳另存
+ok 608 - [L7] Windows 50-neovim 第四次執行成功
+ok 609 - [L7] Windows: 撞名時來源被搬進既有備份裡（accepted risk，位置變深一層）
+ok 610 - [L7] Windows: 即使撞名，使用者的內容仍然存在、沒有被刪
+ok 611 - [L7] Windows: 沒有產生序號備份（與 POSIX 對稱）
+ok 612 - [L7] Windows: 跑到的是 stub 的 mise 而不是主機上的 mise（隔離生效）
+ok 613 - [L7] Windows: mise 不存在時退出碼是 0（跳過，不是中止整個 apply）
+ok 614 - [L7] Windows: mise 不存在時什麼都不建立
+ok 615 - [L7] loader partial 不自己決定目標路徑
+ok 616 - [L7] profile loader 跑三次恰好留下一行、且內容逐字正確（M10）
+ok 617 - [L7] profile loader 保留原本就有的內容
+ok 618 - [L7] WSL linger 已開啟時腳本成功結束
+ok 619 - [L7] WSL linger 已開啟時不呼叫 sudo
+ok 620 - [L7] WSL 無 linger 時腳本成功結束
+ok 621 - [L7] WSL 無 linger 時先 sudo -v 再 enable-linger 目前使用者
+ok 622 - [L7] WSL Linger=no 時同樣 enable-linger
+ok 623 - [L7] WSL sudo 認證失敗時腳本以非零結束
+ok 624 - [L7] WSL sudo 認證失敗時印出手動指令
+ok 625 - [L7] WSL sudo 認證失敗時不再呼叫 enable-linger
+ok 626 - [L7] 沒有 systemd 時腳本安靜退出
+ok 627 - [L7] 沒有 systemd 時不呼叫 loginctl
+ok 628 - [L8] Windows 主機端確實以 windows 身分算繪（managed 有 AppData/）
+ok 629 - [L8] Windows 主機端的 managed 清單與 golden 相同
+ok 630 - [L8] 接縫：05-wsl-user-runtime-dir.sh 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 631 - [L8] 接縫：10-install-packages.sh 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 632 - [L8] 接縫：20-install-homebrew.sh 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 633 - [L8] 接縫：30-install-brew-packages.sh 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 634 - [L8] 接縫：30-install-pacman-packages.sh 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 635 - [L8] 接縫：30-install-winget-packages.ps1 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 636 - [L8] 接縫：35-install-ps-modules.ps1 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 637 - [L8] 接縫：40-git-lfs.ps1 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 638 - [L8] 接縫：40-git-lfs.sh 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 639 - [L8] 接縫：50-neovim.ps1 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 640 - [L8] 接縫：50-neovim.sh 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 641 - [L8] 接縫：60-pwsh-profile.ps1 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 642 - [L8] 接縫：default-shell.sh 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 643 - [L8] 接縫：profile.ps1 的真實 Windows 渲染 == 模擬渲染（逐位元組）
+ok 644 - [L8] Windows 主機端 apply 無錯誤
+ok 645 - [L8] Windows 主機端產生的 ~/.codex/config.toml 與 golden 逐位元組相同
+ok 646 - [L8] Windows 主機端產生的 ~/.claude/settings.json 與 golden 逐位元組相同
+1..646
+# run 646, failed 0, skipped 0
+exit=0

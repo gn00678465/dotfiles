@@ -1,0 +1,39 @@
+PASS	curl is available (README prerequisite)	/usr/sbin/curl
+PASS	source tree is present	/src/dotfiles
+PASS	init.sh installs chezmoi into ~/.local/bin	chezmoi version v2.72.1, commit f901167e4685db90da56d6a2a19df642cb3e0247, built at 2026-08-30T13:33:37Z, built by goreleaser
+PASS	chezmoi init --apply completes	applied
+PASS	no Homebrew on Arch (Must NOT #4)	added: /root/.local/bin
+PASS	pacman package installed: zsh	zsh 5.9.2-1
+PASS	pacman package installed: git	git 2.55.0-1
+PASS	pacman package installed: curl	curl 8.22.0-1
+PASS	pacman package installed: base-devel	base-devel 1-2
+PASS	pacman package installed: mise	mise 2026.9.1-1
+PASS	pacman package installed: fzf	fzf 0.74.3-1
+PASS	pacman package installed: git-lfs	git-lfs 3.8.0-1
+PASS	pacman package installed: ripgrep	ripgrep 15.2.0-1
+PASS	pacman package installed: fd	fd 10.5.0-3
+PASS	pacman package installed: lazygit	lazygit 0.65.0-1
+PASS	pacman package installed: tree-sitter-cli	tree-sitter-cli 0.26.9-1
+PASS	pacman package installed: neovim	neovim 0.12.5-1
+PASS	zsh files and externals landed	ok
+PASS	interactive login zsh resolves mise, fzf, nvim, tree-sitter	mise /usr/sbin/fzf /usr/sbin/nvim /usr/sbin/tree-sitter
+SKIP	login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH	plain Arch: no omarchy on this machine
+PASS	Windows-only files did NOT land	ok
+PASS	nvim config is the LazyVim starter with our marker	/root/.config/nvim
+PASS	claude skills symlinks	3 symlinks resolve
+PASS	cc-statusline downloaded and wired into settings.json	1789896
+PASS	codex config.toml has the managed [tui] keys	ok
+PASS	real chezmoi osRelease.id reaches the partial: distro kept, pkgManager=pacman, brewPrefix empty (M4)	arch | arch | pacman | 
+PASS	~/.config/git/config is the managed file (D4)	managed content in place (omarchy defaults replaced, D4)
+PASS	git lfs filter is configured (40-git-lfs, pacman git-lfs)	filter.lfs.process = git-lfs filter-process
+PASS	zsh is a valid login shell; chsh done or the manual hint was printed (D3)	login shell: /usr/bin/bash; chsh hint printed (no tty)
+PASS	nvim runs (pacman neovim; the mise pin does not apply on Arch)	NVIM v0.12.5 via /usr/sbin/nvim (neovim 0.12.5-1)
+PASS	tree-sitter CLI is pacman's and runs	tree-sitter 0.26.9 at /usr/sbin/tree-sitter (/usr/bin/tree-sitter is owned by tree-sitter-cli 0.26.9-1)
+PASS	nvim-treesitter builds a parser	lua parser built: /root/.local/share/nvim/site/parser/lua.so
+PASS	second chezmoi apply completes without a prompt	ok
+PASS	second apply did not re-bootstrap nvim	ok
+PASS	chezmoi git works (the chezmoi update code path)	XDG_RUNTIME_DIR=/run/user/0; ## No commits yet on master
+PASS	05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists	Linger=yes, /run/user/0 present
+SKIP	chezmoi update completes	local mode: the source tree is not a clone with a remote
+SKIP	a removed neovim is reinstalled by the next apply	Arch: neovim is a pacman package; the probe does not remove packages (Must NOT #8)
+SUMMARY	PASS=35 FAIL=0 SKIP=3	

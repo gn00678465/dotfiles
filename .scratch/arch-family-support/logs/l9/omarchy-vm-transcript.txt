@@ -1,0 +1,304 @@
+probe: mode=local out_dir=/out
+probe: Linux 7.1.9-arch1-2 x86_64; not debian; glibc 2.44
+probe: distro=omarchy (ID_LIKE=arch); path=pacman (Arch family); omarchy=1
+PASS	curl is available (README prerequisite)	/usr/bin/curl
+PASS	source tree is present	/src/dotfiles
+
+probe: installing chezmoi the way init.sh does
+info found chezmoi version 2.72.1 for latest/linux/amd64
+info found glibc version 2.44
+info installed /home/madao/.local/bin/chezmoi
+PASS	init.sh installs chezmoi into ~/.local/bin	chezmoi version v2.72.1, commit f901167e4685db90da56d6a2a19df642cb3e0247, built at 2026-08-30T13:33:37Z, built by goreleaser
+
+probe: running chezmoi init --apply --source /src/dotfiles -- this is the whole install
+probe: this usually takes 10-25 minutes (apt, Homebrew, brew formulas, externals, LazyVim clone)
+chezmoi: login shell is /usr/bin/bash. From a terminal run: chsh -s /bin/zsh
+PASS	chezmoi init --apply completes	applied
+PASS	no Homebrew on Arch (Must NOT #4)	added: /home/madao/.local/bin /home/madao/.local/share/mise/shims
+PASS	pacman package installed: zsh	zsh 5.9.2-1
+PASS	pacman package installed: git	git 2.55.0-1
+PASS	pacman package installed: curl	curl 8.21.0-1
+PASS	pacman package installed: base-devel	base-devel 1-2
+PASS	pacman package installed: mise	mise-bin 2026.9.1-1
+PASS	pacman package installed: fzf	fzf 0.74.3-1
+PASS	pacman package installed: git-lfs	git-lfs 3.7.1-2
+PASS	pacman package installed: ripgrep	ripgrep 15.2.0-1
+PASS	pacman package installed: fd	fd 10.4.2-2
+PASS	pacman package installed: lazygit	lazygit 0.64.1-1
+PASS	pacman package installed: tree-sitter-cli	tree-sitter-cli 0.26.9-1
+PASS	pacman package installed: neovim	neovim 0.12.5-1
+PASS	zsh files and externals landed	ok
+PASS	interactive login zsh resolves mise, fzf, nvim, tree-sitter	mise /usr/bin/fzf /usr/bin/nvim /usr/bin/tree-sitter
+PASS	login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH	/usr/bin/git-lfs /usr/bin/omarchy-version OMARCHY_PATH=/usr/share/omarchy
+PASS	Windows-only files did NOT land	ok
+PASS	omarchy nvim config was left in place, with our override on top (M2)	/home/madao/.config/nvim
+PASS	claude skills symlinks	3 symlinks resolve
+PASS	cc-statusline downloaded and wired into settings.json	1789896
+PASS	codex config.toml has the managed [tui] keys	ok
+PASS	real chezmoi osRelease.id reaches the partial: distro kept, pkgManager=pacman, brewPrefix empty (M4)	omarchy | omarchy | pacman | 
+PASS	~/.config/git/config is the managed file (D4)	managed content in place (omarchy defaults replaced, D4)
+PASS	git lfs filter is configured (40-git-lfs, pacman git-lfs)	filter.lfs.process = git-lfs filter-process
+PASS	zsh is a valid login shell; chsh done or the manual hint was printed (D3)	login shell: /usr/bin/bash; chsh hint printed (no tty)
+PASS	nvim runs (pacman neovim; the mise pin does not apply on Arch)	NVIM v0.12.5 via /usr/bin/nvim (neovim 0.12.5-1)
+PASS	tree-sitter CLI is pacman's and runs	tree-sitter 0.26.9 at /usr/bin/tree-sitter (/usr/bin/tree-sitter is owned by tree-sitter-cli 0.26.9-1)
+
+probe: running nvim Lazy! sync + nvim-treesitter install lua (the Linux M12)
+probe: this usually takes 3-10 minutes and is capped at 15
+PASS	nvim-treesitter builds a parser	lua parser built: /home/madao/.local/share/nvim/site/parser/lua.so
+
+probe: second chezmoi apply (must be non-interactive and idempotent)
+chezmoi: login shell is /usr/bin/bash. From a terminal run: chsh -s /bin/zsh
+PASS	second chezmoi apply completes without a prompt	ok
+PASS	second apply did not re-bootstrap nvim	ok
+PASS	chezmoi git works (the chezmoi update code path)	XDG_RUNTIME_DIR=/run/user/1000; ## No commits yet on main
+SKIP	05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists	not WSL: 05-wsl-user-runtime-dir renders empty here
+SKIP	chezmoi update completes	local mode: the source tree is not a clone with a remote
+
+SKIP	a removed neovim is reinstalled by the next apply	Arch: neovim is a pacman package; the probe does not remove packages (Must NOT #8)
+
+probe: PASS=35 FAIL=0 SKIP=3
+probe: results in /out/results.tsv, transcript in /out/transcript.txt
+
+--- treesitter.log (tail 200) ---
+[35m[which-key.nvim] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[white.nvim] [0m[36m  checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[white.nvim] [0m[36m  checkout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[flash.nvim] [0m[36m  checkout[0m[90m | [0m[34mFinished task checkout in 9ms[0m
+[35m[grug-far.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 9ms[0m
+[35m[everforest-nvim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 7ms[0m
+[35m[everforest-nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[everforest-nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 1ms[0m
+[35m[retro-82.nvim] [0m[36m  fetch[0m[90m | [0m[34mFinished task fetch in 612ms[0m
+[35m[conform.nvim] [0m[36m   fetch[0m[90m | [0m[34mFinished task fetch in 614ms[0m
+[35m[nvim-lspconfig] [0m[36m fetch[0m[90m | [0m[34mFinished task fetch in 612ms[0m
+[35m[todo-comments.nvim] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 612ms[0m
+[35m[conform.nvim] [0m[36m  status[0m[90m | [0m[34mRunning task status[0m
+[35m[nvim-lspconfig] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[retro-82.nvim] [0m[36m status[0m[90m | [0m[34mRunning task status[0m
+[35m[todo-comments.nvim] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[kanagawa.nvim] [0m[36m status[0m[90m | [0m[34mFinished task status in 13ms[0m
+[35m[which-key.nvim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 7ms[0m
+[35m[kanagawa.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[kanagawa.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[which-key.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[which-key.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[flexoki-neovim] [0m[36m fetch[0m[90m | [0m[34mFinished task fetch in 618ms[0m
+[35m[matteblack.nvim] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 617ms[0m
+[35m[mini.ai] [0m[36m        fetch[0m[90m | [0m[34mFinished task fetch in 617ms[0m
+[35m[conform.nvim] [0m[36m  status[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[nvim-lspconfig] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[conform.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[conform.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[flexoki-neovim] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[matteblack.nvim] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[mini.ai] [0m[36m       status[0m[90m | [0m[34mRunning task status[0m
+[35m[nvim-lspconfig] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[persistence.nvim] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 617ms[0m
+[35m[snacks.nvim] [0m[36m   status[0m[90m | [0m[34mFinished task status in 9ms[0m
+[35m[todo-comments.nvim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[persistence.nvim] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[snacks.nvim] [0m[36m checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[snacks.nvim] [0m[36m checkout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[todo-comments.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[todo-comments.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[retro-82.nvim] [0m[36m status[0m[90m | [0m[34mFinished task status in 9ms[0m
+[35m[mini.pairs] [0m[36m     fetch[0m[90m | [0m[34mFinished task fetch in 623ms[0m
+[35m[mini.pairs] [0m[36m    status[0m[90m | [0m[34mRunning task status[0m
+[35m[retro-82.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[retro-82.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[friendly-snippets] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 625ms[0m
+[35m[flexoki-neovim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 6ms[0m
+[35m[matteblack.nvim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 6ms[0m
+[35m[mini.ai] [0m[36m       status[0m[90m | [0m[34mFinished task status in 6ms[0m
+[35m[nvim-lspconfig] [0m[36mcheckout[0m[90m | [0mHEAD is now at da1aff03 fix(powershell_es): incorrect script path in command #4527
+[35m[flexoki-neovim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[flexoki-neovim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[friendly-snippets] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[matteblack.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[matteblack.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[mini.ai] [0m[36m     checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[aether] [0m[36m         fetch[0m[90m | [0m[34mFinished task fetch in 627ms[0m
+[35m[bamboo.nvim] [0m[36m    fetch[0m[90m | [0m[34mFinished task fetch in 626ms[0m
+[35m[nvim-treesitter-textobjects] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 624ms[0m
+[35m[aether] [0m[36m        status[0m[90m | [0m[34mRunning task status[0m
+[35m[bamboo.nvim] [0m[36m   status[0m[90m | [0m[34mRunning task status[0m
+[35m[nvim-treesitter-textobjects] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[vantablack.nvim] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 626ms[0m
+[35m[nvim-lspconfig] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 9ms[0m
+[35m[persistence.nvim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[mini.ai] [0m[36m     checkout[0m[90m | [0mHEAD is now at cb02c54 fix(ai): update `tag` textobject to allow whitespace before `>`
+[35m[persistence.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[persistence.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[vantablack.nvim] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[nui.nvim] [0m[36m       fetch[0m[90m | [0m[34mFinished task fetch in 629ms[0m
+[35m[ts-comments.nvim] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 628ms[0m
+[35m[mini.pairs] [0m[36m    status[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[friendly-snippets] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 4ms[0m
+[35m[friendly-snippets] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[mini.pairs] [0m[36m  checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[mini.pairs] [0m[36m  checkout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[nui.nvim] [0m[36m      status[0m[90m | [0m[34mRunning task status[0m
+[35m[ts-comments.nvim] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[trouble.nvim] [0m[36m   fetch[0m[90m | [0m[34mFinished task fetch in 629ms[0m
+[35m[mini.ai] [0m[36m     checkout[0m[90m | [0m[34mFinished task checkout in 5ms[0m
+[35m[aether] [0m[36m        status[0m[90m | [0m[34mFinished task status in 4ms[0m
+[35m[aether] [0m[36m      checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[trouble.nvim] [0m[36m  status[0m[90m | [0m[34mRunning task status[0m
+[35m[bamboo.nvim] [0m[36m   status[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[nvim-treesitter-textobjects] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[friendly-snippets] [0m[36mcheckout[0m[90m | [0mHEAD is now at bb548e5 fix(systemverilog): fix uvm_pase typo to uvm_phase (#587)
+[35m[LazyVim] [0m[36m        fetch[0m[90m | [0m[34mFinished task fetch in 635ms[0m
+[35m[LazyVim] [0m[36m       status[0m[90m | [0m[34mRunning task status[0m
+[35m[bamboo.nvim] [0m[36m checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[bamboo.nvim] [0m[36m checkout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[nvim-treesitter-textobjects] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[rose-pine] [0m[36m      fetch[0m[90m | [0m[34mFinished task fetch in 632ms[0m
+[35m[vantablack.nvim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 4ms[0m
+[35m[nui.nvim] [0m[36m      status[0m[90m | [0m[34mFinished task status in 3ms[0m
+[35m[aether] [0m[36m      checkout[0m[90m | [0mHEAD is now at 567efb7 Update repository owner references
+[35m[nui.nvim] [0m[36m    checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[rose-pine] [0m[36m     status[0m[90m | [0m[34mRunning task status[0m
+[35m[vantablack.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[vantablack.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[friendly-snippets] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 5ms[0m
+[35m[ts-comments.nvim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[nvim-treesitter-textobjects] [0m[36mcheckout[0m[90m | [0mHEAD is now at 5c7b026 feat(php): add query for arrow functions (#900)
+[35m[ts-comments.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[ts-comments.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[lumon.nvim] [0m[36m     fetch[0m[90m | [0m[34mFinished task fetch in 637ms[0m
+[35m[aether] [0m[36m      checkout[0m[90m | [0m[34mFinished task checkout in 5ms[0m
+[35m[trouble.nvim] [0m[36m  status[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[LazyVim] [0m[36m       status[0m[90m | [0m[34mFinished task status in 4ms[0m
+[35m[nui.nvim] [0m[36m    checkout[0m[90m | [0mHEAD is now at 10fc361 feat(table): borderless, set_data, and cell navigation
+[35m[LazyVim] [0m[36m     checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[lumon.nvim] [0m[36m    status[0m[90m | [0m[34mRunning task status[0m
+[35m[trouble.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[trouble.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 1ms[0m
+[35m[lazy.nvim] [0m[36m      fetch[0m[90m | [0m[34mFinished task fetch in 638ms[0m
+[35m[nvim-treesitter-textobjects] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 5ms[0m
+[35m[lazy.nvim] [0m[36m     status[0m[90m | [0m[34mRunning task status[0m
+[35m[nui.nvim] [0m[36m    checkout[0m[90m | [0m[34mFinished task checkout in 5ms[0m
+[35m[rose-pine] [0m[36m     status[0m[90m | [0m[34mFinished task status in 5ms[0m
+[35m[rose-pine] [0m[36m   checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[rose-pine] [0m[36m   checkout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[mini.icons] [0m[36m     fetch[0m[90m | [0m[34mFinished task fetch in 640ms[0m
+[35m[lumon.nvim] [0m[36m    status[0m[90m | [0m[34mFinished task status in 4ms[0m
+[35m[lumon.nvim] [0m[36m  checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[lumon.nvim] [0m[36m  checkout[0m[90m | [0m[34mFinished task checkout in 1ms[0m
+[35m[mini.icons] [0m[36m    status[0m[90m | [0m[34mRunning task status[0m
+[35m[LazyVim] [0m[36m     checkout[0m[90m | [0mHEAD is now at c10948c5 chore(main): release 16.0.0 (#7128)
+[35m[lazy.nvim] [0m[36m     status[0m[90m | [0m[34mFinished task status in 3ms[0m
+[35m[lazy.nvim] [0m[36m   checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[neo-tree.nvim] [0m[36m  fetch[0m[90m | [0m[34mFinished task fetch in 643ms[0m
+[35m[nvim-treesitter] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 643ms[0m
+[35m[LazyVim] [0m[36m     checkout[0m[90m | [0m[34mFinished task checkout in 7ms[0m
+[35m[neo-tree.nvim] [0m[36m status[0m[90m | [0m[34mRunning task status[0m
+[35m[nvim-treesitter] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[mini.icons] [0m[36m    status[0m[90m | [0m[34mFinished task status in 3ms[0m
+[35m[mini.icons] [0m[36m  checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[mini.icons] [0m[36m  checkout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[noice.nvim] [0m[36m     fetch[0m[90m | [0m[34mFinished task fetch in 652ms[0m
+[35m[neo-tree.nvim] [0m[36m status[0m[90m | [0m[34mFinished task status in 9ms[0m
+[35m[lazy.nvim] [0m[36m   checkout[0m[90m | [0mHEAD is now at 85c7ff3 chore(main): release 11.17.5 (#2087)
+[35m[neo-tree.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[noice.nvim] [0m[36m    status[0m[90m | [0m[34mRunning task status[0m
+[35m[nvim-treesitter] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 10ms[0m
+[35m[nvim-treesitter] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[neo-tree.nvim] [0m[36mcheckout[0m[90m | [0mHEAD is now at 1e1cdbf fix(clipboard): store only serializable node fields (#2091)
+[35m[lazy.nvim] [0m[36m   checkout[0m[90m | [0m[34mFinished task checkout in 14ms[0m
+[35m[mason-lspconfig.nvim] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 656ms[0m
+[35m[mason-lspconfig.nvim] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[neo-tree.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 4ms[0m
+[35m[noice.nvim] [0m[36m    status[0m[90m | [0m[34mFinished task status in 4ms[0m
+[35m[noice.nvim] [0m[36m  checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[noice.nvim] [0m[36m  checkout[0m[90m | [0m[34mFinished task checkout in 1ms[0m
+[35m[catppuccin] [0m[36m     fetch[0m[90m | [0m[34mFinished task fetch in 660ms[0m
+[35m[mason-lspconfig.nvim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 2ms[0m
+[35m[catppuccin] [0m[36m    status[0m[90m | [0m[34mRunning task status[0m
+[35m[mason-lspconfig.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[tokyonight.nvim] [0m[36mfetch[0m[90m | [0m[34mFinished task fetch in 659ms[0m
+[35m[nvim-treesitter] [0m[36mcheckout[0m[90m | [0mHEAD is now at 5cb0114e fix(async): preserve wrapped function argument and return types
+[35m[mason-lspconfig.nvim] [0m[36mcheckout[0m[90m | [0mHEAD is now at 5d32a9b chore: update generated code (#696)
+[35m[tokyonight.nvim] [0m[36mstatus[0m[90m | [0m[34mRunning task status[0m
+[35m[ashen.nvim] [0m[36m     fetch[0m[90m | [0m[34mFinished task fetch in 662ms[0m
+[35m[nvim-treesitter] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 6ms[0m
+[35m[ashen.nvim] [0m[36m    status[0m[90m | [0m[34mRunning task status[0m
+[35m[catppuccin] [0m[36m    status[0m[90m | [0m[34mFinished task status in 6ms[0m
+[35m[mason-lspconfig.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 6ms[0m
+[35m[catppuccin] [0m[36m  checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[catppuccin] [0m[36m  checkout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[tokyonight.nvim] [0m[36mstatus[0m[90m | [0m[34mFinished task status in 6ms[0m
+[35m[tokyonight.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[tokyonight.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[ashen.nvim] [0m[36m    status[0m[90m | [0m[34mFinished task status in 10ms[0m
+[35m[ashen.nvim] [0m[36m  checkout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[ashen.nvim] [0m[36m  checkout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[lualine.nvim] [0m[36m   fetch[0m[90m | [0m[34mFinished task fetch in 693ms[0m
+[35m[lualine.nvim] [0m[36m  status[0m[90m | [0m[34mRunning task status[0m
+[35m[lualine.nvim] [0m[36m  status[0m[90m | [0m[34mFinished task status in 22ms[0m
+[35m[lualine.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[lualine.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[35m[gruvbox.nvim] [0m[36m   fetch[0m[90m | [0m[34mFinished task fetch in 858ms[0m
+[35m[gruvbox.nvim] [0m[36m  status[0m[90m | [0m[34mRunning task status[0m
+[35m[gruvbox.nvim] [0m[36m  status[0m[90m | [0m[34mFinished task status in 21ms[0m
+[35m[gruvbox.nvim] [0m[36mcheckout[0m[90m | [0m[34mRunning task checkout[0m
+[35m[gruvbox.nvim] [0m[36mcheckout[0m[90m | [0m[34mFinished task checkout in 0ms[0m
+[nvim-treesitter/install/bash]: Downloading tree-sitter-bash...
+[nvim-treesitter/install/c]: Downloading tree-sitter-c...
+[nvim-treesitter/install/diff]: Downloading tree-sitter-diff...
+[nvim-treesitter/install/javascript]: Downloading tree-sitter-javascript...
+[nvim-treesitter/install/jsdoc]: Downloading tree-sitter-jsdoc...
+[nvim-treesitter/install/luadoc]: Downloading tree-sitter-luadoc...
+[nvim-treesitter/install/markdown]: Downloading tree-sitter-markdown...
+[nvim-treesitter/install/markdown_inline]: Downloading tree-sitter-markdown_inline...
+[nvim-treesitter/install/python]: Downloading tree-sitter-python...
+[nvim-treesitter/install/toml]: Downloading tree-sitter-toml...
+[nvim-treesitter/install/tsx]: Downloading tree-sitter-tsx...
+[nvim-treesitter/install/typescript]: Downloading tree-sitter-typescript...
+[nvim-treesitter/install/vim]: Downloading tree-sitter-vim...
+[nvim-treesitter/install/vimdoc]: Downloading tree-sitter-vimdoc...
+[nvim-treesitter/install/xml]: Downloading tree-sitter-xml...
+[nvim-treesitter/install/yaml]: Downloading tree-sitter-yaml...
+[nvim-treesitter/install/dtd]: Downloading tree-sitter-dtd...--- end treesitter.log ---
+
+--- results.tsv (full) ---
+PASS	curl is available (README prerequisite)	/usr/bin/curl
+PASS	source tree is present	/src/dotfiles
+PASS	init.sh installs chezmoi into ~/.local/bin	chezmoi version v2.72.1, commit f901167e4685db90da56d6a2a19df642cb3e0247, built at 2026-08-30T13:33:37Z, built by goreleaser
+PASS	chezmoi init --apply completes	applied
+PASS	no Homebrew on Arch (Must NOT #4)	added: /home/madao/.local/bin /home/madao/.local/share/mise/shims
+PASS	pacman package installed: zsh	zsh 5.9.2-1
+PASS	pacman package installed: git	git 2.55.0-1
+PASS	pacman package installed: curl	curl 8.21.0-1
+PASS	pacman package installed: base-devel	base-devel 1-2
+PASS	pacman package installed: mise	mise-bin 2026.9.1-1
+PASS	pacman package installed: fzf	fzf 0.74.3-1
+PASS	pacman package installed: git-lfs	git-lfs 3.7.1-2
+PASS	pacman package installed: ripgrep	ripgrep 15.2.0-1
+PASS	pacman package installed: fd	fd 10.4.2-2
+PASS	pacman package installed: lazygit	lazygit 0.64.1-1
+PASS	pacman package installed: tree-sitter-cli	tree-sitter-cli 0.26.9-1
+PASS	pacman package installed: neovim	neovim 0.12.5-1
+PASS	zsh files and externals landed	ok
+PASS	interactive login zsh resolves mise, fzf, nvim, tree-sitter	mise /usr/bin/fzf /usr/bin/nvim /usr/bin/tree-sitter
+PASS	login zsh resolves git-lfs and omarchy-version and exports OMARCHY_PATH	/usr/bin/git-lfs /usr/bin/omarchy-version OMARCHY_PATH=/usr/share/omarchy
+PASS	Windows-only files did NOT land	ok
+PASS	omarchy nvim config was left in place, with our override on top (M2)	/home/madao/.config/nvim
+PASS	claude skills symlinks	3 symlinks resolve
+PASS	cc-statusline downloaded and wired into settings.json	1789896
+PASS	codex config.toml has the managed [tui] keys	ok
+PASS	real chezmoi osRelease.id reaches the partial: distro kept, pkgManager=pacman, brewPrefix empty (M4)	omarchy | omarchy | pacman | 
+PASS	~/.config/git/config is the managed file (D4)	managed content in place (omarchy defaults replaced, D4)
+PASS	git lfs filter is configured (40-git-lfs, pacman git-lfs)	filter.lfs.process = git-lfs filter-process
+PASS	zsh is a valid login shell; chsh done or the manual hint was printed (D3)	login shell: /usr/bin/bash; chsh hint printed (no tty)
+PASS	nvim runs (pacman neovim; the mise pin does not apply on Arch)	NVIM v0.12.5 via /usr/bin/nvim (neovim 0.12.5-1)
+PASS	tree-sitter CLI is pacman's and runs	tree-sitter 0.26.9 at /usr/bin/tree-sitter (/usr/bin/tree-sitter is owned by tree-sitter-cli 0.26.9-1)
+PASS	nvim-treesitter builds a parser	lua parser built: /home/madao/.local/share/nvim/site/parser/lua.so
+PASS	second chezmoi apply completes without a prompt	ok
+PASS	second apply did not re-bootstrap nvim	ok
+PASS	chezmoi git works (the chezmoi update code path)	XDG_RUNTIME_DIR=/run/user/1000; ## No commits yet on main
+SKIP	05-wsl-user-runtime-dir enabled linger and /run/user/<uid> exists	not WSL: 05-wsl-user-runtime-dir renders empty here
+SKIP	chezmoi update completes	local mode: the source tree is not a clone with a remote
+SKIP	a removed neovim is reinstalled by the next apply	Arch: neovim is a pacman package; the probe does not remove packages (Must NOT #8)
+SUMMARY	PASS=35 FAIL=0 SKIP=3	
+--- end results.tsv ---
