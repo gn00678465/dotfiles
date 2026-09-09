@@ -121,7 +121,10 @@ Keep the POSIX and Windows scripts consistent:
   repositories; do not add AUR packages. Both pacman scripts include
   `.chezmoitemplates/pacman-install.sh`, which runs only
   `pacman -S --needed --noconfirm`. Do not add `-Sy`, `-Syu`, `-R`, or
-  `--overwrite`. A stale package database stops the script with a message.
+  `--overwrite`. A package database that is stale or was never synced stops the
+  script with a message naming both causes, the empty keyring of a fresh image,
+  and the README section that holds the commands. L2 asserts that the rendered
+  script never contains `pacman -Sy`, so keep the exact commands out of it.
   `tools/gate-pacman-ids.sh` resolves every name with `pacman -Si`.
 - `30-install-winget-packages`: Do not add `Microsoft.PowerShell` or `Git.Git`.
   They belong in `init.ps1`: chezmoi needs git to clone and pwsh 7 to run scripts.

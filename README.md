@@ -62,8 +62,9 @@ Homebrew：
 | `run_onchange_before_30-install-pacman-packages` | 裝 `mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim`（omarchy 出廠大多已裝） | `sudo` 密碼（快取通常還在） |
 | `run_after_default-shell` | 改登入 shell 為 zsh | **你自己的**密碼 |
 
-只用 `pacman -S --needed --noconfirm`，不做 `-Sy` 或 `-Syu`；套件資料庫過期時腳本
-會停下來並提示先更新系統（omarchy：*Update > Omarchy*）。
+只用 `pacman -S --needed --noconfirm`，不做 `-Sy` 或 `-Syu`。`-Sy` 之後接 `-S` 會進入
+Arch 不支援的部分升級狀態，`-Syu` 則是把整台機器的升級變成套用 dotfiles 的副作用。
+代價是資料庫過期或從未同步時 `-S` 會失敗，腳本停下來並印出該執行什麼。
 
 **全新的 Arch 要先更新系統。** 官方 WSL 映像（`wsl --install archlinux`）沒有 pacman
 同步資料庫，不先更新就會停在第一支腳本。以 root 執行：
@@ -71,6 +72,20 @@ Homebrew：
 ```sh
 pacman -Syu
 ```
+
+若映像連金鑰環都是空的（`-Syu` 報簽章或 keyring 錯誤），先初始化再更新：
+
+```sh
+pacman-key --init
+pacman-key --populate archlinux
+pacman -Syu
+```
+
+omarchy 用它自己的 *Update > Omarchy*，不需要手動下 pacman。
+
+更新完重跑同一行 `init.sh` 或 `chezmoi apply` 即可。套件腳本是 `run_onchange_`：
+失敗不會被記成完成，下次 apply 會自動重試；成功之後除非清單改變才會再跑，而且
+`pacman -Q` 會跳過已安裝的套件。
 
 WSL 映像預設只有 root。以 root 執行 `init.sh` 可以直接安裝，腳本不需要 sudo。要改用
 一般使用者時，先以 root 建好使用者與 sudo，再以該使用者執行 `init.sh`：

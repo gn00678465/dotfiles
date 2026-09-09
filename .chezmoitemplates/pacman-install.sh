@@ -33,6 +33,15 @@ pacman_install_missing() {
         echo "chezmoi: sudo not available. Run as root: pacman -S --needed$missing" >&2
         return 1
     fi
-    echo "chezmoi: pacman failed. A stale package database is the usual cause: update the system first (omarchy: Update > Omarchy; plain Arch: a full system upgrade), then re-run chezmoi apply." >&2
+    # The two causes look the same to -S: a database that is out of date, and one
+    # that was never synced (a fresh image, where the keyring is empty too). Name
+    # both, and keep the exact commands in the README so this stays one screen.
+    echo "chezmoi: pacman could not install:$missing" >&2
+    echo "chezmoi: the package database is out of date or was never synced, and -S alone never syncs it." >&2
+    echo "chezmoi: update the system first, then re-run chezmoi apply:" >&2
+    echo "chezmoi:   omarchy: Update > Omarchy" >&2
+    echo "chezmoi:   plain Arch: a full system upgrade, as root" >&2
+    echo "chezmoi:   fresh image: initialise and populate the pacman keyring first (pacman-key)" >&2
+    echo "chezmoi: exact commands: README, section 'Arch 家族'." >&2
     return 1
 }

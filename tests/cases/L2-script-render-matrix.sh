@@ -198,6 +198,10 @@ assert_not_contains "10-install-packages 在 arch 上沒有 dpkg-query" "$_ten_a
 assert_not_contains "10-install-packages 在 arch 上沒有 pacman -Sy（部分升級／全系統升級都不准）" "$_ten_arch" 'pacman -Sy'
 assert_not_contains "10-install-packages 在 arch 上沒有 pacman -R（不移除套件）" "$_ten_arch" 'pacman -R'
 assert_not_contains "10-install-packages 在 arch 上沒有 --overwrite" "$_ten_arch" '--overwrite'
+# 失敗提示要涵蓋「從未同步」與空金鑰環兩種全新映像的情況，而不只是「過期」。
+# 確切指令留在 README，訊息只給指路，所以這裡連 README 那句一起釘住。
+assert_contains "10-install-packages 的失敗提示提到金鑰環" "$_ten_arch" 'pacman-key'
+assert_contains "10-install-packages 的失敗提示指向 README" "$_ten_arch" "README, section 'Arch 家族'"
 assert_not_contains "10-install-packages 在 linux 上沒有 pacman" "$_ten_linux" 'pacman'
 # 前置套件清單只看 for pkg 那一行：base-devel 給 nvim-treesitter 的 C compiler，
 # zsh 給 default-shell，git/curl 是 chezmoi 與 external 的前提。
