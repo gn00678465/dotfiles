@@ -111,6 +111,23 @@ printf '[user]\ndefault=%s\n' <name> >> /etc/wsl.conf
 - `~/.config/git/config` 由這個 repo 全檔接管，omarchy 安裝時寫入的 alias 與
   `init.defaultbranch=master` 會被取代。`omarchy reinstall configs` 不會碰這個檔案。
 
+**終端機（選配）。** omarchy 4 預設 foot，官方同時支援 Alacritty、Ghostty 與 Kitty：
+四種都有出廠設定（`~/.config/<name>`），主題切換也涵蓋它們。想要 GPU 加速與內建的
+字型與連字處理，Ghostty 是合理選擇；foot 較輕，而且是預設值。換裝用 omarchy 自己的
+機制，以一般使用者執行：
+
+```sh
+sudo pacman -S ghostty
+omarchy-default-terminal ghostty
+```
+
+`ghostty` 在官方 `extra` 倉庫，不是 AUR。也可以走選單：*Install > Package* 安裝，
+*Setup > Default > Terminal* 切換；選單只列出已安裝的終端機。切換改的是
+`xdg-terminal-exec` 的預設項目，omarchy 的視窗規則與主題會跟著套用。
+
+這個 repo 不安裝終端機，也不管它的設定。換或不換都不影響 `chezmoi apply` 的結果，
+你的終端機設定也不會被這個 repo 覆蓋。
+
 ---
 
 ## Windows
