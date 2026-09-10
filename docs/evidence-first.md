@@ -31,9 +31,11 @@ Evidence-first 是一份合約。它要求 repo 在變更完成時帶著五個�
 
 ## 3. 人介入的兩個點
 
-1. **核准 SPEC**。每一版都要核准。agent 把核准的原話、日期、版本逐字寫進 SPEC 的
-   Approval 一節，與 SPEC 一起提交。回答問題不算核准。SPEC 改過就回到
-   `revised-pending-approval`，要重新核准才能繼續實作。
+1. **核准 SPEC**。核准前的草稿編 `v0.1`、`v0.2`，不送核准；`v1` 起每一版都
+   要核准。agent 把核准的原話、日期、版本逐字寫進 SPEC 的 Approval 一節，
+   與 SPEC 一起提交。回答問題不算核准。SPEC 改過就回到
+   `revised-pending-approval`，要重新核准才能繼續實作。修訂要合併送審，
+   不要每發現一個缺陷就中斷一次。
 2. **合併 PR**。合併前，SPEC 已經封存為 `shipped`。
 
 其餘步驟由 agent 執行，由腳本擋。
