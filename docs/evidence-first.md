@@ -44,8 +44,8 @@ Evidence-first 是一份合約。它要求 repo 在變更完成時帶著五個�
 
 | Phase | 做什麼 | 產物 | 機械檢查 |
 |---|---|---|---|
-| 1 SPEC | 把需求寫成可執行的驗收條件：tier、scenarios、Must NOT、setup plan | `specs/<scope>/SPEC.md` | 路徑固定。`spec-archive` 只認這個路徑 |
-| 2 SPEC REVIEW | 給人看 SPEC，取得核准，逐字記錄，`status` 改為 `approved`，提交 | SPEC 的 Approval 一節 | `spec-archive` 拒絕非 `approved` 的 SPEC |
+| 1 SPEC | 把需求寫成可執行的驗收條件：tier、scenarios、Must NOT、setup plan。核准前的草稿編 `v0.N` | `specs/<scope>/SPEC.md` | 路徑固定。`spec-archive` 只認這個路徑 |
+| 2 SPEC REVIEW | 先跑 durability preflight 三項自檢，再給人看 SPEC，取得核准，逐字記錄，`status` 改為 `approved`，提交 | SPEC 的 Approval 一節 | `spec-archive` 拒絕非 `approved` 的 SPEC。**preflight 沒有機械檢查**，是送審前的自檢清單 |
 | 3 IMPLEMENT | 每個行為：RED → GREEN → REFACTOR。測試先提交 | 測試與實作的 commit | gate 從 git 重建 RED 與 commit 順序 |
 | 4 VERIFY | 呼叫 `verification-gate` skill。`gate` 反覆修，`evidence` 只跑一次 | `.scratch/<scope>/evidence.md`（workflow Phase 4 規定，CLOSE 前提交） | gate 任一層失敗即擋住 done。intent 標頭由 gate 從 SPEC 導出 |
 | 5 INDEPENDENT VERIFICATION | Tier 3 選項。派 `verifier` agent，只給四項輸入，不給對話 | findings 與處置 | — |
@@ -92,8 +92,13 @@ sequenceDiagram
 | `gate-intent.sh` 從 SPEC 導出 intent 標頭 | evidence 只跑一次 |
 | `tests/check_agent_doc_invariants.py` 守住合約、workflow、skill 之間的承諾 | 未授權不動手 |
 | `gate-agent-instructions.py` 的 `--base` 不可達即 exit 2，不執行任何層 | — |
+| `spec-archive` 與 `gate-intent.sh` 比對完整版號，`v0.1` 不再被截成 `v0` | 草稿編 `v0.N`，`v1` 才是第一份送到人面前的版本 |
+| — | durability preflight 三項：setup plan 對照 gate 自己的檔案、Must NOT 寫行為不寫 diff 形狀、每個數字與 `file:line` 當場量測 |
+| — | 修訂合併送審，不要每發現一個缺陷就中斷人一次 |
 
-右欄的每一條，在 windows-support 這次都至少漏過一次。要加約束，加在左欄。
+右欄原有的幾條，在 windows-support 那次都至少漏過一次；後三條來自 subtitle-ocr
+那次的四次核准中斷。要加約束，加在左欄——preflight 目前全在右欄，沒有任何一項
+會擋住流程。
 
 ## 7. 指令速查
 
@@ -130,6 +135,13 @@ python3 tests/spec_archive_test.py
 | `dot_agents/skills/spec-archive/` | `~/.agents/skills/spec-archive/` |
 | `dot_claude/agents/verifier.md.tmpl`、`dot_codex/agents/verifier.toml.tmpl` | `~/.claude/agents/verifier.md`、`~/.codex/agents/verifier.toml` |
 
-合約版本：v0.6。第一個走完整流程的變更是 `windows-support`，其 evidence 在
+合約版本：v0.7。自 v0.6 起的變更：草稿編 `v0.N`、送核准前的 durability
+preflight、修訂合併送審，以及 `global-agent-instructions` 那輪動過合約面卻沒有
+跟著升版的三個 commit。
+
+這個號碼沒有任何機械檢查在維護——上面那三個 commit 就是這樣漏掉的。它是給人看
+的標記，要知道合約實際變過什麼，看上表那幾個路徑的 `git log`。
+
+第一個走完整流程的變更是 `windows-support`，其 evidence 在
 [.scratch/windows-support/evidence.md](../.scratch/windows-support/evidence.md)，封存的 SPEC 在
 [specs/archive/windows-support/SPEC.md](../specs/archive/windows-support/SPEC.md)。
