@@ -213,6 +213,62 @@ def main() -> None:
         expect("real-template evidence with a mismatched version is refused",
                repo, ["corge"], 1, stderr_has="spec_version")
 
+        # Dotted draft versions (`v0.1`, `v0.2` — evidence-first Phase 1) must
+        # compare whole. The two regexes failed differently before the fix:
+        # SPEC_VERSION_RE truncated `v0.1` to `v0`, so two different drafts
+        # compared equal; EVIDENCE_VERSION_RE wanted the integer immediately
+        # before the closing backtick, so a dotted version did not match at all
+        # and CLOSE exited 2. Neither ever archived these fixtures.
+        # The assertions therefore pin the full message, not just rc: reverting
+        # only SPEC_VERSION_RE still yields rc 1 with `spec_version` in stderr,
+        # and would pass a check that stopped there while actually comparing
+        # `v0` against `v0.1`. rc 1 rather than rc 2 separates "parsed, and the
+        # versions differ" from "could not parse a version at all".
+        grault = repo / "specs/grault/SPEC.md"
+        grault.parent.mkdir(parents=True)
+        grault.write_text("- `spec_version`: v0.2\n- `status`: approved\n\n## Approval\n",
+                          encoding="utf-8")
+        (repo / ".scratch/grault").mkdir(parents=True)
+        grault_ev = repo / ".scratch/grault/evidence.md"
+        grault_ev.write_text(real_evidence_header("v0.1") + "\n## Baseline\n",
+                             encoding="utf-8")
+        garply = repo / "specs/garply/SPEC.md"
+        garply.parent.mkdir(parents=True)
+        garply.write_text("- `spec_version`: v0.10\n- `status`: approved\n\n## Approval\n",
+                          encoding="utf-8")
+        (repo / ".scratch/garply").mkdir(parents=True)
+        (repo / ".scratch/garply/evidence.md").write_text(
+            real_evidence_header("v0.1") + "\n## Baseline\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "draft-versioned specs and their evidence")
+        expect("evidence at v0.1 is refused for a spec at v0.2, both quoted whole",
+               repo, ["grault"], 1,
+               stderr_has="`spec_version: v0.1`, the spec is v0.2")
+        expect("evidence at v0.1 is refused for a spec at v0.10, no prefix match",
+               repo, ["garply"], 1,
+               stderr_has="`spec_version: v0.1`, the spec is v0.10")
+        # The severe case: a header already truncated upstream. Before the fix
+        # `gate-intent.sh` emitted `v0` for any `v0.N` spec and the archiver
+        # truncated the spec the same way, so the two compared equal and the
+        # spec shipped — exit 0, spec moved. Which draft that `v0` was produced
+        # against is unrecoverable: truncation destroyed the digits that would
+        # tell them apart, and CLOSE archived on a comparison that could no
+        # longer distinguish them. Verified against the pre-fix archiver.
+        garply_ev = repo / ".scratch/garply/evidence.md"
+        garply_ev.write_text(real_evidence_header("v0") + "\n## Baseline\n",
+                             encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "garply evidence truncated to v0")
+        expect("an upstream-truncated v0 header does not archive a v0.10 spec",
+               repo, ["garply"], 1,
+               stderr_has="`spec_version: v0`, the spec is v0.10")
+        grault_ev.write_text(real_evidence_header("v0.2") + "\n## Baseline\n",
+                             encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "grault evidence bumped to v0.2")
+        expect("a dotted version that matches archives", repo, ["grault"], 0,
+               stdout_has="archived")
+
         # Happy path: one atomic commit, status flipped, spec moved.
         expect("approved spec on a clean tree archives", repo, ["foo"], 0,
                stdout_has="archived")

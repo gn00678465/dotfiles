@@ -36,7 +36,9 @@ if ! git ls-files --error-unmatch "$spec" >/dev/null 2>&1; then
     exit 1
 fi
 
-version=$(sed -n 's/^- `spec_version`: *\(v[0-9][0-9]*\).*/\1/p' "$spec" | head -1)
+# 核准前的草稿是 v0.1、v0.2，版號不一定是整數。只比對整數會把草稿截成 v0，
+# 兩份不同草稿因此相等。
+version=$(sed -n 's/^- `spec_version`: *\(v[0-9][0-9]*\(\.[0-9][0-9]*\)*\).*/\1/p' "$spec" | head -1)
 status=$(sed -n 's/^- `status`: *\([A-Za-z-]*\).*/\1/p' "$spec" | head -1)
 tier=$(sed -n 's/^- `tier`: *\([0-9]\).*/\1/p' "$spec" | head -1)
 if [ -z "$version" ] || [ -z "$status" ]; then
@@ -46,6 +48,10 @@ fi
 
 # Approval 一節：從標題含 Approval 的 `## ` 開始，到下一個 `## ` 為止。
 # 每一版一筆，形式是 `### vN — <date>`（本 repo）或 `approves vN`（範本）。
+# 這裡的樣式維持整數，不跟著 spec_version 放寬：核准記錄依契約只會是 v1 起的
+# 整數（v0.N 是草稿，不送核准）。放寬反而有害——下面的 sort -t v -k2,2n -u 會把
+# v0.1 與 v0.10 當成同一個數值鍵去重。代價是帶小數的版號在這裡會被截斷而不是
+# 被拒絕（`### v1.2` 讀成 v1），與 version 比不上就 fail closed。
 approval=$(awk '/^## /{inblk = ($0 ~ /Approval/)} inblk' "$spec")
 approved=$(printf '%s\n' "$approval" \
     | grep -oE '^### v[0-9]+|approves v[0-9]+' \

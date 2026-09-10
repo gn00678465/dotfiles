@@ -29,10 +29,22 @@ import sys
 from pathlib import Path
 
 STATUS_RE = re.compile(r"^(\s*-\s*`status`:\s*)([A-Za-z-]+)\b", re.MULTILINE)
-SPEC_VERSION_RE = re.compile(r"^\s*-\s*`spec_version`:\s*(v\d+)\b", re.MULTILINE)
+# Pre-approval drafts are `v0.1`, `v0.2` (evidence-first Phase 1), so a version
+# is not always an integer. Matching only the integer broke both regexes below,
+# differently, and both failures were reachable:
+#   * this one truncated `v0.2` to `v0`. `gate-intent.sh` truncated the same
+#     way, so an evidence header quoting `spec_version: v0` against a `v0.2`
+#     spec compared equal and CLOSE archived it — a false match, exit 0.
+#   * the evidence one wanted the integer immediately before the closing
+#     backtick, so a header that kept the dots matched nothing and CLOSE exited
+#     2 — unusable rather than wrong.
+# Which one you hit depended on whether the header had already been truncated
+# upstream. Neither is acceptable, and only comparing whole versions avoids both.
+SPEC_VERSION_RE = re.compile(r"^\s*-\s*`spec_version`:\s*(v\d+(?:\.\d+)*)\b",
+                             re.MULTILINE)
 # The evidence header quotes the version it was produced against as
 # `spec_version: vN` (the gate's intent layer prints it in that form).
-EVIDENCE_VERSION_RE = re.compile(r"`spec_version:\s*(v\d+)`")
+EVIDENCE_VERSION_RE = re.compile(r"`spec_version:\s*(v\d+(?:\.\d+)*)`")
 EVIDENCE_CANDIDATES = (".scratch/{scope}/evidence.md", ".gate/{scope}/evidence.md")
 
 
