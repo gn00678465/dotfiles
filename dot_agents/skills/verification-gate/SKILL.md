@@ -454,6 +454,13 @@ idioms, in `references/entry-point.md`:
   codes spelled out; execution bound to completion by a fixed expected-layer
   manifest audited before printing success — a heading is not evidence that a
   layer ran, and `set -e` through `&&` is not status handling.
+- **A text edit must assert it landed**: any layer that mutates or tampers by
+  matching source text — mutation operators, coverage negative controls —
+  counts its matches and fails when the count is not exactly what it expects.
+  Zero matches must never read as "no mutants survived". On Windows,
+  `core.autocrlf=true` gives the worktree CRLF endings, so an anchor written
+  with LF newlines matches nothing while the layer still prints its heading
+  and exits 0. Normalize the endings you match against, or match single lines.
 - **Assurance boundary kept explicit**: application coverage and mutation
   target the subject under test, not every orchestration script by default.
 - **The gate's own files must not fail the gate's own provenance check**: the
@@ -638,6 +645,25 @@ The gate only creates trust if it cannot be gamed. These are hard rules:
 
 ## Setup
 
+**One tree, one commit — every number in the report describes the same object.**
+The tree a layer measures and the tree the changed-line list was computed from
+must be the same tree. Deriving the changed-line list from `base...HEAD` while
+running coverage or mutation against a working tree that is ahead of, behind,
+or dirty relative to `HEAD` misaligns line numbers and produces plausible,
+wrong numbers that no layer reports as an error. Resolve `HEAD` to a SHA once,
+assert the tree is clean, and recreate every worktree that measures **the
+current version** at that SHA before the run — a worktree left over from an
+earlier attempt silently measures an earlier commit. The baseline and RED
+reconstruction worktrees are the deliberate exception: they belong at `base`,
+and pinning them to `HEAD` would destroy what they exist to show:
+
+```bash
+HEAD_SHA="$(git rev-parse HEAD)"
+test -z "$(git status --porcelain)" || { echo "gate: tree not clean"; exit 1; }
+git worktree remove --force "$WT" 2>/dev/null || true
+git worktree add --detach "$WT" "$HEAD_SHA"
+```
+
 **Isolation — do not mutate the user's working tree to do your work.** Use a
 worktree for the baseline run and for RED reconstruction. Where the isolated
 tree and the tree the change lands in differ by ignored or untracked content,
@@ -688,6 +714,10 @@ A verification gate run is complete only when:
 - intent status, git facts status, and reproducibility status are each recorded
   and none was silently promoted;
 - the source state was identical before and after that run;
+- every worktree that measured the current version was at the same commit as
+  the tree the changed-line list describes — the baseline and RED worktrees sit
+  at `base` by design and are not counted here — and each text-matching layer
+  reported the match count it required;
 - Table 1 covers the changed-unit list, deletions included;
 - no row mapped to a skip is marked `pass`;
 - the structural blind spot is named;
