@@ -499,8 +499,11 @@ def run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess:
     # （這台是 CP950）。那行只會在斷言失敗、_fail 把 pwsh 的輸出印進診斷時出現，
     # 也就是**只在 mutant 被殺掉的時候**。嚴格 UTF-8 解碼會在那一刻拋例外，
     # 於是「這個 mutant 死了」被誤報成「跑不完」，整個 gate 中斷。實際發生過一次。
+    # encoding 也要寫死：不指定的話 text=True 用主機的 ANSI 代碼頁，於是換成
+    # tests/run.sh 那些 UTF-8 的中文斷言被解錯。指定 utf-8 之後那些正常，上面
+    # 那行 CP950 警告則由 errors="replace" 換成替代字元，不再拋例外。
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
-                          errors="replace")
+                          encoding="utf-8", errors="replace")
 
 
 def main() -> int:
@@ -508,6 +511,9 @@ def main() -> int:
     parser.add_argument("--json", type=Path, default=None)
     parser.add_argument("--repeat", type=int, default=2,
                         help="每個 mutant 重複幾輪；全部輪次都要致死才算 KILLED")
+    parser.add_argument("--head-sha", default=None,
+                        help="整輪共用的受測 commit；gate.sh 解析一次後傳進來，"
+                             "讓這一層與變更行清單描述同一棵樹")
     args = parser.parse_args()
 
     # 產品樹必須乾淨：mutant 是在 HEAD 的複本上套的，工作樹有未提交的東西就代表
@@ -523,9 +529,19 @@ def main() -> int:
         print("\n".join(dirty), file=sys.stderr)
         return 1
 
+    # worktree 要建在解析過的 SHA 上，不是 ref `HEAD`。gate.sh 解析一次再傳進來，
+    # 這一層量的就與變更行清單描述的是同一個 commit；單獨執行時自己解析，並把它
+    # 印出來，讓報告看得到量的是哪一棵樹。傳進來的值對不上就拒絕執行。
+    head_sha = run(["git", "rev-parse", "HEAD"], REPO).stdout.strip()
+    if args.head_sha and args.head_sha != head_sha:
+        print(f"gate-mutants: 收到的 --head-sha {args.head_sha} 與目前 HEAD "
+              f"{head_sha} 不符，拒絕執行", file=sys.stderr)
+        return 1
+    print(f"gate-mutants: 受測 commit {head_sha}")
+
     tmp = Path(tempfile.mkdtemp(prefix="gate-mutants-"))
     worktree = tmp / "wt"
-    created = run(["git", "worktree", "add", "--detach", str(worktree), "HEAD"], REPO)
+    created = run(["git", "worktree", "add", "--detach", str(worktree), head_sha], REPO)
     if created.returncode != 0:
         print("gate-mutants: 建不出 worktree", created.stderr, file=sys.stderr)
         shutil.rmtree(tmp, ignore_errors=True)
@@ -548,21 +564,27 @@ def main() -> int:
             target = worktree / m.path
             original = target.read_text(encoding="utf-8")
 
-            if m.old not in original:
+            # 命中數要剛好 1。0 次代表程式碼變了、錨點失效；多次代表這個 mutant
+            # 指涉不唯一，replace(..., 1) 會挑到哪一處無法從結果看出來。兩者都不
+            # 能讓層以綠色通過，而且命中數要進 results，讓報告讀得到它。
+            hits = original.count(m.old)
+            if hits != 1:
                 print(
-                    f"gate-mutants: [{m.name}] 找不到要替換的內容於 {m.path}"
-                    " —— 程式碼變了就要同步更新這個 mutant",
+                    f"gate-mutants: [{m.name}] 錨點在 {m.path} 命中 {hits} 次，"
+                    "要求剛好 1 次 —— 程式碼變了就要同步更新這個 mutant",
                     file=sys.stderr,
                 )
                 failed = True
-                results.append({"name": m.name, "status": "PATCH-FAILED"})
+                results.append({"name": m.name, "status": "PATCH-FAILED",
+                                "hits": hits, "hits_required": 1})
                 continue
 
             mutated = original.replace(m.old, m.new, 1)
             if mutated == original:
                 print(f"gate-mutants: [{m.name}] 套用後檔案沒有變化", file=sys.stderr)
                 failed = True
-                results.append({"name": m.name, "status": "PATCH-NOOP"})
+                results.append({"name": m.name, "status": "PATCH-NOOP",
+                                "hits": hits, "hits_required": 1})
                 continue
 
             target.write_text(mutated, encoding="utf-8")
@@ -590,6 +612,8 @@ def main() -> int:
                     "path": m.path,
                     "layer": m.layer,
                     "rationale": m.rationale,
+                    "hits": hits,
+                    "hits_required": 1,
                     "status": "KILLED" if killed else ("UNSTABLE" if unstable else "SURVIVED"),
                     "rounds": [{"exit_code": rc, "failing": len(f)} for rc, f in rounds],
                     "failing_assertions": failing,
