@@ -52,10 +52,24 @@ The spec contains:
 - **Approval** — append-only record of the structured act that approved each
   spec version: the approving words verbatim, the date, and the version they
   bind. Filled at SPEC REVIEW and committed with the spec.
+- **Versioning** — pre-approval drafts are `v0.1`, `v0.2`, ...; `v1` is the
+  first version put in front of the human. Exploration runs between the two,
+  so a spec committed while its frontier is still open burns a version the
+  human never saw: the first approval request then names `v2`, and the human
+  reasonably asks why v1 was skipped. Numbering drafts `v0.N` keeps every
+  integer version one the human was actually asked about. Whatever the
+  number, a request for approval carries a one-line provenance — which
+  version it came from, and what changed since.
 - **Revisions** — append-only log. If implementation reveals the spec was
   wrong, say so explicitly and revise it visibly here — never silently drift.
   A revision invalidates prior approval: bump the version, set `status` back
-  to `revised-pending-approval`, and re-request.
+  to `revised-pending-approval`, and re-request. Batch the re-request: a
+  defect found mid-implementation rarely travels alone, so sweep every spec
+  still unimplemented for the same class of defect, fix them together, and
+  ask once for all of it. Two revisions in a row that trace to your own
+  drafting rather than to new information mean the durability preflight did
+  not catch that class — whether it was skipped or ran and missed, the same
+  move follows: run it over every open spec before asking the human again.
 
 ## Phase 2 — SPEC REVIEW
 
@@ -97,6 +111,28 @@ spec version once at the end, not per round.
 ### Signing — the structured act
 
 Show the final spec to the human in plain language and get approval.
+
+**Durability preflight — before the first approval request, and before every
+re-approval.** Each item below is a spec defect that stays invisible until
+implementation hits it, and each one costs the human an interrupt when it
+does:
+
+- **Setup plan against the gate's own files.** The gate needs a persistent
+  entry point (`tools/gate.sh`) plus the layer scripts the declared tier
+  pulls in. Resolve those paths from `verification-gate` and list them
+  before writing "no new files" — a setup plan written without asking is a
+  guess, and the gate's first run falsifies it.
+- **Must NOT states behavior, never a diff shape.** "No existing test is
+  deleted and no existing assertion changes" is a constraint. "Deleted lines
+  under `tests/` must be zero" is a counter, and it forbids edits the
+  constraint never meant to catch — renaming the stub that stands in for a
+  mocked boundary, or adding `**_kwargs` to it when that boundary's
+  signature grows. A counter copied from AGENTS.md is still a counter.
+- **Every count and every `file:line` is measured or deleted.** Run the
+  command that produces each number at the moment you write it, and name
+  symbols rather than lines: line numbers in a spec go stale as soon as the
+  first behavior in it lands. An unmeasured count is a revision waiting to
+  happen, even when it happens to be right.
 
 - **An answer to a question is not an approval.** If you asked the human to
   decide something, their answer is an INPUT that CHANGES the spec — any

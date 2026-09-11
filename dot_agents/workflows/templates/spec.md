@@ -1,6 +1,8 @@
 # SPEC — <task name> (Tier <1|2|3>)
 
-- `spec_version`: <!-- v1, v2, ... — bump on every content change; a bump
+- `spec_version`: <!-- v0.1, v0.2, ... while the frontier is still open and
+  nobody has been asked to approve anything; v1 is the first version put to
+  the human, then v2, v3, ... — bump on every content change; a bump
   invalidates prior approval -->
 - `status`: <!-- draft | approved | revised-pending-approval | shipped.
   Every transition has an owner: `approved` is written by hand in the
