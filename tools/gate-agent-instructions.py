@@ -68,12 +68,20 @@ def require_tool(name: str) -> str:
 
 
 def verify_base_reachable(base: str) -> None:
+    # encoding 寫死 utf-8，與同檔其他兩處一致：text=True 在 Windows 上用 ANSI
+    # 碼頁。要同時滿足兩個條件才會出事：ref 解不到（git 以 128 結束並把那個
+    # 名字寫進診斷），而且那個名字的 UTF-8 位元組在當時的碼頁（本機 cp950）
+    # 解不開。存在的非 ASCII ref 是 rc=0、沒有 stderr，不受影響。條件齊備時
+    # 解碼在讀取執行緒失敗、stderr 變成 None，而非零退出本來就會進下面的錯誤
+    # 分支，於是 .strip() 崩成 AttributeError，取代了該印出的那句診斷。
+    # `or ''` 是為了即使解碼仍然失敗，也給得出可讀的拒絕。
     r = subprocess.run(["git", "cat-file", "-e", f"{base}^{{commit}}"],
-                        cwd=REPO, capture_output=True, text=True)
+                        cwd=REPO, capture_output=True, text=True,
+                        encoding="utf-8")
     if r.returncode != 0:
         die(2, f"--base {base} does not resolve to a commit reachable in this "
                f"repository (git cat-file -e {base}^{{commit}} failed): "
-               f"{r.stderr.strip()}")
+               f"{(r.stderr or '').strip()}")
 
 
 def resolve_base(explicit: str | None) -> str:

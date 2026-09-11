@@ -64,14 +64,23 @@ def classify(path: str, line: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", required=True)
+    # 變更行清單描述的樹，必須與各量測層量的是同一個 commit。gate.sh 解析一次
+    # 再傳進來；ref `HEAD` 只是預設值，單獨執行時仍可用。
+    ap.add_argument("--head", default="HEAD")
     args = ap.parse_args()
 
+    # encoding 要寫死 utf-8：git 輸出是 UTF-8，但 text=True 在 Windows 上用的是
+    # ANSI 碼頁（這台是 cp950）。解碼在讀取執行緒裡失敗時 returncode 仍是 0，
+    # stdout 變成 None，下面的檢查會放行，這一層就在什麼都沒量到的情況下往下走。
     p = subprocess.run(
-        ["git", "diff", "--unified=0", f"{args.base}...HEAD"],
-        cwd=REPO, capture_output=True, text=True,
+        ["git", "diff", "--unified=0", f"{args.base}...{args.head}"],
+        cwd=REPO, capture_output=True, text=True, encoding="utf-8",
     )
     if p.returncode != 0:
         print(f"gate-changed-lines: 讀不到 diff: {p.stderr}", file=sys.stderr)
+        return 1
+    if p.stdout is None:
+        print("gate-changed-lines: diff 解碼失敗，拿不到內容", file=sys.stderr)
         return 1
 
     counts: dict[str, int] = defaultdict(int)

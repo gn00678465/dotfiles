@@ -53,6 +53,11 @@ if [ -z "$BASE" ]; then
 fi
 [ -n "$BASE" ] || { echo "gate: 給不出 base ref（scope $SCOPE）" >&2; exit 2; }
 
+# 受測 commit 解析一次，往下傳給每一個量測當前版本的層。用 ref `HEAD` 的話，
+# 各層各自解析，報告裡的數字就可能描述不同的樹。baseline 與 RED 重建在 base，
+# 不受這個值影響。
+HEAD_SHA=$(git rev-parse HEAD)
+
 ART=".gate/$SCOPE"
 rm -rf "$ART"
 mkdir -p "$ART"
@@ -106,6 +111,7 @@ versions() {
         printf 'pwsh:    ABSENT (L4/L7/L8 會標成 skip)\n'
     fi
     printf 'base:    %s\n' "$BASE"
+    printf 'head:    %s\n' "$HEAD_SHA"
     printf 'scope:   %s\n' "$SCOPE"
 }
 run_layer versions "$ART/versions.txt" versions
@@ -172,7 +178,7 @@ run_layer properties "$ART/properties.txt" \
 
 # ---------------------------------------------------------------- mutation
 run_layer mutation "$ART/mutants.txt" \
-    python3 tools/gate-mutants.py --json "$ART/mutants.json"
+    python3 tools/gate-mutants.py --json "$ART/mutants.json" --head-sha "$HEAD_SHA"
 
 # ---------------------------------------------------------------- supply chain
 run_layer supply-chain "$ART/supply-chain.txt" \
@@ -187,7 +193,7 @@ run_layer pacman-ids "$ART/pacman-ids.txt" sh tools/gate-pacman-ids.sh
 # 這一層只報告不設閘：這個 repo 的三種語言在這個環境裡都沒有覆蓋率工具，
 # 詳見腳本內的說明與 evidence report 的 UNAVAILABLE 記錄。
 run_layer changed-lines "$ART/changed-lines.txt" \
-    python3 tools/gate-changed-lines.py --base "$BASE"
+    python3 tools/gate-changed-lines.py --base "$BASE" --head "$HEAD_SHA"
 
 # -------------------------------------------------------- source state (after)
 # 只在開頭驗一次等於是替一棵在報告寫出來時已經不存在的樹背書。
