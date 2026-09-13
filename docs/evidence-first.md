@@ -38,18 +38,19 @@ Evidence-first 是一份合約。它要求 repo 在變更完成時帶著五個�
    不要每發現一個缺陷就中斷一次。
 2. **合併 PR**。合併前，SPEC 已經封存為 `shipped`。
 
-其餘步驟由 agent 執行，由腳本擋。
+其餘步驟由 agent 執行，由腳本擋。`evidence-squad` 的三個 cut 不增加停下的點：
+找到的問題由 agent 依 class 處置，未決事項併入核准請求或 evidence 的 Honest notes。
 
 ## 4. 六個 Phase
 
 | Phase | 做什麼 | 產物 | 機械檢查 |
 |---|---|---|---|
 | 1 SPEC | 把需求寫成可執行的驗收條件：tier、scenarios、Must NOT、setup plan。核准前的草稿編 `v0.N` | `specs/<scope>/SPEC.md` | 路徑固定。`spec-archive` 只認這個路徑 |
-| 2 SPEC REVIEW | 先跑 durability preflight 三項自檢，再給人看 SPEC，取得核准，逐字記錄，`status` 改為 `approved`，提交 | SPEC 的 Approval 一節 | `spec-archive` 拒絕非 `approved` 的 SPEC。**preflight 沒有機械檢查**，是送審前的自檢清單 |
+| 2 SPEC REVIEW | Tier 2 以上先派 `evidence-squad` 的 after-spec cut 讀草稿，再跑 durability preflight 三項自檢，再給人看 SPEC，取得核准，逐字記錄，`status` 改為 `approved`，提交 | SPEC 的 Approval 一節 | `spec-archive` 拒絕非 `approved` 的 SPEC。**preflight 沒有機械檢查**，是送審前的自檢清單 |
 | 3 IMPLEMENT | 每個行為：RED → GREEN → REFACTOR。測試先提交 | 測試與實作的 commit | gate 從 git 重建 RED 與 commit 順序 |
-| 4 VERIFY | 呼叫 `verification-gate` skill。`gate` 反覆修，`evidence` 只跑一次 | `.scratch/<scope>/evidence.md`（workflow Phase 4 規定，CLOSE 前提交） | gate 任一層失敗即擋住 done。intent 標頭由 gate 從 SPEC 導出 |
-| 5 INDEPENDENT VERIFICATION | Tier 3 選項。派 `verifier` agent，只給四項輸入，不給對話 | findings 與處置 | — |
-| 6 CLOSE | 呼叫 `spec-archive` skill。`status` 改為 `shipped`，搬到 `specs/archive/<scope>/`，提交。這是分支最後一個 commit，在合併之前 | `specs/archive/<scope>/SPEC.md` | 工作樹不乾淨、SPEC 未核准、evidence 缺少或版本不符，一律拒絕 |
+| 4 VERIFY | 呼叫 `verification-gate` skill。`gate` 反覆修到全過，派 `evidence-squad` 的 after-implement cut 讀已通過 gate 的狀態，依 class 處置後再 `gate`，`evidence` 只跑一次，在最後一次修改之後 | `.scratch/<scope>/evidence.md`（workflow Phase 4 規定，CLOSE 前提交） | gate 任一層失敗即擋住 done。intent 標頭由 gate 從 SPEC 導出 |
+| 5 INDEPENDENT VERIFICATION | Tier 3 選項。派 `verifier` agent，只給四項輸入，不給對話 | findings 與處置，`.scratch/<scope>/verification.md` | `spec-archive` 拒絕 `final_verdict` 為 failed 或 blocked |
+| 6 CLOSE | 先派 `evidence-squad` 的 before-archive cut，class-1 或未修正的 description finding 擋住封存。再呼叫 `spec-archive` skill。`status` 改為 `shipped`，搬到 `specs/archive/<scope>/`，提交。這是分支最後一個 commit，在合併之前 | `specs/archive/<scope>/SPEC.md` | 工作樹不乾淨、SPEC 未核准、evidence 缺少或版本不符、判定 failed 或 blocked、Tier 2 以上 squad 紀錄缺少、未分類、class 1 未關閉或順序錯誤，一律拒絕 |
 
 ```mermaid
 sequenceDiagram
@@ -59,13 +60,16 @@ sequenceDiagram
     participant M as main
 
     A->>G: P1 specs/<scope>/SPEC.md
+    A->>A: P2 evidence-squad after-spec
     A->>H: P2 顯示 SPEC，請求核准 vN
     H-->>A: 核准的原話
     A->>G: 原話、日期、版本寫入 Approval，status=approved，commit
     Note over A,G: P3 每個行為：RED → GREEN，測試 commit 在前
-    A->>A: P4 verification-gate：gate 反覆，evidence 一次
+    A->>A: P4 verification-gate：gate 反覆
+    A->>A: P4 evidence-squad after-implement，再 gate，evidence 一次
     A->>G: .scratch/<scope>/evidence.md，commit
     A->>A: P5 Tier 3：verifier agent
+    A->>A: P6 evidence-squad before-archive
     A->>G: P6 spec-archive：status=shipped，搬到 specs/archive/，commit
     H->>M: merge PR
 ```
@@ -77,7 +81,9 @@ sequenceDiagram
 | SPEC | `specs/<scope>/SPEC.md` | 合約固定。範本在 `~/.agents/workflows/templates/spec.md` |
 | 封存後的 SPEC | `specs/archive/<scope>/SPEC.md` | 由 `spec-archive` 搬移，不可手動 |
 | Evidence | `.scratch/<scope>/evidence.md` | 本 repo 的慣例。放在 `specs/` 之外，因為封存會搬整個目錄；`spec-archive` 也接受 `.gate/<scope>/evidence.md`，但不得同時追蹤兩個路徑——兩邊都有已提交的檔案會判定為 ambiguous，CLOSE 直接拒絕 |
+| Verification | `.scratch/<scope>/verification.md` | Phase 5 的彙總判定，與 evidence 同目錄提交 |
 | Gate 產出 | `.gate/<scope>/` | 在 `.gitignore`。每次 gate 開頭清空 |
+| Squad findings | `.scratch/<scope>/squad/<cut>.md` | `evidence-squad` 每個 cut 合併後的 findings，隨所屬 phase 提交 |
 | Gate 入口 | `tools/gate.sh`（windows-support）、`tools/gate-agent-instructions.py`（global-agent-instructions） | 本 repo 每個 scope 各自的入口，不共用彼此的 artifact 目錄。其他 repo 由 `verification-gate` 建立 |
 
 ## 6. 哪些是機械擋住的
@@ -86,7 +92,7 @@ sequenceDiagram
 
 | 機械擋住 | 靠文字 |
 |---|---|
-| `spec-archive` 拒絕：非 approved、樹不乾淨、已封存、evidence 缺少或 `spec_version` 不符 | 先核准再實作 |
+| `spec-archive` 拒絕：非 approved、樹不乾淨、已封存、evidence 缺少或 `spec_version` 不符、`final_verdict` 為 failed 或 blocked、Tier 2 以上 squad 紀錄缺少、未分類、class 1 未關閉或順序錯誤 | 先核准再實作 |
 | `spec-archive --check` 在預設分支上遇到 approved 的 SPEC，exit 1 | RED 要親眼看到 |
 | 各 scope 的 gate 入口任一層失敗即停，manifest 稽核確認每層都跑過 | 改實作不改測試 |
 | `gate-intent.sh` 從 SPEC 導出 intent 標頭 | evidence 只跑一次 |
@@ -133,11 +139,13 @@ python3 tests/spec_archive_test.py
 | `dot_agents/workflows/evidence-first.md` | `~/.agents/workflows/evidence-first.md` |
 | `dot_agents/skills/verification-gate/` | `~/.agents/skills/verification-gate/` |
 | `dot_agents/skills/spec-archive/` | `~/.agents/skills/spec-archive/` |
+| `dot_agents/skills/evidence-squad/` | `~/.agents/skills/evidence-squad/` |
 | `dot_claude/agents/verifier.md.tmpl`、`dot_codex/agents/verifier.toml.tmpl` | `~/.claude/agents/verifier.md`、`~/.codex/agents/verifier.toml` |
 
-合約版本：v0.7。自 v0.6 起的變更：草稿編 `v0.N`、送核准前的 durability
-preflight、修訂合併送審，以及 `global-agent-instructions` 那輪動過合約面卻沒有
-跟著升版的三個 commit。
+合約版本：v0.8。自 v0.7 起的變更：`evidence-squad` 的三個 cut 接進 Phase 2、4、6；
+`spec-archive` 讀 `verification.md` 的判定，Tier 2 以上要求三份 squad 紀錄。
+v0.7 自 v0.6 起的變更：草稿編 `v0.N`、送核准前的 durability preflight、修訂合併
+送審，以及 `global-agent-instructions` 那輪動過合約面卻沒有跟著升版的三個 commit。
 
 這個號碼沒有任何機械檢查在維護——上面那三個 commit 就是這樣漏掉的。它是給人看
 的標記，要知道合約實際變過什麼，看上表那幾個路徑的 `git log`。

@@ -8,11 +8,12 @@ proving the code ran the gate (owned by the `verification-gate` skill). This
 file owns the front half of the loop; the skill owns the back half.
 
 ```
-SPEC → SPEC REVIEW (human approves spec, not code)
+SPEC → squad after-spec → SPEC REVIEW (human approves spec, not code)
      → per behavior: RED → GREEN → REFACTOR
-     → verification-gate: `gate` (iterate while fixing) → `evidence` (final, once)
+     → verification-gate: `gate` (iterate while fixing) → squad after-implement
+       → `evidence` (final, once)
      → Tier 3 option: independent verification (`verifier` agent)
-     → before merge: CLOSE (`spec-archive` skill)
+     → squad before-archive → before merge: CLOSE (`spec-archive` skill)
 ```
 
 ## Phase 1 — SPEC
@@ -107,6 +108,15 @@ your job, never the human's: look up (or dispatch a subagent for) anything
 the environment can answer, and put only decisions to the human. Exploration
 ends when the frontier is empty — nothing left silently assumed. Bump the
 spec version once at the end, not per round.
+
+### Squad — fresh contexts on the draft (Tier 2+)
+
+Before the durability preflight, dispatch the `evidence-squad` skill's
+**after-spec** cut on the v0.x draft: 3–4 read-only lenses (scope against
+the request, each rule's input space, repo reality, test mapping), the four
+inputs and never this conversation. Fold class-1 and class-2 findings into
+the draft; what stays open becomes a decision with a recommendation in the
+approval request. No stop is added.
 
 ### Signing — the structured act
 
@@ -231,9 +241,17 @@ the verifier's fresh context stays necessary.
 
 ## Phase 4 — VERIFY (hand off to `verification-gate`)
 
-When all spec behaviors are green, invoke the `verification-gate` skill. Do
-not run the layers ad hoc and paste numbers — the skill owns the entry
-point, the layer stack, and the report.
+When all spec behaviors are green, invoke the `verification-gate` skill.
+Order inside this phase: `gate` first, until every layer passes — the
+mechanical checks are cheap and deterministic, so the squad reads a state
+that already passed them and does not report what the gate would have
+caught; then the `evidence-squad` skill's **after-implement** cut (contract
+vs implementation, live evidence, input space at code level, diff hygiene)
+on that gated state; act on its findings by class and run `gate` again; then
+`evidence`, once, after the last edit — the squad never runs after
+`evidence`, or the report describes a state the squad then changed. Do not
+run the layers ad hoc and paste numbers — the skill owns the entry point,
+the layer stack, and the report.
 
 - Use `gate` iteratively while fixing failures; use `evidence` exactly once,
   after the last code edit, to produce the final report.
@@ -297,17 +315,25 @@ orchestration rules on your side:
 - **Where the verdict lands**: write it to `.gate/<scope>/verification.md`
   (aggregate template at `templates/verification.md` beside this file),
   beside the gate's evidence report — never into the report itself (the
-  skill owns that file). Per-round reports are the verifier's verbatim
+  skill owns that file) — and commit it beside the evidence report you
+  commit in Phase 4: `.scratch/<scope>/verification.md` where `.gate/` is
+  ignored. CLOSE reads it from git beside that report: `failed` and
+  `blocked` do not ship. Per-round reports are the verifier's verbatim
   output; the aggregate is yours. Deliver both to the human together.
 
 ## Phase 6 — CLOSE (before merge: the branch's last commit; Tier 3: after verification finalizes)
 
 A shipped spec is an immutable intent record, not a living constraint — the
-living truth moved into the tests. Invoke the `spec-archive` skill on the
-feature branch once the gate's final `evidence` is in (Tier 3: once
-independent verification has finalized): it flips `status` to `shipped`,
+living truth moved into the tests. Dispatch the `evidence-squad` skill's
+**before-archive** cut (evidence vs git, mapping honesty, verdict state,
+ledger completeness); a class-1 or an uncorrected description finding blocks
+the close. Then invoke the `spec-archive` skill on the feature branch once
+the gate's final `evidence` is in (Tier 3: once independent verification
+has finalized): it flips `status` to `shipped`,
 moves the spec to `specs/archive/<scope>/`, and commits — mechanically, fail
-closed. That commit is the last one before the merge, so the PR carries the
+closed. At Tier 2 and 3 it also requires the three squad records under
+`.scratch/<scope>/squad/`, committed, classed and in order, and refuses a
+`failed` or `blocked` verdict. That commit is the last one before the merge, so the PR carries the
 shipped spec and the default branch never holds an `approved` one; `--check`
 run there treats any candidate as a skipped close. The script also reads the
 committed evidence report and refuses to close a spec whose `spec_version`

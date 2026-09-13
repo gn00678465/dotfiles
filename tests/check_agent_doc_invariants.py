@@ -210,6 +210,16 @@ def main() -> None:
     require(archiver, "archiver parses the evidence version", "EVIDENCE_VERSION_RE")
     require(archiver, "archiver refuses a version mismatch", "ev_version != v.group(1)")
 
+    # 13b. CLOSE also reads the Phase 5 verdict and, at tier 2 and 3, the
+    #      three squad records; the workflow, the archiver skill and the
+    #      archiver must all name that gate.
+    require(workflow, "workflow dispatches the squad", "`evidence-squad`")
+    require(workflow, "workflow says CLOSE reads the verdict", "`blocked` do not ship")
+    require(archiver_skill, "skill states the verdict gate", "`final_verdict`")
+    require(archiver_skill, "skill states the squad gate", ".scratch/<scope>/squad/<cut>.md")
+    require(archiver, "archiver parses the verdict", "VERDICT_RE")
+    require(archiver, "archiver checks the squad records", "SQUAD_CUTS")
+
     # 14. SPEC global-agent-instructions S2: shortening the contract must not
     #     cost the properties it exists to guarantee. Each literal already
     #     holds today (this is regression armor, not a new behaviour) — proven

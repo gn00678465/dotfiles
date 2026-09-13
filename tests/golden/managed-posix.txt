@@ -10,6 +10,8 @@
 .agents/skills/commit/references/terminology.md
 .agents/skills/commit/scripts
 .agents/skills/commit/scripts/analyze_git.py
+.agents/skills/evidence-squad
+.agents/skills/evidence-squad/SKILL.md
 .agents/skills/spec-archive
 .agents/skills/spec-archive/SKILL.md
 .agents/skills/spec-archive/agents
@@ -53,6 +55,7 @@
 .claude/settings.json
 .claude/skills
 .claude/skills/commit
+.claude/skills/evidence-squad
 .claude/skills/spec-archive
 .claude/skills/verification-gate
 .codex
