@@ -306,5 +306,15 @@ Gate artifacts go in `.gate/<scope>/`, which git ignores.
 Store specs at `specs/<scope>/SPEC.md`. The CLOSE step reads this fixed path.
 Commit the final evidence report at `.scratch/<scope>/evidence.md`.
 Keep it outside `specs/` because `spec-archive` moves the entire spec directory.
+Squad records go to `.scratch/<scope>/squad/<cut>.md` and the Phase 5 verdict
+to `.scratch/<scope>/verification.md`; `spec-archive` reads both from git.
 The `windows-support` report is the worked example of specification,
 verification, evidence, and archive steps.
+
+Do not name a skill under `dot_agents/skills/` `adversarial-squad`, any
+other name in spec-kitty's bundled skill registry, or a name that starts
+with `spec-kitty-`. The spec-kitty CLI syncs `~/.claude/skills` and
+`~/.agents/skills` after every CLI upgrade: it deletes and replaces
+directories with registry names, including symlinks and their targets, and
+deletes unknown `spec-kitty-*` directories. The squad skill is named
+`evidence-squad` for this reason.

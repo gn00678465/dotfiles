@@ -118,7 +118,7 @@ def main() -> None:
 
         spec = repo / "specs/foo/SPEC.md"
         spec.parent.mkdir(parents=True)
-        spec.write_text("- `spec_version`: v2\n- `status`: draft\n\n## Approval\n",
+        spec.write_text("- `spec_version`: v2\n- `tier`: 1\n- `status`: draft\n\n## Approval\n",
                         encoding="utf-8")
         git(repo, "add", "-A")
         git(repo, "commit", "-qm", "init")
@@ -191,7 +191,7 @@ def main() -> None:
 
         quux = repo / "specs/quux/SPEC.md"
         quux.parent.mkdir(parents=True)
-        quux.write_text("- `spec_version`: v3\n- `status`: approved\n\n## Approval\n",
+        quux.write_text("- `spec_version`: v3\n- `tier`: 1\n- `status`: approved\n\n## Approval\n",
                         encoding="utf-8")
         (repo / ".scratch/quux").mkdir(parents=True)
         (repo / ".scratch/quux/evidence.md").write_text(
@@ -203,7 +203,7 @@ def main() -> None:
 
         corge = repo / "specs/corge/SPEC.md"
         corge.parent.mkdir(parents=True)
-        corge.write_text("- `spec_version`: v4\n- `status`: approved\n\n## Approval\n",
+        corge.write_text("- `spec_version`: v4\n- `tier`: 1\n- `status`: approved\n\n## Approval\n",
                         encoding="utf-8")
         (repo / ".scratch/corge").mkdir(parents=True)
         (repo / ".scratch/corge/evidence.md").write_text(
@@ -226,7 +226,7 @@ def main() -> None:
         # versions differ" from "could not parse a version at all".
         grault = repo / "specs/grault/SPEC.md"
         grault.parent.mkdir(parents=True)
-        grault.write_text("- `spec_version`: v0.2\n- `status`: approved\n\n## Approval\n",
+        grault.write_text("- `spec_version`: v0.2\n- `tier`: 1\n- `status`: approved\n\n## Approval\n",
                           encoding="utf-8")
         (repo / ".scratch/grault").mkdir(parents=True)
         grault_ev = repo / ".scratch/grault/evidence.md"
@@ -234,7 +234,7 @@ def main() -> None:
                              encoding="utf-8")
         garply = repo / "specs/garply/SPEC.md"
         garply.parent.mkdir(parents=True)
-        garply.write_text("- `spec_version`: v0.10\n- `status`: approved\n\n## Approval\n",
+        garply.write_text("- `spec_version`: v0.10\n- `tier`: 1\n- `status`: approved\n\n## Approval\n",
                           encoding="utf-8")
         (repo / ".scratch/garply").mkdir(parents=True)
         (repo / ".scratch/garply/evidence.md").write_text(
@@ -268,6 +268,133 @@ def main() -> None:
         git(repo, "commit", "-qm", "grault evidence bumped to v0.2")
         expect("a dotted version that matches archives", repo, ["grault"], 0,
                stdout_has="archived")
+
+
+        # Tier line: the contract declares it in the SPEC and the archiver
+        # reads it to decide which squad cuts must be on record.
+        plugh = repo / "specs/plugh/SPEC.md"
+        plugh.parent.mkdir(parents=True)
+        plugh.write_text("- `spec_version`: v1\n- `status`: approved\n\n## Approval\n",
+                         encoding="utf-8")
+        (repo / ".scratch/plugh").mkdir(parents=True)
+        (repo / ".scratch/plugh/evidence.md").write_text(
+            real_evidence_header("v1") + "\n## Baseline\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "plugh without a tier line")
+        expect("a spec without a tier line cannot be evaluated",
+               repo, ["plugh"], 2, stderr_has="tier")
+
+        # Squad records (tier 2 and 3): all three cuts, committed, classed,
+        # class-1 closed, after-spec before approval, after-implement before
+        # the evidence report. `waldo` is approved before any squad record
+        # exists, so its after-spec record can only ever be late.
+        waldo = repo / "specs/waldo/SPEC.md"
+        waldo.parent.mkdir(parents=True)
+        waldo.write_text("- `spec_version`: v1\n- `tier`: 2\n- `status`: approved\n\n## Approval\n",
+                         encoding="utf-8")
+        (repo / ".scratch/waldo").mkdir(parents=True)
+        (repo / ".scratch/waldo/evidence.md").write_text(
+            real_evidence_header("v1") + "\n## Baseline\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "waldo tier 2 approved with evidence, no squad")
+        expect("tier 2 without any squad record is refused",
+               repo, ["waldo"], 1, stderr_has="after-spec")
+        squad = repo / ".scratch/waldo/squad"
+        squad.mkdir()
+        # Ignored by git, so the tree stays clean and the record is the only
+        # thing missing from the commit — a plain untracked file would trip
+        # the dirty-tree refusal first.
+        (repo / ".gitignore").write_text(".gate/\n.scratch/waldo/squad/after-spec.md\n",
+                                         encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "waldo ignores its after-spec record")
+        (squad / "after-spec.md").write_text(
+            "# squad: after-spec\n\n- [HIGH] a.py:1 — no class here — evidence — rec\n",
+            encoding="utf-8")
+        expect("a squad record that is not committed is refused",
+               repo, ["waldo"], 1, stderr_has="not committed")
+        (repo / ".gitignore").write_text(".gate/\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "waldo after-spec, unclassed")
+        expect("a squad finding without a class is refused",
+               repo, ["waldo"], 1, stderr_has="without a class")
+        (squad / "after-spec.md").write_text(
+            "# squad: after-spec\n\n- [HIGH] a.py:1 — f — evidence — class 1 — rec — status: open\n",
+            encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "waldo after-spec, class 1 open")
+        expect("an open class-1 squad finding is refused",
+               repo, ["waldo"], 1, stderr_has="still open")
+        (squad / "after-spec.md").write_text(
+            "# squad: after-spec\n\n- [HIGH] a.py:1 — f — evidence — class 1 — rec — status: fixed\n",
+            encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "waldo after-spec, class 1 fixed")
+        expect("an after-spec record committed after the approval is refused",
+               repo, ["waldo"], 1, stderr_has="after the approval")
+
+        # `fred` follows the order the workflow prescribes.
+        fred = repo / "specs/fred/SPEC.md"
+        fred.parent.mkdir(parents=True)
+        fred.write_text("- `spec_version`: v1\n- `tier`: 3\n- `status`: draft\n\n## Approval\n",
+                        encoding="utf-8")
+        fsq = repo / ".scratch/fred/squad"
+        fsq.mkdir(parents=True)
+        (fsq / "after-spec.md").write_text(
+            "# squad: after-spec\n\n- [LOW] b.py:2 — f — evidence — class 3 — rec\n",
+            encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred draft and after-spec squad")
+        fred.write_text(fred.read_text(encoding="utf-8").replace("draft", "approved"),
+                        encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred approved")
+        (repo / ".scratch/fred/evidence.md").write_text(
+            real_evidence_header("v1") + "\n## Baseline\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred evidence")
+        (fsq / "after-implement.md").write_text("# squad: after-implement\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred after-implement after evidence")
+        expect("an after-implement record committed after the evidence is refused",
+               repo, ["fred"], 1, stderr_has="after the evidence")
+        (repo / ".scratch/fred/evidence.md").write_text(
+            real_evidence_header("v1") + "\n## Baseline\nrerun\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred evidence rerun after the squad")
+        expect("tier 3 with the before-archive record missing is refused",
+               repo, ["fred"], 1, stderr_has="before-archive")
+        (fsq / "before-archive.md").write_text("# squad: before-archive\n", encoding="utf-8")
+        verification = repo / ".scratch/fred/verification.md"
+        verification.write_text("- `final_verdict`: failed\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred before-archive and a failed verdict")
+        expect("a committed verdict of failed is refused",
+               repo, ["fred"], 1, stderr_has="final_verdict: failed")
+        verification.write_text("- `final_verdict`: blocked\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred blocked verdict")
+        expect("a committed verdict of blocked is refused",
+               repo, ["fred"], 1, stderr_has="final_verdict: blocked")
+        verification.write_text("- `headline`: no verdict line\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred verdict unparseable")
+        expect("a verification file without a final_verdict cannot be evaluated",
+               repo, ["fred"], 2, stderr_has="final_verdict")
+        git(repo, "rm", "-q", "--cached", str(verification))
+        (repo / ".gitignore").write_text(".gate/\n.scratch/fred/verification.md\n",
+                                         encoding="utf-8")
+        verification.write_text("- `final_verdict`: passed\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred verdict ignored by git")
+        expect("a verification file that is not committed is refused",
+               repo, ["fred"], 1, stderr_has="not committed")
+        (repo / ".gitignore").write_text(".gate/\n", encoding="utf-8")
+        verification.write_text("- `final_verdict`: not performed\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "fred verdict not performed, committed")
+        expect("tier 3 with all three records in order and a declared downgrade archives",
+               repo, ["fred"], 0, stdout_has="archived")
 
         # Happy path: one atomic commit, status flipped, spec moved.
         expect("approved spec on a clean tree archives", repo, ["foo"], 0,

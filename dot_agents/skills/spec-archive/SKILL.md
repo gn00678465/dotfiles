@@ -44,7 +44,14 @@ touches only that copy. The script, fail closed:
    `.scratch/<scope>/evidence.md` or `.gate/<scope>/evidence.md`, and its
    header must quote `spec_version: vN` (the gate's intent layer prints it in
    that form), so a report written against an earlier spec version cannot
-   close a later one.
+   close a later one; a committed `verification.md` beside the evidence
+   whose `final_verdict` is `failed` or `blocked` (rc 1); at tier 2 and 3,
+   a squad record `.scratch/<scope>/squad/<cut>.md` (`after-spec`,
+   `after-implement`, `before-archive`) missing or uncommitted, a finding
+   bullet without `class 1|2|3`, a class-1 finding without `status: fixed`,
+   `after-spec` last committed after the approval commit, or
+   `after-implement` after the evidence report (rc 1); a `tier` or
+   `final_verdict` line that cannot be parsed (rc 2).
 2. **Flips `status` to `shipped`** — the spec's one final mutation; after
    this commit the file is immutable.
 3. **`git mv specs/<scope> specs/archive/<scope>`** and commits

@@ -15,11 +15,21 @@ header must carry `spec_version: vN` equal to the spec's own — the report
 was produced against this spec version, or it is not this change's
 evidence.
 
+CLOSE also reads, beside that report, `verification.md` when Phase 5 ran:
+a `final_verdict` of `failed` or `blocked` does not ship. At tier 2 and 3
+it reads the three squad records `.scratch/<scope>/squad/<cut>.md`
+(`after-spec`, `after-implement`, `before-archive`): each committed, every
+finding bullet carrying `class 1|2|3`, no class-1 finding without
+`status: fixed`, `after-spec` last committed no later than the approval
+commit and `after-implement` no later than the evidence report.
+
 Fail closed. Exit codes: 0 done / nothing pending; 1 refused (not
 approved, dirty tree, already archived, shipped-but-not-moved, evidence
-missing / uncommitted / bound to another spec_version); 2 the script could
-not even evaluate (not a git repo, no spec, unparseable status or
-spec_version, git command failed). Stdlib only; runs anywhere python3 does.
+missing / uncommitted / bound to another spec_version, verdict failed or
+blocked, squad record missing / uncommitted / unclassed / out of order);
+2 the script could not even evaluate (not a git repo, no spec, unparseable
+status, spec_version, tier or final_verdict, git command failed). Stdlib
+only; runs anywhere python3 does.
 """
 
 import argparse
@@ -46,6 +56,15 @@ SPEC_VERSION_RE = re.compile(r"^\s*-\s*`spec_version`:\s*(v\d+(?:\.\d+)*)\b",
 # `spec_version: vN` (the gate's intent layer prints it in that form).
 EVIDENCE_VERSION_RE = re.compile(r"`spec_version:\s*(v\d+(?:\.\d+)*)`")
 EVIDENCE_CANDIDATES = (".scratch/{scope}/evidence.md", ".gate/{scope}/evidence.md")
+TIER_RE = re.compile(r"^\s*-\s*`tier`:\s*([123])\b", re.MULTILINE)
+VERDICT_RE = re.compile(r"^\s*-\s*`final_verdict`:\s*(passed|failed|blocked|not performed)\b",
+                        re.MULTILINE)
+SQUAD_CUTS = ("after-spec", "after-implement", "before-archive")
+SQUAD_PATH = ".scratch/{scope}/squad/{cut}.md"
+# A squad finding is a bullet that opens with its severity: `- [HIGH] ...`.
+FINDING_RE = re.compile(r"^\s*-\s*\[")
+CLASS_RE = re.compile(r"\bclass\s*([123])\b")
+FIXED_RE = re.compile(r"\bstatus:\s*fixed\b")
 
 
 def die(code: int, msg: str) -> None:
@@ -107,6 +126,79 @@ def evidence_version(root: Path, scope: str) -> tuple[str, str]:
     return rel, m.group(1)
 
 
+def is_tracked(root: Path, rel: str) -> bool:
+    return run(["git", "ls-files", "--error-unmatch", rel], cwd=root).returncode == 0
+
+
+def last_commit(root: Path, rel: str) -> str:
+    r = run(["git", "log", "-1", "--format=%H", "--", rel], cwd=root)
+    if r.returncode != 0 or not r.stdout.strip():
+        die(2, f"cannot find the last commit of {rel}")
+    return r.stdout.strip()
+
+
+def is_ancestor(root: Path, a: str, b: str) -> bool:
+    """True when commit a is b or reachable from b (a is no later than b)."""
+    return run(["git", "merge-base", "--is-ancestor", a, b], cwd=root).returncode == 0
+
+
+def check_verdict(root: Path, ev_rel: str) -> None:
+    """Phase 5 is optional; when its aggregate exists it must not say failed."""
+    rel = (Path(ev_rel).parent / "verification.md").as_posix()
+    if not (root / rel).is_file():
+        return
+    if not is_tracked(root, rel):
+        die(1, f"{rel} is present but not committed — the verdict ships beside the evidence")
+    try:
+        text = (root / rel).read_text(encoding="utf-8")
+    except OSError as e:
+        die(2, f"cannot read {rel}: {e}")
+    m = VERDICT_RE.search(text)
+    if m is None:
+        die(2, f"cannot parse the `final_verdict` line in {rel}")
+    if m.group(1) in ("failed", "blocked"):
+        die(1, f"{rel} records `final_verdict: {m.group(1)}` — a state whose "
+               "verification did not pass does not ship")
+
+
+def check_squad(root: Path, scope: str, spec_rel: str, ev_rel: str, tier: int) -> None:
+    """Tier 2 and 3 run all three squad cuts; each leaves a committed record."""
+    if tier == 1:
+        return
+    approval = run(["git", "log", "-1", "--format=%H", "-S`status`: approved", "--", spec_rel],
+                   cwd=root)
+    if approval.returncode != 0 or not approval.stdout.strip():
+        die(2, f"cannot find the commit that approved {spec_rel}")
+    approval_commit = approval.stdout.strip()
+    evidence_commit = last_commit(root, ev_rel)
+    for cut in SQUAD_CUTS:
+        rel = SQUAD_PATH.format(scope=scope, cut=cut)
+        if not (root / rel).is_file():
+            die(1, f"no squad record for the `{cut}` cut at {rel} — "
+                   f"tier {tier} runs all three cuts before CLOSE")
+        if not is_tracked(root, rel):
+            die(1, f"{rel} is present but not committed")
+        try:
+            text = (root / rel).read_text(encoding="utf-8")
+        except OSError as e:
+            die(2, f"cannot read {rel}: {e}")
+        for line in text.splitlines():
+            if not FINDING_RE.match(line):
+                continue
+            c = CLASS_RE.search(line)
+            if c is None:
+                die(1, f"{rel}: finding without a class: {line.strip()[:80]}")
+            if c.group(1) == "1" and FIXED_RE.search(line) is None:
+                die(1, f"{rel}: class-1 finding still open: {line.strip()[:80]}")
+        committed = last_commit(root, rel)
+        if cut == "after-spec" and not is_ancestor(root, committed, approval_commit):
+            die(1, f"{rel} was last committed after the approval commit — "
+                   "the after-spec cut precedes approval")
+        if cut == "after-implement" and not is_ancestor(root, committed, evidence_commit):
+            die(1, f"{rel} was last committed after the evidence report — "
+                   "the after-implement cut precedes `evidence`")
+
+
 def archive(root: Path, scope: str) -> None:
     src = root / "specs" / scope
     dst = root / "specs" / "archive" / scope
@@ -135,6 +227,11 @@ def archive(root: Path, scope: str) -> None:
     if ev_version != v.group(1):
         die(1, f"{ev_path} records `spec_version: {ev_version}`, the spec is "
                f"{v.group(1)} — rerun the gate's `evidence` against the approved spec")
+    t = TIER_RE.search(text)
+    if t is None:
+        die(2, f"cannot parse the `tier` line in {spec.relative_to(root)}")
+    check_verdict(root, ev_path)
+    check_squad(root, scope, spec.relative_to(root).as_posix(), ev_path, int(t.group(1)))
 
     # All checks passed; mutate. The status flip is the spec's one final
     # mutation — after this commit the file is an immutable intent record.
