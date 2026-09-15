@@ -106,6 +106,7 @@ def main() -> None:
     commit_skill = root / "dot_agents/skills/commit/SKILL.md"
     entry_point_ref = root / "dot_agents/skills/verification-gate/references/entry-point.md"
     docs = root / "docs/evidence-first.md"
+    squad_skill = root / "dot_agents/skills/evidence-squad/SKILL.md"
 
     # 1. Layer-status vocabulary: SKILL.md and the evidence template must
     #    carry the same five states — a status one side names and the other
@@ -219,6 +220,14 @@ def main() -> None:
     require(archiver_skill, "skill states the squad gate", ".scratch/<scope>/squad/<cut>.md")
     require(archiver, "archiver parses the verdict", "VERDICT_RE")
     require(archiver, "archiver checks the squad records", "SQUAD_CUTS")
+
+    # 13c. CLOSE also reads the spec's own Approval section (SPEC
+    #      spec-version-bump R1/R2). Same pairing as 13 and 13b: the skill is
+    #      what the agent running CLOSE reads, so a refusal the script makes
+    #      and the skill does not name is a refusal nobody was told about.
+    require(archiver_skill, "skill states the approval-record gate",
+            "no structurally complete record")
+    require(archiver, "archiver checks the approval records", "check_approval")
 
     # 14. SPEC global-agent-instructions S2: shortening the contract must not
     #     cost the properties it exists to guarantee. Each literal already
@@ -340,6 +349,17 @@ def main() -> None:
         die(1, "gate-agent-instructions.py printed a passing headline "
                "despite an unreachable --base")
     CHECKS += 1
+
+    # 25. Two wordings told an agent to spend an integer version per finding,
+    #     and an agent followed them: a spec went v1 to v6 in three hours for
+    #     four approvals. What this check does is block their VERBATIM return
+    #     — nothing more. It does not prove the three documents agree, and a
+    #     rephrasing walks past it; that limit is on record in the scope's
+    #     evidence report rather than hidden behind the check's name.
+    forbid(squad_skill, "the class-2 wording that ordered a bump has not returned",
+           "the version is bumped")
+    forbid(workflow, "the Revisions wording that ordered a bump has not returned",
+           "bump the version, set")
 
     print(f"OK: {CHECKS} invariants hold")
 

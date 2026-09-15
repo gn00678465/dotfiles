@@ -24,8 +24,8 @@ orchestrator.
 
 | Cut | When | Question the squad answers | Where the findings go |
 |---|---|---|---|
-| **after spec** | Phase 2, a v0.x draft exists, before the durability preflight and the approval request | Does this draft cover the request's rules, the rules' input space, and the repo as it is? | Folded into the draft by the orchestrator. Anything that is a genuine decision rides the one approval request with a recommendation. |
-| **after implement** | Phase 4, `verification-gate gate` passes every layer, before `evidence` | Does the code do what the spec says, all of it, and nothing else? | Class 1 → fix under the current version and re-run `gate`; class 2 → Revisions decision, version bump, batched re-approval; class 3 → Honest notes. |
+| **after spec** | Phase 2, a draft exists — `v0.x` before the first approval, the pending integer for a revision — before the durability preflight and the approval request | Does this draft cover the request's rules, the rules' input space, and the repo as it is? | Folded into the draft by the orchestrator. Anything that is a genuine decision rides the one approval request with a recommendation. |
+| **after implement** | Phase 4, `verification-gate gate` passes every layer, before `evidence` | Does the code do what the spec says, all of it, and nothing else? | Class 1 → fix under the current version and re-run `gate`; class 2 → Revisions decision under the workflow's Versioning rule, batched re-approval; class 3 → Honest notes. |
 | **before archive** | Phase 6, evidence written and any independent verification finalised, before `spec-archive` | Is the evidence true against git, and is closing this spec justified? | A class-1 finding or an uncorrected description finding blocks the close; otherwise `spec-archive` runs. |
 
 Tier 1 skips all three cuts; Tier 2 and Tier 3 run all three. `spec-archive`
@@ -40,8 +40,10 @@ class fixes its disposition:
 1. **Breaks a rule the spec states** (a scenario, a Must NOT) — a defect:
    fix under the current version, no new approval.
 2. **Not in the spec, but a behaviour of this change** — a spec gap: it
-   becomes a decision in Revisions, the version is bumped, and it is put to
-   the human once, batched with every other class-2 finding of the round.
+   becomes a decision in Revisions under the workflow's Versioning rule — an
+   unapproved draft and a pending revision both keep their number, so a
+   review round never costs an integer — and it is put to the human once,
+   batched with every other class-2 finding of the round.
 3. **Outside this change** (pre-existing behaviour, dead code, another
    scope's defect) — it is recorded under Honest notes in the evidence
    report for the human to open a scope for; it is never fixed in passing.

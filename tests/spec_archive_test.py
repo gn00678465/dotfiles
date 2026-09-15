@@ -27,6 +27,7 @@ ARCHIVER = Path(os.environ.get(
     ROOT / "dot_agents/skills/spec-archive/scripts/spec-archive.py",
 ))
 EVIDENCE_TEMPLATE = ROOT / "dot_agents/skills/verification-gate/assets/templates/evidence.md"
+SPEC_TEMPLATE = ROOT / "dot_agents/workflows/templates/spec.md"
 
 FIELD_LINE_RE = re.compile(r"^-\s*`([\w_]+)`:.*$", re.MULTILINE)
 
@@ -95,6 +96,142 @@ def real_evidence_header(spec_version: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+# --- Approval fixtures (SPEC spec-version-bump §2) ---------------------------
+# The two record shapes the parser must accept, built here rather than pasted
+# as literals so a change to §2's definition breaks these fixtures first.
+
+def approvals(*versions: str, date: str = "2026-09-15") -> str:
+    """List form: `- <date> — approves <version> — 「<words>」`."""
+    body = "\n".join(f"- {date} — approves {v} — 「核准 SPEC {v}」"
+                     for v in versions)
+    return f"## Approval\n\n{body}\n"
+
+
+def sectioned(*versions: str, date: str = "2026-09-15", words: bool = True,
+              confirmed: bool = True, heading: str = "## Approval",
+              decoy: str | None = None) -> str:
+    """Sectioned form: `### vN — <date>` plus the fields §2 requires."""
+    out = [heading, ""]
+    if decoy is not None:
+        out += [f"### {decoy} 的兩項選擇 — {date}", "",
+                "- **decision: confirmed**", f"- date: {date}", ""]
+    for v in versions:
+        out += [f"### {v} — {date}", "",
+                "- **approval: confirmed**" if confirmed else "- **decision: confirmed**",
+                f"- version bound: {v}", f"- date: {date}"]
+        if words:
+            out += ["- verbatim words:", "", f"  > 核准 SPEC {v}"]
+        out.append("")
+    return "\n".join(out) + "\n"
+
+
+def template_approval() -> str:
+    """The template's own Approval section, read from the template rather than
+    pasted here (same reason as `real_evidence_header`): a frozen copy keeps
+    passing after someone puts a parseable placeholder back into the shipped
+    template, which is the one input S1 exists to reject."""
+    text = SPEC_TEMPLATE.read_text(encoding="utf-8")
+    start = text.index("\n## Approval")
+    nxt = text.index("\n## ", start + 1)
+    return text[start + 1:nxt]
+
+
+TEMPLATE_APPROVAL = template_approval()
+
+
+# Seven §2 rules with nothing else pinning them: fenced code (both fence
+# characters, closed or left open) and HTML comments are not records,
+# `decision: confirmed` is not `approval: confirmed`, `version bound` must
+# equal the heading version, a date must be a real calendar day, and a version
+# token must end at a separator. They ride S4's existing refusal instead of
+# seven fixtures of their own — each one alone would archive `s4` if the rule
+# it names stopped working.
+# Order is load-bearing twice. The two list-form decoys sit below the `###`
+# records because a record's body runs to the next heading, so a quoted line
+# placed above would hand its words to the record that S4 needs to stay
+# quote-less. The unclosed fence sits dead last because it runs to the end of
+# the document and would swallow every decoy after it.
+S4_DECOYS = """
+```
+### v3 — 2026-09-15
+
+- **approval: confirmed**
+- version bound: v3
+- date: 2026-09-15
+- verbatim words:
+
+  > 核准 SPEC v3
+```
+
+~~~
+- 2026-09-15 — approves v3 — 「核准 SPEC v3」
+~~~
+
+<!--
+- 2026-09-15 — approves v3 — 「核准 SPEC v3」
+-->
+
+### v3 — 2026-09-16
+
+- **decision: confirmed**
+- version bound: v3
+- date: 2026-09-16
+- verbatim words:
+
+  > 核准 SPEC v3
+
+### v3 — 2026-09-17
+
+- **approval: confirmed**
+- version bound: v2
+- date: 2026-09-17
+- verbatim words:
+
+  > 核准 SPEC v3
+
+- 2026-13-45 — approves v3 — 「核准 SPEC v3」
+- 2026-09-15 — approves v3junk — 「核准 SPEC v3」
+
+```
+- 2026-09-15 — approves v3 — 「核准 SPEC v3」
+"""
+
+
+def make_spec(repo: Path, scope: str, version: str, approval: str,
+              tier: int = 1, status: str = "approved",
+              extra: str = "") -> None:
+    d = repo / "specs" / scope
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "SPEC.md").write_text(
+        f"- `spec_version`: {version}\n- `tier`: {tier}\n"
+        f"- `status`: {status}\n\n{approval}{extra}", encoding="utf-8")
+    ev = repo / ".scratch" / scope
+    ev.mkdir(parents=True, exist_ok=True)
+    (ev / "evidence.md").write_text(
+        real_evidence_header(version) + "\n## Baseline\n", encoding="utf-8")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", f"{scope} fixture")
+
+
+def expect_refused(desc: str, repo: Path, args: list[str], rc: int,
+                   stderr_has: str | None = None) -> None:
+    """A refusal changes nothing. Exit code alone would pass for a checker
+    that refuses *after* mutating, so pin the four observable effects."""
+    scope = args[0]
+    spec = repo / "specs" / scope / "SPEC.md"
+    head = harness(["git", "rev-parse", "HEAD"], repo).stdout.strip()
+    before = spec.read_text(encoding="utf-8") if spec.is_file() else None
+    expect(desc, repo, args, rc, stderr_has=stderr_has)
+    after = spec.read_text(encoding="utf-8") if spec.is_file() else None
+    check(f"{desc} — HEAD unchanged",
+          harness(["git", "rev-parse", "HEAD"], repo).stdout.strip() == head)
+    check(f"{desc} — spec content unchanged", after == before)
+    check(f"{desc} — source directory still present",
+          (repo / "specs" / scope).is_dir())
+    check(f"{desc} — archive directory not created",
+          not (repo / "specs/archive" / scope).exists())
+
+
 def check(desc: str, condition: bool) -> None:
     global FAILURES, PASSES
     if condition:
@@ -115,10 +252,15 @@ def main() -> None:
         git(repo, "init", "-q", "-b", "main")
         git(repo, "config", "user.email", "test@test")
         git(repo, "config", "user.name", "test")
+        # The host's `core.autocrlf` must not decide what these fixtures hold:
+        # with `input` (what this repo's own managed gitconfig sets) git
+        # normalises a CRLF fixture away before it is ever committed.
+        git(repo, "config", "core.autocrlf", "false")
 
         spec = repo / "specs/foo/SPEC.md"
         spec.parent.mkdir(parents=True)
-        spec.write_text("- `spec_version`: v2\n- `tier`: 1\n- `status`: draft\n\n## Approval\n",
+        spec.write_text("- `spec_version`: v2\n- `tier`: 1\n- `status`: draft\n\n"
+                        + approvals("v1", "v2"),
                         encoding="utf-8")
         git(repo, "add", "-A")
         git(repo, "commit", "-qm", "init")
@@ -191,7 +333,8 @@ def main() -> None:
 
         quux = repo / "specs/quux/SPEC.md"
         quux.parent.mkdir(parents=True)
-        quux.write_text("- `spec_version`: v3\n- `tier`: 1\n- `status`: approved\n\n## Approval\n",
+        quux.write_text("- `spec_version`: v3\n- `tier`: 1\n- `status`: approved\n\n"
+                        + approvals("v1", "v2", "v3"),
                         encoding="utf-8")
         (repo / ".scratch/quux").mkdir(parents=True)
         (repo / ".scratch/quux/evidence.md").write_text(
@@ -226,7 +369,8 @@ def main() -> None:
         # versions differ" from "could not parse a version at all".
         grault = repo / "specs/grault/SPEC.md"
         grault.parent.mkdir(parents=True)
-        grault.write_text("- `spec_version`: v0.2\n- `tier`: 1\n- `status`: approved\n\n## Approval\n",
+        grault.write_text("- `spec_version`: v0.2\n- `tier`: 1\n- `status`: approved\n\n"
+                          + approvals("v0.2"),
                           encoding="utf-8")
         (repo / ".scratch/grault").mkdir(parents=True)
         grault_ev = repo / ".scratch/grault/evidence.md"
@@ -290,7 +434,8 @@ def main() -> None:
         # exists, so its after-spec record can only ever be late.
         waldo = repo / "specs/waldo/SPEC.md"
         waldo.parent.mkdir(parents=True)
-        waldo.write_text("- `spec_version`: v1\n- `tier`: 2\n- `status`: approved\n\n## Approval\n",
+        waldo.write_text("- `spec_version`: v1\n- `tier`: 2\n- `status`: approved\n\n"
+                         + approvals("v1"),
                          encoding="utf-8")
         (repo / ".scratch/waldo").mkdir(parents=True)
         (repo / ".scratch/waldo/evidence.md").write_text(
@@ -336,7 +481,8 @@ def main() -> None:
         # `fred` follows the order the workflow prescribes.
         fred = repo / "specs/fred/SPEC.md"
         fred.parent.mkdir(parents=True)
-        fred.write_text("- `spec_version`: v1\n- `tier`: 3\n- `status`: draft\n\n## Approval\n",
+        fred.write_text("- `spec_version`: v1\n- `tier`: 3\n- `status`: draft\n\n"
+                        + approvals("v1"),
                         encoding="utf-8")
         fsq = repo / ".scratch/fred/squad"
         fsq.mkdir(parents=True)
@@ -395,6 +541,94 @@ def main() -> None:
         git(repo, "commit", "-qm", "fred verdict not performed, committed")
         expect("tier 3 with all three records in order and a declared downgrade archives",
                repo, ["fred"], 0, stdout_has="archived")
+
+        # --- SPEC spec-version-bump: approval-record completeness (R1) and
+        # --- approval-sequence continuity (R2). Every refusal below is rc 0
+        # --- against the base ref: the archiver never read the Approval
+        # --- section, which is the hole this scope closes.
+        make_spec(repo, "s1", "v3", TEMPLATE_APPROVAL)
+        expect_refused("S1 template boilerplate is not an approval record",
+                       repo, ["s1"], 1,
+                       stderr_has="no complete approval record for v3")
+
+        make_spec(repo, "s2", "v3", approvals("v2"))
+        expect_refused("S2 an older version's record does not approve this one",
+                       repo, ["s2"], 1,
+                       stderr_has="no complete approval record for v3")
+
+        make_spec(repo, "s3", "v1", sectioned("v1.2"))
+        expect_refused("S3 `### v1.2` is not a record for v1",
+                       repo, ["s3"], 1,
+                       stderr_has="no complete approval record for v1")
+
+        # S3 的正向控制：同一個 `### v1.2` 紀錄，SPEC 也在 v1.2 時必須封存。
+        # 少了這一條，把標題版號截斷成 v1 的實作在 S3 一樣是紅的（兩邊都讀成 v1），
+        # S3 就分不出「正確拒絕」與「整節都沒解析到」。
+        make_spec(repo, "s3b", "v1.2", sectioned("v1.2"))
+        expect("S3 the same `### v1.2` record does archive a v1.2 spec",
+               repo, ["s3b"], 0, stdout_has="archived")
+
+        make_spec(repo, "s4", "v3", sectioned("v3", words=False) + S4_DECOYS)
+        expect_refused("S4 a sectioned record without verbatim words is incomplete",
+                       repo, ["s4"], 1,
+                       stderr_has="no complete approval record for v3")
+
+        make_spec(repo, "s5", "v3", TEMPLATE_APPROVAL,
+                  extra="\n## Revisions\n\n"
+                        "- 2026-09-15 — approves v3 — 「核准 SPEC v3」\n")
+        expect_refused("S5 a record under Revisions is not in the Approval section",
+                       repo, ["s5"], 1,
+                       stderr_has="no complete approval record for v3")
+
+        make_spec(repo, "s7", "v4", approvals("v1", "v2", "v4"))
+        expect_refused("S7 a gap in the approval sequence is refused",
+                       repo, ["s7"], 1, stderr_has="no record for v3")
+
+        make_spec(repo, "s8", "v2", approvals("v2"))
+        expect_refused("S8 the sequence starts at v1, not at the lowest record",
+                       repo, ["s8"], 1, stderr_has="no record for v1")
+
+        # R1 applies to every version; R2 only to positive integers. Both
+        # halves are pinned so "dotted versions cannot archive" can never
+        # become true by accident — Must NOT forbids that rule.
+        make_spec(repo, "s9b", "v0.2", TEMPLATE_APPROVAL)
+        expect_refused("S9b a dotted version still needs its own record",
+                       repo, ["s9b"], 1,
+                       stderr_has="no complete approval record for v0.2")
+        make_spec(repo, "s9a", "v0.2", approvals("v0.2"))
+        expect("S9a a dotted version with its own record archives",
+               repo, ["s9a"], 0, stdout_has="archived")
+
+        # S11: the only rc-2 path this change adds. Without it, deleting the
+        # ambiguity check turns nothing red.
+        make_spec(repo, "s11", "v1", approvals("v1") + "\n## Approval\n\n(second)\n")
+        expect_refused("S11 two Approval sections cannot be evaluated",
+                       repo, ["s11"], 2,
+                       stderr_has="more than one Approval section")
+
+        # CRLF: this script is installed by chezmoi and runs in other repos,
+        # and this repo family targets native Windows. A CRLF spec dropped
+        # every sectioned record while list records still parsed, so the
+        # failure was silent in one shape and not the other.
+        make_spec(repo, "s12", "v1", sectioned("v1"))
+        crlf = repo / "specs/s12/SPEC.md"
+        crlf.write_bytes(crlf.read_text(encoding="utf-8").replace("\n", "\r\n")
+                         .encode("utf-8"))
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "s12 crlf")
+        expect("a CRLF spec's sectioned record still parses",
+               repo, ["s12"], 0, stdout_has="archived")
+
+        # GREEN-guard, not a RED: green at the base ref because the base
+        # archiver does not parse the section at all. It pins the four §2
+        # parsing rules a naive implementation gets wrong — a numbered
+        # heading, non-ascending order, a same-version decoy carrying
+        # `decision: confirmed`, and multiple records per version.
+        make_spec(repo, "s6", "v3",
+                  sectioned("v1", "v3", "v2",
+                            heading="## 8. Approval record", decoy="v3"))
+        expect("S6 numbered heading, unordered records and a decision decoy archive",
+               repo, ["s6"], 0, stdout_has="archived")
 
         # Happy path: one atomic commit, status flipped, spec moved.
         expect("approved spec on a clean tree archives", repo, ["foo"], 0,

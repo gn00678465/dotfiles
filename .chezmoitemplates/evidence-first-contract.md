@@ -1,4 +1,4 @@
-{{- /* managed-by: chezmoi | source: .chezmoitemplates/evidence-first-contract.md | v0.8 */ -}}
+{{- /* managed-by: chezmoi | source: .chezmoitemplates/evidence-first-contract.md | v0.9 */ -}}
 <!-- evidence-first:contract -->
 <workflow name="evidence-first" role="contract">
 

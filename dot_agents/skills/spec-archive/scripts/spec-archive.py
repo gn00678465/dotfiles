@@ -23,16 +23,24 @@ finding bullet carrying `class 1|2|3`, no class-1 finding without
 `status: fixed`, `after-spec` last committed no later than the approval
 commit and `after-implement` no later than the evidence report.
 
+CLOSE also reads the spec's own Approval section (SPEC spec-version-bump
+§2/§3): the current `spec_version` must carry one structurally complete
+record (R1), and an integer `vN` must carry v1..vN with no gap (R2). It
+checks that the records are there, never that they are genuine.
+
 Fail closed. Exit codes: 0 done / nothing pending; 1 refused (not
 approved, dirty tree, already archived, shipped-but-not-moved, evidence
 missing / uncommitted / bound to another spec_version, verdict failed or
-blocked, squad record missing / uncommitted / unclassed / out of order);
-2 the script could not even evaluate (not a git repo, no spec, unparseable
-status, spec_version, tier or final_verdict, git command failed). Stdlib
-only; runs anywhere python3 does.
+blocked, squad record missing / uncommitted / unclassed / out of order,
+no complete approval record for the current version, a gap in the approval
+sequence); 2 the script could not even evaluate (not a git repo, no spec,
+unparseable status, spec_version, tier or final_verdict, more than one
+Approval section, git command failed). Stdlib only; runs anywhere python3
+does.
 """
 
 import argparse
+import datetime
 import re
 import subprocess
 import sys
@@ -84,6 +92,112 @@ def repo_root() -> Path:
     if r.returncode != 0:
         die(2, "not inside a git repository")
     return Path(r.stdout.strip())
+
+
+# --- Approval records (SPEC spec-version-bump §2) ---------------------------
+# Two record shapes are load-bearing in this repo and both must parse: the
+# template's list form, and the sectioned form `windows-support` uses. Three
+# real-world traps decide the shape of this code — a numbered heading
+# (`## 8. Approval record`), records that are not in ascending order, and a
+# same-version `decision: confirmed` note sitting beside the real approval.
+# So: parse to a SET of versions, and let the heading shape exclude the note.
+VERSION_TOKEN = r"v[0-9]+(?:\.[0-9]+)*"
+# SPEC §2：版號 token 之後必須是欄位分隔符。只排除數字與點不夠——`approves v1junk`
+# 會被截成 v1，R2 的連續性因此可以用「不是版號的字串」湊滿。`-` 也要排除
+# （`v2-draft`），代價是 `### v1- 2026-09-15` 這種沒有空白的分隔寫法不再成立。
+VERSION_END = r"(?![\w.-])"
+POSITIVE_INTEGER_VERSION_RE = re.compile(r"v[1-9][0-9]*")
+APPROVAL_HEADING_RE = re.compile(r"^#{2,}[ \t]*(?:\d+\.[ \t]*)?Approval\b[^\n]*$",
+                                 re.MULTILINE)
+# A quote with at least one non-space character. `global-agent-instructions`
+# uses ASCII quotes, the others use 「」; both are in git, so both parse.
+_QUOTE = r"(?:「[^」\n]*[^\s」][^」\n]*」|\"[^\"\n]*[^\s\"][^\"\n]*\")"
+APPROVAL_LIST_RE = re.compile(
+    rf"^[ \t]*-[ \t]*(\d{{4}}-\d{{2}}-\d{{2}})[ \t]*[—–-][ \t]*approves[ \t]+"
+    rf"({VERSION_TOKEN}){VERSION_END}[^\n]*?{_QUOTE}", re.MULTILINE)
+# `### v5 的兩項選擇 — <date>` does not match: the date must follow the version
+# token directly. That is what keeps a decision note out of the approval set.
+APPROVAL_SECTION_HEAD_RE = re.compile(
+    rf"^#{{3,}}[ \t]*({VERSION_TOKEN}){VERSION_END}[ \t]*[—–-][ \t]*"
+    rf"(\d{{4}}-\d{{2}}-\d{{2}})[ \t]*$", re.MULTILINE)
+
+
+def _without_noise(text: str) -> str:
+    """Fenced code and HTML comments are not records (SPEC §2). The template's
+    own placeholder is the reason the rule is written down: it is commented
+    out today and would parse to nothing either way, but a placeholder that
+    someone later fills with a real-looking date and version would approve
+    every freshly-created spec, and nothing else would catch it."""
+    # `\Z` is the unclosed-fence arm: CommonMark runs an unterminated fenced
+    # block to the end of the document, so a record after a stray opener is
+    # inside code too. Without it the strip is a no-op there and the record
+    # counts as an approval.
+    text = re.sub(r"^(```|~~~).*?(?:^\1|\Z)", "", text,
+                  flags=re.MULTILINE | re.DOTALL)
+    return re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+
+
+def _valid_date(s: str) -> bool:
+    r"""SPEC §2 wants a real calendar day, not the shape of one: `2026-13-45`
+    matches `\d{4}-\d{2}-\d{2}` and is not a date."""
+    try:
+        datetime.date.fromisoformat(s)
+    except ValueError:
+        return False
+    return True
+
+
+def approval_section(text: str, rel: str) -> str | None:
+    """The section runs to the next heading of the same level or higher, so
+    the `###` records inside a `## Approval` stay in."""
+    heads = list(APPROVAL_HEADING_RE.finditer(text))
+    if not heads:
+        return None
+    if len(heads) > 1:
+        die(2, f"{rel}: more than one Approval section — structure is ambiguous")
+    head = heads[0]
+    level = len(head.group(0)) - len(head.group(0).lstrip("#"))
+    nxt = re.compile(rf"^#{{1,{level}}}[ \t]", re.MULTILINE).search(text, head.end())
+    return text[head.end():nxt.start() if nxt else len(text)]
+
+
+def approved_versions(section: str) -> set[str]:
+    found = {m.group(2) for m in APPROVAL_LIST_RE.finditer(section)
+             if _valid_date(m.group(1))}
+    for m in APPROVAL_SECTION_HEAD_RE.finditer(section):
+        version, date = m.group(1), m.group(2)
+        if not _valid_date(date):
+            continue
+        nxt = re.compile(r"^#{2,}[ \t]", re.MULTILINE).search(section, m.end())
+        body = section[m.end():nxt.start() if nxt else len(section)]
+        if not re.search(r"\bapproval:\s*confirmed\b", body):
+            continue
+        if not re.search(rf"version bound:\s*{re.escape(version)}{VERSION_END}", body):
+            continue
+        if not re.search(rf"date:\s*{re.escape(date)}\b", body):
+            continue
+        if not (re.search(r"^[ \t]*>[ \t]*\S", body, re.MULTILINE)
+                or re.search(_QUOTE, body)):
+            continue
+        found.add(version)
+    return found
+
+
+def check_approval(text: str, rel: str, version: str) -> None:
+    """R1 completeness, then R2 continuity. R1 first: when both fire the
+    message names the version being archived, not an ancestor."""
+    section = approval_section(_without_noise(text), rel)
+    found = approved_versions(section) if section is not None else set()
+    if version not in found:
+        die(1, f"{rel}: no complete approval record for {version} in the "
+               f"Approval section — an approved spec ships with the words that "
+               f"approved THIS version")
+    if POSITIVE_INTEGER_VERSION_RE.fullmatch(version):
+        for i in range(1, int(version[1:])):
+            if f"v{i}" not in found:
+                die(1, f"{rel}: approval sequence incomplete — no record for "
+                       f"v{i}, but the spec is at {version}. An integer version "
+                       f"is spent only on a version the human approved")
 
 
 def read_status(spec: Path) -> tuple[str, str]:
@@ -230,6 +344,9 @@ def archive(root: Path, scope: str) -> None:
     t = TIER_RE.search(text)
     if t is None:
         die(2, f"cannot parse the `tier` line in {spec.relative_to(root)}")
+    # After tier, before the verdict: the fixtures that pin the evidence and
+    # tier messages die earlier and keep their own reasons.
+    check_approval(text, spec.relative_to(root).as_posix(), v.group(1))
     check_verdict(root, ev_path)
     check_squad(root, scope, spec.relative_to(root).as_posix(), ev_path, int(t.group(1)))
 
