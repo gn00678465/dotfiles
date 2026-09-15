@@ -106,6 +106,7 @@ def main() -> None:
     commit_skill = root / "dot_agents/skills/commit/SKILL.md"
     entry_point_ref = root / "dot_agents/skills/verification-gate/references/entry-point.md"
     docs = root / "docs/evidence-first.md"
+    squad_skill = root / "dot_agents/skills/evidence-squad/SKILL.md"
 
     # 1. Layer-status vocabulary: SKILL.md and the evidence template must
     #    carry the same five states — a status one side names and the other
@@ -340,6 +341,17 @@ def main() -> None:
         die(1, "gate-agent-instructions.py printed a passing headline "
                "despite an unreachable --base")
     CHECKS += 1
+
+    # 25. Two wordings told an agent to spend an integer version per finding,
+    #     and an agent followed them: a spec went v1 to v6 in three hours for
+    #     four approvals. What this check does is block their VERBATIM return
+    #     — nothing more. It does not prove the three documents agree, and a
+    #     rephrasing walks past it; that limit is on record in the scope's
+    #     evidence report rather than hidden behind the check's name.
+    forbid(squad_skill, "class 2 does not order a version bump",
+           "the version is bumped")
+    forbid(workflow, "revisions do not order a version bump",
+           "bump the version, set")
 
     print(f"OK: {CHECKS} invariants hold")
 

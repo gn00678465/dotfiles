@@ -1,13 +1,19 @@
 # SPEC — <task name> (Tier <1|2|3>)
 
-- `spec_version`: <!-- v0.1, v0.2, ... while the frontier is still open and
-  nobody has been asked to approve anything; v1 is the first version put to
-  the human, then v2, v3, ... — bump on every content change; a bump
-  invalidates prior approval -->
+- `spec_version`: <!-- an approval baseline, not an edit count. v0.1, v0.2,
+  ... while the frontier is still open and nobody has been asked to approve
+  anything; v1 is the first version put to the human. After that the next
+  integer is claimed once, when a revision to the approved contract opens,
+  and that pending version carries every later change until it is approved —
+  a rejection revises it in place rather than opening another. Claiming an
+  integer invalidates prior approval. At CLOSE `spec-archive` refuses a spec
+  whose current version has no approval record, and refuses an integer vN
+  whose Approval section is missing any of v1…vN -->
 - `status`: <!-- draft | approved | revised-pending-approval | shipped.
   Every transition has an owner: `approved` is written by hand in the
-  approval commit, a later revision sets `revised-pending-approval` until
-  re-approved, and `shipped` is terminal — set by the spec-archive skill's
+  approval commit, a revision that changes the approved contract opens the
+  next version and sets `revised-pending-approval` until re-approved, and
+  `shipped` is terminal — set by the spec-archive skill's
   script at CLOSE, never by hand -->
 - `tier`: <!-- 1 trivial / 2 normal / 3 high stakes (money, auth, data loss,
   concurrency, public API) — same definitions as the gate's Calibration; the
@@ -60,8 +66,14 @@ Append-only. One entry per approved version: the approving words verbatim,
 the date, and the `spec_version` they bind. An entry you cannot quote is an
 approval you do not have — an answer to a question is not one.
 
-- <date> — approves <spec_version> — "<verbatim approving words>"
-- <!-- or: `approval: not obtained (autonomous run)` -->
+<!-- One entry per approved version, in either shape this repo already uses:
+     - <date> — approves <spec_version> — "<verbatim approving words>"
+     or a `### <spec_version> — <date>` section carrying `approval: confirmed`,
+     `version bound`, `date` and the words as a blockquote. Delete this comment
+     and write the real entry; a placeholder is not a record, and CLOSE parses
+     for records. No human available: `approval: not obtained (autonomous
+     run)` — that is a declared downgrade, not an approval, and the spec stays
+     `draft`, so it does not archive. -->
 
 ## Revisions
 

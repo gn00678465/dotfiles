@@ -53,18 +53,25 @@ The spec contains:
 - **Approval** — append-only record of the structured act that approved each
   spec version: the approving words verbatim, the date, and the version they
   bind. Filled at SPEC REVIEW and committed with the spec.
-- **Versioning** — pre-approval drafts are `v0.1`, `v0.2`, ...; `v1` is the
-  first version put in front of the human. Exploration runs between the two,
-  so a spec committed while its frontier is still open burns a version the
-  human never saw: the first approval request then names `v2`, and the human
-  reasonably asks why v1 was skipped. Numbering drafts `v0.N` keeps every
-  integer version one the human was actually asked about. Whatever the
+- **Versioning** — `spec_version` names an approval baseline, not an edit
+  count. Pre-approval drafts are `v0.1`, `v0.2`, ...; `v1` is the first
+  version put in front of the human. After that, the next integer is claimed
+  once — when a revision to the approved contract opens — and that pending
+  version then carries every later change until it is approved. A rejected
+  request does not consume another integer. Numbering this way keeps every
+  integer version one the human was actually asked about; the edits in
+  between are recorded by git commits, not by version numbers. Whatever the
   number, a request for approval carries a one-line provenance — which
-  version it came from, and what changed since.
+  version it came from, and what changed since. At CLOSE `spec-archive`
+  refuses a spec whose current version has no approval record, and refuses an
+  integer `vN` whose Approval section is missing any of `v1`…`vN`.
 - **Revisions** — append-only log. If implementation reveals the spec was
   wrong, say so explicitly and revise it visibly here — never silently drift.
-  A revision invalidates prior approval: bump the version, set `status` back
-  to `revised-pending-approval`, and re-request. Batch the re-request: a
+  A revision invalidates prior approval: open the next pending version, set
+  `status` back to `revised-pending-approval`, and re-request. While that
+  version is pending, fold every further change and every review round into
+  it — a rejection revises it in place, it does not open another. Batch the
+  re-request: a
   defect found mid-implementation rarely travels alone, so sweep every spec
   still unimplemented for the same class of defect, fix them together, and
   ask once for all of it. Two revisions in a row that trace to your own
@@ -106,13 +113,14 @@ once, each question with a recommended answer; fold the answers into the
 spec and record each round's settled decisions under Revisions. Facts are
 your job, never the human's: look up (or dispatch a subagent for) anything
 the environment can answer, and put only decisions to the human. Exploration
-ends when the frontier is empty — nothing left silently assumed. Bump the
-spec version once at the end, not per round.
+ends when the frontier is empty — nothing left silently assumed. Rounds land
+in Revisions; the draft keeps its number throughout.
 
 ### Squad — fresh contexts on the draft (Tier 2+)
 
 Before the durability preflight, dispatch the `evidence-squad` skill's
-**after-spec** cut on the v0.x draft: 3–4 read-only lenses (scope against
+**after-spec** cut on the draft — a `v0.x` before the first approval, the
+pending integer for a revision: 3–4 read-only lenses (scope against
 the request, each rule's input space, repo reality, test mapping), the four
 inputs and never this conversation. Fold class-1 and class-2 findings into
 the draft; what stays open becomes a decision with a recommendation in the
@@ -163,8 +171,8 @@ does:
   human-approved spec makes later drift a literal `git diff`, makes the
   gate's `intent_status: confirmed` mechanically readable from git, and
   survives compaction, which the conversation does not.
-- **If the spec is rejected**, revise the file in place, record the reason
-  under Revisions, and re-request approval. Do not start a clean file — what
+- **If the spec is rejected**, revise the file in place under the same
+  pending version, record the reason under Revisions, and re-request. Do not start a clean file — what
   the human turned down, and why, is the most useful thing in it.
 - **Autonomous mode** (no human available): state the spec in your response
   and proceed, but the correlation-breaking review never happened — record
