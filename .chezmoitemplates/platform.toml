@@ -25,7 +25,8 @@
        這個 repo 的渲染主機不是 Arch，Arch 的證據只能靠它取得。
        distroLike 是 ID_LIKE：正式安裝的 omarchy 把 /etc/os-release 換成 ID=omarchy、
        ID_LIKE=arch（實測 4.0.2），只看 ID 會把它當成 Debian。純 Arch 沒有 ID_LIKE 這一行，
-       所以這個 key 也要 hasKey。distroLikeOverride 是第四個接縫，只給 os-omarchy fixture。 */ -}}
+       所以這個 key 也要 hasKey。distroLikeOverride 是第四個接縫，每一份 Linux fixture
+       都要釘住它，否則主機的 ID_LIKE 會決定那份 fixture 的發行版。 */ -}}
 {{- $distro := "" -}}
 {{- $distroLike := "" -}}
 {{- if and (eq $os "linux") (hasKey .chezmoi "osRelease") -}}

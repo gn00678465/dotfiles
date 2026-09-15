@@ -4,5 +4,7 @@
 [data]
     osOverride = "linux"
     distroOverride = "debian"
+    # 同 os-linux.toml：不釘這個 key，主機的 ID_LIKE 會外洩進來。
+    distroLikeOverride = ""
     archOverride = "arm64"
     isWSL = false

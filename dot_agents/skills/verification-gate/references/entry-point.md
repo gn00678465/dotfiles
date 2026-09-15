@@ -5,12 +5,22 @@ broken one (e.g. `tools/gate.sh`: tests → types → lint → suite health →
 coverage → mutation → real execution). That order is not cosmetic: suite health
 comes before coverage and mutation because both derive their numbers from suite
 behaviour, so running them first yields a number that looks like evidence and
-is not (SKILL.md, "Layer dependencies"). Start the script by deleting stale artifacts from previous
+is not (SKILL.md, "Layer dependencies"). Delete stale artifacts from previous
 runs (old coverage data, report files) so no layer can accidentally read a
 prior run's output — freshness by mechanism, not discipline. (Keep tool
-databases that accumulate value, e.g. hypothesis's example store.) The "final
-fresh run" IS this command; EVIDENCE cites it, and the human can rerun the
-whole report with it. Pin dev-tool versions (requirements-dev.txt,
+databases that accumulate value, e.g. hypothesis's example store.)
+**Delete after resolving inputs, not before.** Resolve the base ref, the scope
+and the required tools first, and refuse a misconfigured run (rc 2) while the
+previous run's artifacts are still intact. An entry point that wipes as its
+first act destroys the evidence of the last good run every time someone
+mistypes a ref — and the run it destroys them for never produces replacements,
+because it refuses before any layer executes. The rule covers only what is
+decidable *before* execution: resolve and validate those inputs, then wipe. A
+layer can still exit 2 mid-run, and that rc buys no such guarantee — by then
+the wipe has correctly already happened.
+
+The "final fresh run" IS this command; EVIDENCE cites it, and the human can
+rerun the whole report with it. Pin dev-tool versions (requirements-dev.txt,
 package.json devDependencies with exact versions, etc.) so the rerun uses the
 same gate.
 
@@ -44,6 +54,21 @@ work: the mutation call had been removed while its heading stayed, so the entry
 point ran zero mutants, exited 0, and printed "all layers green". A manifest
 audit is the fix — completion is recorded per layer only after its command
 succeeds, and success is refused unless every expected layer is present.
+
+**What the audit proves, and what it does not.** It proves every expected layer
+*executed to a zero exit*. It does not prove every layer *measured anything*: a
+layer whose tool is unreachable may legitimately print its own skip notice and
+exit 0, and the audit then records it like any other. Both facts are true and
+they are not the same fact. Keep them separate in EVIDENCE — a layer that
+measured nothing is `UNAVAILABLE`; `SUBSTITUTED` is for a layer where something
+else actually ran, and a skip notice is not a substitute. Neither is a pass, and
+a green manifest audit is not an argument against either status. A gate that
+collapses the two reports complete coverage it never had.
+
+Note also what the audit is *not*: it compares records, so it can only show that
+each expected layer reached its success path **given that `run_layer` writes the
+record after the command succeeds, and only then.** The audit certifies the
+bookkeeping; `run_layer` is what makes the bookkeeping mean execution.
 
 ## Reference pattern — fail-closed layer accounting
 
@@ -103,7 +128,7 @@ finish_gate() {
   if [ "$missing" -ne 0 ]; then
     return 1
   fi
-  echo "=== gate: all layers green ==="
+  echo "=== gate: every expected layer ran to completion ==="
 }
 ```
 
@@ -111,6 +136,25 @@ Properties that matter: an unknown layer name is rc 2 (a typo cannot silently
 drop a layer), a duplicate is rc 2, a layer is recorded only after its command
 succeeds, a failure preserves the original return code and names the layer, and
 `finish_gate` refuses to print success while any expected layer is missing.
+
+**A layer implemented as a shell function must return failure explicitly.**
+`if "$@"` is a conditional context, so `set -e` is disabled for the whole
+function body: an internal command can fail, the function keeps going, and its
+exit status becomes that of its last command. The layer is then recorded as
+completed and the gate prints success. Observed with this exact pattern —
+`probe() { false; echo continued; }` run as a layer returns 0 and lands in the
+completed list. Every function layer must check each command it depends on and
+`return` non-zero itself; `set -e` will not do it, and no manifest audit can
+detect it, because the bookkeeping is accurate about a command that reported
+success. Give this its own negative control: a layer function with a deliberately
+failing internal command must fail the gate.
+
+Guard the audit's own inputs too. A records file is line-oriented, so `read`
+drops a final line that carries no newline, and a count of lines is not a count
+of *distinct* layers. Write the manifest and the record with an explicit
+trailing newline, reject a duplicate entry, and compare distinct names — an
+auditor that silently skips the last expected layer fails open at exactly the
+job it exists to do.
 
 `GATE_EXPECTED_LAYERS` above is one project's manifest, not a required set —
 yours lists the layers *you* run, and `must-not-scans` is only in it because

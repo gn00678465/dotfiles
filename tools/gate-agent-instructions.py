@@ -10,8 +10,10 @@ sidecar over parameterizing shared history.
 
 Reused as-is, because they are already scope-generic (take `<scope>` or
 `--base` as a parameter): `tools/gate-intent.sh`, `tools/gate-source-state.sh`,
-`tools/gate-manifest-audit.sh`, `tests/check_agent_doc_invariants.py`. Two
-layers are this change's own tests: `tests/agent_instructions_test.py` (S1
+`tools/gate-manifest-audit.sh`, `tests/check_agent_doc_invariants.py`, and
+`tests/harness_test.py` (the regression tests for the harness itself: the
+manifest audit, the destructive-step ordering, the runner's skip accounting,
+and the fixture seam). Two layers are this change's own tests: `tests/agent_instructions_test.py` (S1
 render/word-budget checks) and `tests/spec_archive_test.py` (extended with
 real-template fixtures, S4). `tools/gate-properties.py` and
 `tools/gate-mutants.py` are windows-support's modify-template differential
@@ -49,6 +51,7 @@ MANIFEST = (
     "source-state-before",
     "intent",
     "agent-doc-invariants",
+    "harness-selftest",
     "agent-instructions-render",
     "spec-archive-tests",
     "source-state-after",
@@ -135,6 +138,8 @@ def main() -> None:
                art / "intent.txt")
     run_layer("agent-doc-invariants", [py, "tests/check_agent_doc_invariants.py"],
                art / "agent-doc-invariants.txt")
+    run_layer("harness-selftest", [py, "tests/harness_test.py"],
+               art / "harness-selftest.txt")
     run_layer("agent-instructions-render", [py, "tests/agent_instructions_test.py"],
                art / "agent-instructions-render.txt")
     run_layer("spec-archive-tests", [py, "tests/spec_archive_test.py"],

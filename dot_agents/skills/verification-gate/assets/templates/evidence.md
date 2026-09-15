@@ -155,6 +155,10 @@ Split by status, because they mean different things to a reader:
 
 - **N-A (this project has no such surface):** <layer — why it does not exist here>
 - **UNAVAILABLE (tool missing):** <layer — which tool, nothing run in its place>
+- **UNAVAILABLE (cannot run in this environment):** <layer — the binding that
+  makes it unreachable here (a tool that only exists on another OS, a host
+  capability), how many of its assertions were skips, and which claims rest on
+  a run that could not have failed. Never absorbed into a green total>
 - **SUBSTITUTED:** <layer — what ran instead, and what that cannot detect>
 - **NOT REACHED (gate stopped at an earlier failing layer):** <layers — and
   which layer stopped the run>
