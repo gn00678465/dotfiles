@@ -276,7 +276,6 @@ stderr 片段外，另斷言 **HEAD 未變、SPEC 內容未變、來源目錄仍
     `dot_agents/skills/evidence-squad/`。
   - `docs/evidence-first.md` — 「核准 SPEC」條目、Phase 1 表格列、機械檢查與自律的
     對照表、合約版本段，四處敘述同步。
-- **不改**：`AGENTS.md`（既有觸發條件已涵蓋 `dot_agents/workflows/` 的修改）。
 
 ## Approval
 
@@ -289,7 +288,7 @@ Append-only。每一版一筆：核准原話逐字、日期、綁定的 `spec_ve
 
 - 2026-09-15 — v0.1 草稿。依兩份 skill-doctor 報告與 8 輪 codex 獨立審查撰寫。
 - 2026-09-15 — v0.2：折入 after-spec squad cut 的發現（`.scratch/spec-version-bump/squad/after-spec.md`，
-  commit `98e6f8c`；6 class 1、26 class 2、5 class 3）與第 9 輪 codex 第二意見。
+  commit `98e6f8c`；42 條發現，6 class 1、31 class 2、5 class 3）與第 9 輪 codex 第二意見。
   主要變更：新增 §0（買到什麼／沒買到什麼）與 §2（解析規則，原草稿只寫判定未寫解析）；
   §1 拆成報告觀察／既有漏洞／為回應約束新增的設計三段；R1/R2 明寫判定順序與插入點；
   S6 標為 GREEN-guard 並改用真實的帶數字標題與非遞增順序；新增 S9 兩側案例取代原本
@@ -306,8 +305,10 @@ Append-only。每一版一筆：核准原話逐字、日期、綁定的 `spec_ve
 - 2026-09-15 — v1：內容與 v0.2 相同，依舊版號規則（合約 v0.8）在送到人面前的當下
   取整數版號。provenance：來自 v0.2，自 v0.2 起無內容變更。
 - 2026-09-15 — v2 待審：折入 after-implement squad cut 的 class 2
-  （`.scratch/spec-version-bump/squad/after-implement.md`，commit `d86b3dd`；
-  四個透鏡，class 1 十三條、class 2 十條、class 3 五條）。class 1 已全部在
+  （`.scratch/spec-version-bump/squad/after-implement.md`，commit `9205bd3`；
+  28 條發現，四個透鏡，class 1 十三條、class 2 十條、class 3 五條）。該紀錄在
+  `d86b3dd` 首次提交時被 `CLASS_RE` 誤讀成 12/11/5，`9205bd3` 改掉那條發現的措辭
+  後才是 13/10/5，所以引用的是後者。class 1 已全部在
   `085726d`／`58ab021`／`4f4e201`／`63c0208` 修掉，不需要新核准；本版承載的是
   十條 class 2。provenance：來自 v1，v1 的核准內容沒有被推翻，是被補正與擴充。
 
@@ -336,8 +337,30 @@ Append-only。每一版一筆：核准原話逐字、日期、綁定的 `spec_ve
 
   **審完仍不做的三件**（記入 evidence report 的 Honest notes，不進本版）：
   `tools/gate-intent.sh` 的 awk 不加 fixture（§1.4 已否決跨解析器一致性 fixture，
-  且該腳本失效方向是 `unconfirmed` 仍 exit 0 的誠實降級）；不改 `tests/fixtures/
-  os-linux*.toml` 的 `distroLikeOverride` 缺口與 `.chezmoiignore` 的
-  `CLAUDE.local.md` 缺口（都是 class 3，base ref 逐條相同）；不為了讓 mutation
+  且該腳本失效方向是 `unconfirmed` 仍 exit 0 的誠實降級）。**後一句在 before-archive
+  cut 被實測推翻：`LC_ALL=C` 下 `approves v1版` 使 awk 印出 `v1`、Python 得 `[]`，
+  經 `gate-intent.sh` 會成為 `recorded=yes` → `intent=confirmed`，是 fail-open。
+  決定不變，因為 §1.4 那一條腿獨立成立；作廢的是這句理由。見 Revisions 最後一筆。**
+  不改 `tests/fixtures/os-linux*.toml` 的 `distroLikeOverride` 缺口與
+  `.chezmoiignore` 的 `CLAUDE.local.md` 缺口（都是 class 3，base ref 逐條相同）；不為了讓 mutation
   層轉綠而改 `tools/gate-mutants.py`（存活的六個 mutant 全針對本機沒有的
   `pwsh.exe`，base ref 同樣 38/44）。
+
+- 2026-09-15 — v2 的文字更正（**不升版**：沒有任何規則、scenario 或 Must NOT 改變，
+  三處都是把內文對回實測值或對回本版已核准的授權）。before-archive squad cut 四個
+  透鏡的發現：
+  1. 刪掉「**不改**：`AGENTS.md`」一句。該句是 v1 留下的，與同一節 v2 新增的授權
+     直接矛盾，而該檔實際被改（`git diff 9a2e879..HEAD --stat -- AGENTS.md` →
+     2 insertions, 2 deletions）。授權以 v2 的「本版新授權什麼」第 1 項為準。
+  2. after-spec 的 class 計數 6/26/5 → 6/31/5（42 條）。以 `spec-archive.py` 的
+     `CLASS_RE` 逐行量測 `98e6f8c` 與 HEAD，兩者相同，所以原數字在寫下當時就錯。
+  3. after-implement 的引用 commit `d86b3dd` → `9205bd3`，並寫出改動的原因。
+  4. 「審完仍不做的三件」第一件的第二條理由就地標註為已被推翻，決定不變。
+
+  **本輪發現但不自行補進本 SPEC 的兩項**（記入 evidence report 的 Honest notes，
+  交給核准者定價，因為補進授權清單需要升版與再核准）：
+  - `.gitignore` 進了變更集（`2bd80e6`，一行 `CLAUDE.local.md`），但不在授權檔案
+     清單的 12 個之內。
+  - 「本版新授權什麼」第 3 項寫「補一條 `require`」，實作補了兩條
+     （`require(archiver_skill, …)` 與 `require(archiver, …)`）。SPEC 同一句給的理由
+     是「維持成對釘法」，而成對就是兩條；計數與理由本身不一致。實作跟了理由。

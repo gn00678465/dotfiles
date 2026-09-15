@@ -128,7 +128,12 @@ def _without_noise(text: str) -> str:
     out today and would parse to nothing either way, but a placeholder that
     someone later fills with a real-looking date and version would approve
     every freshly-created spec, and nothing else would catch it."""
-    text = re.sub(r"^(```|~~~).*?^\1", "", text, flags=re.MULTILINE | re.DOTALL)
+    # `\Z` is the unclosed-fence arm: CommonMark runs an unterminated fenced
+    # block to the end of the document, so a record after a stray opener is
+    # inside code too. Without it the strip is a no-op there and the record
+    # counts as an approval.
+    text = re.sub(r"^(```|~~~).*?(?:^\1|\Z)", "", text,
+                  flags=re.MULTILINE | re.DOTALL)
     return re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
 
 

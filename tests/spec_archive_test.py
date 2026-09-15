@@ -139,15 +139,18 @@ def template_approval() -> str:
 TEMPLATE_APPROVAL = template_approval()
 
 
-# Six §2 rules with nothing else pinning them: fenced code (both fence
-# characters) and HTML comments are not records, `decision: confirmed` is not
-# `approval: confirmed`, `version bound` must equal the heading version, a date
-# must be a real calendar day, and a version token must end at a separator.
-# They ride S4's existing refusal instead of six fixtures of their own — each
-# one alone would archive `s4` if the rule it names stopped working.
-# The two list-form decoys sit last on purpose: a `###` record's body runs to
-# the next heading, so a quoted line placed above would hand its words to the
-# record that S4 needs to stay quote-less.
+# Seven §2 rules with nothing else pinning them: fenced code (both fence
+# characters, closed or left open) and HTML comments are not records,
+# `decision: confirmed` is not `approval: confirmed`, `version bound` must
+# equal the heading version, a date must be a real calendar day, and a version
+# token must end at a separator. They ride S4's existing refusal instead of
+# seven fixtures of their own — each one alone would archive `s4` if the rule
+# it names stopped working.
+# Order is load-bearing twice. The two list-form decoys sit below the `###`
+# records because a record's body runs to the next heading, so a quoted line
+# placed above would hand its words to the record that S4 needs to stay
+# quote-less. The unclosed fence sits dead last because it runs to the end of
+# the document and would swallow every decoy after it.
 S4_DECOYS = """
 ```
 ### v3 — 2026-09-15
@@ -188,6 +191,9 @@ S4_DECOYS = """
 
 - 2026-13-45 — approves v3 — 「核准 SPEC v3」
 - 2026-09-15 — approves v3junk — 「核准 SPEC v3」
+
+```
+- 2026-09-15 — approves v3 — 「核准 SPEC v3」
 """
 
 
