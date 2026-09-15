@@ -255,9 +255,15 @@ mutation 轉綠只能換一台有 WSL interop 的主機。這兩項都在 SPEC �
   token 收成 `VERSION_END`，但沒收這一個；base ref 的同一個常數逐字相同。class 3。
 - **H14**：`tools/gate.sh:218` 的 manifest 稽核不經 `run_layer`，所以它自己不會進
   `layers-ran`，也就無法稽核自己。class 3。
-- **H15**：Gate 表的數字出自入口的一次執行，產出落在暫存 worktree 的 `.gate/` 內
-  （`.gate/` 被 git 忽略，不進版控）。來源根目錄另有一份更早、中斷過的 `.gate/`
-  殘留；讀本報告時請以入口記的 commit 為準，不要拿根目錄那份對照。
+- **H15（憑據保存）**：Gate 表的數字出自入口的一次執行，產出落在暫存 detached
+  worktree 的 `.gate/` 內。那個 worktree 在跑完後被移除，**`.gate/` 產出目錄因此
+  不復存在**（`.gate/` 本來就被 git 忽略，不進版控）。存下來的只有該次執行的完整
+  stdout；它落在本次作業的暫存目錄，同樣不是長期憑據。所以這份 Gate 表現在**無法
+  從磁碟佐證，只能重跑**。
+  緩和事實：before-archive cut 的 evidence-vs-git 透鏡在 `248c501` 的乾淨 detached
+  worktree、同形 `bwrap` ＋ `ID=debian` 環境下獨立重跑，除 mutation 外逐項相符
+  （`commit=248c501 worktree=clean`、intent 逐字、94、86、739/0/16、329）。
+  這是重現，不是同一次。
 - **H16**：`spec-archive.py` 不讀本報告的 `headline`。它檢查報告存在、已提交、
   `spec_version` 與 SPEC 相同，但 gate 是綠是紅它一概不看，所以「A failing gate
   blocks done」在 CLOSE 這一端原本只是散文。本輪因此寫了

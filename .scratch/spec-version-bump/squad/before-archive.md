@@ -5,8 +5,9 @@
 - `source_state`: `05ca70a`（四個透鏡都讀這一個 commit）
 - `lenses`: evidence-vs-git ／ mapping-honesty ／ verdict-state ／ ledger-completeness
 - `inputs`: 任務契約、SPEC v2、`05ca70a`、各自的 lens brief。四個都沒有拿到協調者的對話。三個透鏡另外重跑了量測：一個以同形入口重跑整輪 gate，兩個重建 base 的 RED。
-- `counts`: class 1/2/3 = 11 / 10 / 3
-- `verdict`: 擋住封存
+- `counts`: class 1/2/3 = 11 / 11 / 3
+- `verdict`: 擋住封存（第二輪：evidence-vs-git 透鏡在 `bda2fe1` 之後複驗，
+  自行解除它的兩條 class 1，並新增一條 class 2。其他三個透鏡沒有複驗。）
 
 ## 裁決
 
@@ -60,6 +61,8 @@
 - [LOW] `.scratch/spec-version-bump/evidence.md:8` — `change_set` 記到 `4110034`，HEAD 是 `05ca70a`，差別只有報告自己 192 行 — `git diff 9a2e879..HEAD --name-only | wc -l` → 17，比報告的指令多一個檔 — class 2 — 維持 `4110034`（gate 那一次的樹），在 `changed_unit_command` 旁註明報告自己不在該範圍內
 
 - [LOW] `tests/check_agent_doc_invariants.py` — SPEC v2「本版新授權什麼」第 3 項寫「補一條 `require`」，實作補了兩條 — `git diff 9a2e879..HEAD -- tests/check_agent_doc_invariants.py` 新增 4 個呼叫、移除 0 個（2 `forbid` ＋ 2 `require`），90 → 94；SPEC 同一句的理由是「維持成對釘法」，成對就是兩條 — class 2 — 記進 evidence 的 H12，不改 SPEC 的核准文字；與 `.gitignore` 併入同一次人類決定
+
+- [LOW] `.scratch/spec-version-bump/evidence.md:96` — Gate 表宣稱「`248c501` 的一次完整執行」，但那次執行的 `.gate/` 產出隨暫存 worktree 一併被移除，磁碟上無法佐證 — evidence-vs-git 透鏡在第二輪回報；我核對後確認 `.gate/` 目錄確實不存在，但該次執行的完整 stdout 仍在（記錄 `head: 248c501…`、`gate-mutants: 38/44`、六個存活 mutant 逐字相同），mtime 12:33 落在 `248c501`（12:28:45）與 `5eefcb0`（12:35:51）之間 — class 2 — 改寫 H15，寫明產出已不存在、只能重跑，並記下該透鏡除 mutation 外的獨立重現 — status: fixed（本輪改寫 evidence report）
 
 ## Class 3 —— 不在本次範圍，記進 Honest notes
 
