@@ -246,6 +246,10 @@ def main() -> None:
         git(repo, "init", "-q", "-b", "main")
         git(repo, "config", "user.email", "test@test")
         git(repo, "config", "user.name", "test")
+        # The host's `core.autocrlf` must not decide what these fixtures hold:
+        # with `input` (what this repo's own managed gitconfig sets) git
+        # normalises a CRLF fixture away before it is ever committed.
+        git(repo, "config", "core.autocrlf", "false")
 
         spec = repo / "specs/foo/SPEC.md"
         spec.parent.mkdir(parents=True)
@@ -588,6 +592,26 @@ def main() -> None:
         make_spec(repo, "s9a", "v0.2", approvals("v0.2"))
         expect("S9a a dotted version with its own record archives",
                repo, ["s9a"], 0, stdout_has="archived")
+
+        # S11: the only rc-2 path this change adds. Without it, deleting the
+        # ambiguity check turns nothing red.
+        make_spec(repo, "s11", "v1", approvals("v1") + "\n## Approval\n\n(second)\n")
+        expect_refused("S11 two Approval sections cannot be evaluated",
+                       repo, ["s11"], 2,
+                       stderr_has="more than one Approval section")
+
+        # CRLF: this script is installed by chezmoi and runs in other repos,
+        # and this repo family targets native Windows. A CRLF spec dropped
+        # every sectioned record while list records still parsed, so the
+        # failure was silent in one shape and not the other.
+        make_spec(repo, "s12", "v1", sectioned("v1"))
+        crlf = repo / "specs/s12/SPEC.md"
+        crlf.write_bytes(crlf.read_text(encoding="utf-8").replace("\n", "\r\n")
+                         .encode("utf-8"))
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "s12 crlf")
+        expect("a CRLF spec's sectioned record still parses",
+               repo, ["s12"], 0, stdout_has="archived")
 
         # GREEN-guard, not a RED: green at the base ref because the base
         # archiver does not parse the section at all. It pins the four §2
