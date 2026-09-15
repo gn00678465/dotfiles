@@ -46,16 +46,92 @@ if [ -z "$version" ] || [ -z "$status" ]; then
     exit 1
 fi
 
-# Approval 一節：從標題含 Approval 的 `## ` 開始，到下一個 `## ` 為止。
-# 每一版一筆，形式是 `### vN — <date>`（本 repo）或 `approves vN`（範本）。
-# 這裡的樣式維持整數，不跟著 spec_version 放寬：核准記錄依契約只會是 v1 起的
-# 整數（v0.N 是草稿，不送核准）。放寬反而有害——下面的 sort -t v -k2,2n -u 會把
-# v0.1 與 v0.10 當成同一個數值鍵去重。代價是帶小數的版號在這裡會被截斷而不是
-# 被拒絕（`### v1.2` 讀成 v1），與 version 比不上就 fail closed。
-approval=$(awk '/^## /{inblk = ($0 ~ /Approval/)} inblk' "$spec")
-approved=$(printf '%s\n' "$approval" \
-    | grep -oE '^### v[0-9]+|approves v[0-9]+' \
-    | grep -oE 'v[0-9]+' | sort -t v -k2,2n -u | tr '\n' ' ' | sed 's/ $//')
+# Approval 一節：標題含 Approval 的 `##` 起，到下一個同級或更高階標題為止。紀錄的兩種
+# 形式由 SPEC spec-version-bump §2 定義，兩種都在 git 裡：範本的清單式
+# `- <date> — approves vN — 「原話」`，與 windows-support 的分節式 `### vN — <date>`
+# 加上 approval/version bound/date/引文。這裡只把結構完整的紀錄列入集合。
+#
+# 舊版只 grep `^### v[0-9]+|approves v[0-9]+`，兩種假陽性都在 git 裡踩得到：
+# `global-agent-instructions` 的散文寫著 approves <spec_version>，而
+# `windows-support` 有 `### v5 的兩項選擇 — <date>` 這種決策小節；兩者都會被算成核准，
+# 讓標頭印出 confirmed。版號也整段比對，不再截斷（`### v1.2` 不再讀成 v1）。
+# 去重在 awk 裡做，排序把版號依 `.` 拆成數值鍵：舊的 `sort -t v -k2,2n -u` 只取 v 後面
+# 一個數值鍵，會把 v0.1 與 v0.10 當成同一版去掉一筆。
+#
+# 這裡不判斷連續性（v1..vN 是否都有紀錄）：那是 CLOSE 的問題。gate 的 confirmed 只
+# 回答「目前這個版號有沒有核准紀錄」，而且 unconfirmed 仍然 exit 0。
+approved=$(awk '
+function lvl(s,   n) { n = 0; while (substr(s, n + 1, 1) == "#") n++; return n }
+function quoted(s,   a, t, b, inner) {
+    a = index(s, "「")
+    if (a > 0) {
+        t = substr(s, a + length("「")); b = index(t, "」")
+        if (b > 0) { inner = substr(t, 1, b - 1); if (inner ~ /[^ \t]/) return 1 }
+    }
+    a = index(s, "\"")
+    if (a > 0) {
+        t = substr(s, a + 1); b = index(t, "\"")
+        if (b > 0) { inner = substr(t, 1, b - 1); if (inner ~ /[^ \t]/) return 1 }
+    }
+    return 0
+}
+function emit(v) { if (!(v in seen)) { seen[v] = 1; print v } }
+function close_record() {
+    if (rec && f_appr && f_bound && f_date && f_quote) emit(rec_ver)
+    rec = 0; f_appr = 0; f_bound = 0; f_date = 0; f_quote = 0
+}
+{
+    # 範本把核准佔位行包在 HTML 註解裡，那不是紀錄；圍欄程式碼同理。
+    if (incomment) {
+        p = index($0, "-->"); if (p == 0) next
+        $0 = substr($0, p + 3); incomment = 0
+    }
+    while ((p = index($0, "<!--")) > 0) {
+        q = index(substr($0, p), "-->")
+        if (q == 0) { $0 = substr($0, 1, p - 1); incomment = 1; break }
+        $0 = substr($0, 1, p - 1) substr($0, p + q + 2)
+    }
+}
+/^[ \t]*```/ { fence = !fence; next }
+fence { next }
+/^#+([ \t]|$)/ {
+    l = lvl($0)
+    if (inblk && l <= headlvl) { close_record(); inblk = 0 }
+    if (!inblk) {
+        if (l >= 2 && $0 ~ /^#+[ \t]*([0-9]+\.[ \t]*)?Approval([^A-Za-z0-9_]|$)/) {
+            inblk = 1; headlvl = l
+        }
+        next
+    }
+    close_record()
+    h = $0; sub(/^#+[ \t]*/, "", h)
+    if (l >= 3 && h ~ /^v[0-9]+(\.[0-9]+)*[ \t]*(—|–|-)[ \t]*[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][ \t]*$/) {
+        match(h, /^v[0-9]+(\.[0-9]+)*/); rec_ver = substr(h, 1, RLENGTH)
+        match(h, /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/); rec_date = substr(h, RSTART, RLENGTH)
+        rec = 1
+    }
+    next
+}
+!inblk { next }
+{
+    if (match($0, /^[ \t]*-[ \t]*[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][ \t]*(—|–|-)[ \t]*approves[ \t]+v[0-9]+(\.[0-9]+)*/)) {
+        tok = substr($0, RSTART, RLENGTH); tail = substr($0, RSTART + RLENGTH)
+        sub(/^.*approves[ \t]+/, "", tok)
+        if (substr(tail, 1, 1) !~ /[0-9.]/ && quoted(tail)) emit(tok)
+    }
+    if (!rec) next
+    if ($0 ~ /approval:[ \t]*confirmed([^A-Za-z0-9_]|$)/) f_appr = 1
+    if (match($0, /version bound:[ \t]*v[0-9]+(\.[0-9]+)*/)) {
+        tok = substr($0, RSTART, RLENGTH); nxt = substr($0, RSTART + RLENGTH, 1)
+        sub(/^version bound:[ \t]*/, "", tok)
+        if (tok == rec_ver && nxt !~ /[0-9.]/) f_bound = 1
+    }
+    if ($0 ~ ("date:[ \t]*" rec_date "([^0-9]|$)")) f_date = 1
+    if ($0 ~ /^[ \t]*>[ \t]*[^ \t]/ || quoted($0)) f_quote = 1
+}
+END { close_record() }
+' "$spec" | sed 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n | sed 's/^/v/' \
+    | tr '\n' ' ' | sed 's/ $//')
 
 case " $approved " in
     *" $version "*) recorded=yes ;;
