@@ -31,11 +31,13 @@ Evidence-first 是一份合約。它要求 repo 在變更完成時帶著五個�
 
 ## 3. 人介入的兩個點
 
-1. **核准 SPEC**。核准前的草稿編 `v0.1`、`v0.2`，不送核准；`v1` 起每一版都
-   要核准。agent 把核准的原話、日期、版本逐字寫進 SPEC 的 Approval 一節，
-   與 SPEC 一起提交。回答問題不算核准。SPEC 改過就回到
-   `revised-pending-approval`，要重新核准才能繼續實作。修訂要合併送審，
-   不要每發現一個缺陷就中斷一次。
+1. **核准 SPEC**。版號代表核准基準，不是編輯次數。核准前的草稿編 `v0.1`、
+   `v0.2`，不送核准；`v1` 是第一份送到人面前的版本。之後只有在要改動已核准
+   的契約時才取下一個整數，而且只取一次——那個待審版號會一路承載後續的修改
+   直到被核准，被退回也是原地改，不再開新版。agent 把核准的原話、日期、版本
+   逐字寫進 SPEC 的 Approval 一節，與 SPEC 一起提交。回答問題不算核准。
+   SPEC 改過就回到 `revised-pending-approval`，要重新核准才能繼續實作；
+   修訂要合併送審，不要每發現一個缺陷就中斷一次。
 2. **合併 PR**。合併前，SPEC 已經封存為 `shipped`。
 
 其餘步驟由 agent 執行，由腳本擋。`evidence-squad` 的三個 cut 不增加停下的點：
@@ -45,12 +47,12 @@ Evidence-first 是一份合約。它要求 repo 在變更完成時帶著五個�
 
 | Phase | 做什麼 | 產物 | 機械檢查 |
 |---|---|---|---|
-| 1 SPEC | 把需求寫成可執行的驗收條件：tier、scenarios、Must NOT、setup plan。核准前的草稿編 `v0.N` | `specs/<scope>/SPEC.md` | 路徑固定。`spec-archive` 只認這個路徑 |
+| 1 SPEC | 把需求寫成可執行的驗收條件：tier、scenarios、Must NOT、setup plan。核准前的草稿編 `v0.N`，待審的修訂沿用同一個整數版號 | `specs/<scope>/SPEC.md` | 路徑固定。`spec-archive` 只認這個路徑 |
 | 2 SPEC REVIEW | Tier 2 以上先派 `evidence-squad` 的 after-spec cut 讀草稿，再跑 durability preflight 三項自檢，再給人看 SPEC，取得核准，逐字記錄，`status` 改為 `approved`，提交 | SPEC 的 Approval 一節 | `spec-archive` 拒絕非 `approved` 的 SPEC。**preflight 沒有機械檢查**，是送審前的自檢清單 |
 | 3 IMPLEMENT | 每個行為：RED → GREEN → REFACTOR。測試先提交 | 測試與實作的 commit | gate 從 git 重建 RED 與 commit 順序 |
 | 4 VERIFY | 呼叫 `verification-gate` skill。`gate` 反覆修到全過，派 `evidence-squad` 的 after-implement cut 讀已通過 gate 的狀態，依 class 處置後再 `gate`，`evidence` 只跑一次，在最後一次修改之後 | `.scratch/<scope>/evidence.md`（workflow Phase 4 規定，CLOSE 前提交） | gate 任一層失敗即擋住 done。intent 標頭由 gate 從 SPEC 導出 |
 | 5 INDEPENDENT VERIFICATION | Tier 3 選項。派 `verifier` agent，只給四項輸入，不給對話 | findings 與處置，`.scratch/<scope>/verification.md` | `spec-archive` 拒絕 `final_verdict` 為 failed 或 blocked |
-| 6 CLOSE | 先派 `evidence-squad` 的 before-archive cut，class-1 或未修正的 description finding 擋住封存。再呼叫 `spec-archive` skill。`status` 改為 `shipped`，搬到 `specs/archive/<scope>/`，提交。這是分支最後一個 commit，在合併之前 | `specs/archive/<scope>/SPEC.md` | 工作樹不乾淨、SPEC 未核准、evidence 缺少或版本不符、判定 failed 或 blocked、Tier 2 以上 squad 紀錄缺少、未分類、class 1 未關閉或順序錯誤，一律拒絕 |
+| 6 CLOSE | 先派 `evidence-squad` 的 before-archive cut，class-1 或未修正的 description finding 擋住封存。再呼叫 `spec-archive` skill。`status` 改為 `shipped`，搬到 `specs/archive/<scope>/`，提交。這是分支最後一個 commit，在合併之前 | `specs/archive/<scope>/SPEC.md` | 工作樹不乾淨、SPEC 未核准、evidence 缺少或版本不符、判定 failed 或 blocked、Tier 2 以上 squad 紀錄缺少、未分類、class 1 未關閉或順序錯誤、目前版號沒有完整核准紀錄、整數版號的核准序列缺號，一律拒絕 |
 
 ```mermaid
 sequenceDiagram
@@ -92,13 +94,15 @@ sequenceDiagram
 
 | 機械擋住 | 靠文字 |
 |---|---|
-| `spec-archive` 拒絕：非 approved、樹不乾淨、已封存、evidence 缺少或 `spec_version` 不符、`final_verdict` 為 failed 或 blocked、Tier 2 以上 squad 紀錄缺少、未分類、class 1 未關閉或順序錯誤 | 先核准再實作 |
+| `spec-archive` 拒絕：非 approved、樹不乾淨、已封存、evidence 缺少或 `spec_version` 不符、**目前版號沒有核准紀錄**、**整數版 `vN` 的 Approval 缺 `v1`…`vN` 任一版**、`final_verdict` 為 failed 或 blocked、Tier 2 以上 squad 紀錄缺少、未分類、class 1 未關閉或順序錯誤 | 先核准再實作 |
 | `spec-archive --check` 在預設分支上遇到 approved 的 SPEC，exit 1 | RED 要親眼看到 |
 | 各 scope 的 gate 入口任一層失敗即停，manifest 稽核確認每層都跑過 | 改實作不改測試 |
 | `gate-intent.sh` 從 SPEC 導出 intent 標頭 | evidence 只跑一次 |
 | `tests/check_agent_doc_invariants.py` 守住合約、workflow、skill 之間的承諾 | 未授權不動手 |
 | `gate-agent-instructions.py` 的 `--base` 不可達即 exit 2，不執行任何層 | — |
-| `spec-archive` 與 `gate-intent.sh` 比對完整版號，`v0.1` 不再被截成 `v0` | 草稿編 `v0.N`，`v1` 才是第一份送到人面前的版本 |
+| `spec-archive` 與 `gate-intent.sh` 比對完整版號，`v0.1` 不再被截成 `v0` | 契約變動才開下一版，待審期間沿用 |
+| `spec-archive` 解析 Approval 一節，目前版號缺紀錄或整數序列缺號即拒絕。它擋的是缺紀錄，**不是假紀錄**：核准原話的真偽、紀錄何時加入、是否先核准 v3 才開 v4，都不驗 | 升版的時機是否正當 |
+| `check_agent_doc_invariants.py` 禁止兩句已知壞措辭復原（class 2 的 `the version is bumped`、Revisions 的 `bump the version, set`）。它只擋逐字復原，改寫措辭可繞過 | 改寫後的措辭是否仍與規則一致 |
 | — | durability preflight 三項：setup plan 對照 gate 自己的檔案、Must NOT 寫行為不寫 diff 形狀、每個數字與 `file:line` 當場量測 |
 | — | 修訂合併送審，不要每發現一個缺陷就中斷人一次 |
 
@@ -142,7 +146,11 @@ python3 tests/spec_archive_test.py
 | `dot_agents/skills/evidence-squad/` | `~/.agents/skills/evidence-squad/` |
 | `dot_claude/agents/verifier.md.tmpl`、`dot_codex/agents/verifier.toml.tmpl` | `~/.claude/agents/verifier.md`、`~/.codex/agents/verifier.toml` |
 
-合約版本：v0.8。自 v0.7 起的變更：`evidence-squad` 的三個 cut 接進 Phase 2、4、6；
+合約版本：v0.9。自 v0.8 起的變更：版號代表核准基準——契約變動才取下一個整數，
+待審期間的修改與退回沿用同版；`spec-archive` 在封存前檢查目前版號有核准紀錄、
+且整數版的核准序列從 v1 起不缺號；`gate-intent.sh` 完整解析版號；
+`check_agent_doc_invariants.py` 擋住兩句已知壞措辭復原。
+v0.8 自 v0.7 起的變更：`evidence-squad` 的三個 cut 接進 Phase 2、4、6；
 `spec-archive` 讀 `verification.md` 的判定，Tier 2 以上要求三份 squad 紀錄。
 v0.7 自 v0.6 起的變更：草稿編 `v0.N`、送核准前的 durability preflight、修訂合併
 送審，以及 `global-agent-instructions` 那輪動過合約面卻沒有跟著升版的三個 commit。

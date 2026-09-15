@@ -71,6 +71,7 @@ versions
 source-state-before
 intent
 agent-doc-invariants
+spec-archive-tests
 suite
 suite-health-repeat
 suite-health-shuffle
@@ -131,6 +132,13 @@ run_layer intent "$ART/intent.txt" sh tools/gate-intent.sh "$SCOPE"
 # 放進 gate 而不是靠人記得跑：「之後每次都要跑」如果只寫在對話裡，下一次就會漏。
 run_layer agent-doc-invariants "$ART/agent-doc-invariants.txt" \
     python3 tests/check_agent_doc_invariants.py
+
+# ------------------------------------------------------------ spec-archive
+# tests/run.sh 只載入 tests/cases/L*.sh，封存腳本的測試不在裡面，所以這支 gate
+# 先前跑不到它。另一個 scope 的入口 tools/gate-agent-instructions.py 早就有這一層；
+# 這裡補上的是這份 manifest 自己的缺口。
+run_layer spec-archive-tests "$ART/spec-archive-tests.txt" \
+    python3 tests/spec_archive_test.py
 
 # ---------------------------------------------------------------- test suite
 run_layer suite "$ART/suite.tap" sh tests/run.sh
