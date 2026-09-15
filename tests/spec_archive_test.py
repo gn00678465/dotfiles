@@ -27,6 +27,7 @@ ARCHIVER = Path(os.environ.get(
     ROOT / "dot_agents/skills/spec-archive/scripts/spec-archive.py",
 ))
 EVIDENCE_TEMPLATE = ROOT / "dot_agents/skills/verification-gate/assets/templates/evidence.md"
+SPEC_TEMPLATE = ROOT / "dot_agents/workflows/templates/spec.md"
 
 FIELD_LINE_RE = re.compile(r"^-\s*`([\w_]+)`:.*$", re.MULTILINE)
 
@@ -124,16 +125,69 @@ def sectioned(*versions: str, date: str = "2026-09-15", words: bool = True,
     return "\n".join(out) + "\n"
 
 
-# The template's own Approval section: prose plus placeholders, never empty.
-# S1 feeds this verbatim — "blank section" was the wrong input description.
-TEMPLATE_APPROVAL = """## Approval
+def template_approval() -> str:
+    """The template's own Approval section, read from the template rather than
+    pasted here (same reason as `real_evidence_header`): a frozen copy keeps
+    passing after someone puts a parseable placeholder back into the shipped
+    template, which is the one input S1 exists to reject."""
+    text = SPEC_TEMPLATE.read_text(encoding="utf-8")
+    start = text.index("\n## Approval")
+    nxt = text.index("\n## ", start + 1)
+    return text[start + 1:nxt]
 
-Append-only. One entry per approved version: the approving words verbatim,
-the date, and the `spec_version` they bind. An entry you cannot quote is an
-approval you do not have — an answer to a question is not one.
 
-- <date> — approves <spec_version> — "<verbatim approving words>"
-- <!-- or: `approval: not obtained (autonomous run)` -->
+TEMPLATE_APPROVAL = template_approval()
+
+
+# Six §2 rules with nothing else pinning them: fenced code (both fence
+# characters) and HTML comments are not records, `decision: confirmed` is not
+# `approval: confirmed`, `version bound` must equal the heading version, a date
+# must be a real calendar day, and a version token must end at a separator.
+# They ride S4's existing refusal instead of six fixtures of their own — each
+# one alone would archive `s4` if the rule it names stopped working.
+# The two list-form decoys sit last on purpose: a `###` record's body runs to
+# the next heading, so a quoted line placed above would hand its words to the
+# record that S4 needs to stay quote-less.
+S4_DECOYS = """
+```
+### v3 — 2026-09-15
+
+- **approval: confirmed**
+- version bound: v3
+- date: 2026-09-15
+- verbatim words:
+
+  > 核准 SPEC v3
+```
+
+~~~
+- 2026-09-15 — approves v3 — 「核准 SPEC v3」
+~~~
+
+<!--
+- 2026-09-15 — approves v3 — 「核准 SPEC v3」
+-->
+
+### v3 — 2026-09-16
+
+- **decision: confirmed**
+- version bound: v3
+- date: 2026-09-16
+- verbatim words:
+
+  > 核准 SPEC v3
+
+### v3 — 2026-09-17
+
+- **approval: confirmed**
+- version bound: v2
+- date: 2026-09-17
+- verbatim words:
+
+  > 核准 SPEC v3
+
+- 2026-13-45 — approves v3 — 「核准 SPEC v3」
+- 2026-09-15 — approves v3junk — 「核准 SPEC v3」
 """
 
 
@@ -497,7 +551,14 @@ def main() -> None:
                        repo, ["s3"], 1,
                        stderr_has="no complete approval record for v1")
 
-        make_spec(repo, "s4", "v3", sectioned("v3", words=False))
+        # S3 的正向控制：同一個 `### v1.2` 紀錄，SPEC 也在 v1.2 時必須封存。
+        # 少了這一條，把標題版號截斷成 v1 的實作在 S3 一樣是紅的（兩邊都讀成 v1），
+        # S3 就分不出「正確拒絕」與「整節都沒解析到」。
+        make_spec(repo, "s3b", "v1.2", sectioned("v1.2"))
+        expect("S3 the same `### v1.2` record does archive a v1.2 spec",
+               repo, ["s3b"], 0, stdout_has="archived")
+
+        make_spec(repo, "s4", "v3", sectioned("v3", words=False) + S4_DECOYS)
         expect_refused("S4 a sectioned record without verbatim words is incomplete",
                        repo, ["s4"], 1,
                        stderr_has="no complete approval record for v3")
