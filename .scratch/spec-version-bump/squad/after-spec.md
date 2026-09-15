@@ -21,12 +21,12 @@
 
 ### class 1 —— 違反本 SPEC 自己寫的規則，在目前版本修正，不需重新核准
 
-- [HIGH] specs/spec-version-bump/SPEC.md:31 — §1 宣稱 windows-support 通過連續性檢查，但其章節標題為 `## 8. Approval record`，與 S1/S5 寫死的 `## Approval` 矛盾 — `specs/archive/windows-support/SPEC.md:324`；`tools/gate-intent.sh:55` 用寬鬆比對才讀得到 — class 1 — 明寫章節比對規則（標題含 Approval，到下一個 `##` 為止），並以此真實標題為 fixture 重新量測。
-- [HIGH] specs/spec-version-bump/SPEC.md:66-68 — 把 grault 翻成 exit 1 會消滅唯一一條「小數版號可以封存」的正向控制，與同句「解析回歸測試全數保留」衝突 — `tests/spec_archive_test.py:269-270` 是四條小數版斷言中唯一的 exit 0 — class 1 — 給 grault 補一筆完整 v0.2 核准紀錄使其維持 exit 0，另建空白 Approval 的 v0.N fixture 承載 S1。
-- [MEDIUM] specs/spec-version-bump/SPEC.md:34 — 「`specs/` 底下目前沒有任何作用中的 SPEC」在它自己的 commit 上就不成立 — `5d7409a` 建立了 `specs/spec-version-bump/SPEC.md`（status draft） — class 1 — 改寫為「除本 SPEC 外沒有其他作用中的 SPEC」，並補 `--check` 在本分支的預期輸出。
-- [MEDIUM] specs/spec-version-bump/SPEC.md:84-85 — Must NOT 的理由與實際行為不符：`git log -S` 找不到時是 `die(2)` 大聲失敗，不是靜默失效；且 tier 1 根本不會走到該行 — `spec-archive.py:166-171` — class 1 — 結論保留，理由改寫為實測行為（Tier 2+ exit 2、Tier 1 不執行）。
-- [LOW] specs/spec-version-bump/SPEC.md:25-26 — `docs/evidence-first.md:106` 的引文跨到 :107 — class 1 — 引用改為 :106-107。
-- [LOW] specs/spec-version-bump/SPEC.md:22-24 — 成因單點歸因不足，`dot_agents/workflows/evidence-first.md:66` 也明寫 bump，兩份 skill-doctor 報告另指 `templates/spec.md` 的註解為直接依據 — class 1 — §1 補上並列來源，否則 S9 只擋一半。
+- [HIGH] specs/spec-version-bump/SPEC.md:31 — §1 宣稱 windows-support 通過連續性檢查，但其章節標題為 `## 8. Approval record`，與 S1/S5 寫死的 `## Approval` 矛盾 — `specs/archive/windows-support/SPEC.md:324`；`tools/gate-intent.sh:55` 用寬鬆比對才讀得到 — class 1 — 明寫章節比對規則（標題含 Approval，到下一個 `##` 為止），並以此真實標題為 fixture 重新量測。 — status: fixed（v0.2 §2 章節定位＋S6 改用真實的帶數字標題）
+- [HIGH] specs/spec-version-bump/SPEC.md:66-68 — 把 grault 翻成 exit 1 會消滅唯一一條「小數版號可以封存」的正向控制，與同句「解析回歸測試全數保留」衝突 — `tests/spec_archive_test.py:269-270` 是四條小數版斷言中唯一的 exit 0 — class 1 — 給 grault 補一筆完整 v0.2 核准紀錄使其維持 exit 0，另建空白 Approval 的 v0.N fixture 承載 S1。 — status: fixed（v0.2 S9a/S9b 取代單向翻掉 grault）
+- [MEDIUM] specs/spec-version-bump/SPEC.md:34 — 「`specs/` 底下目前沒有任何作用中的 SPEC」在它自己的 commit 上就不成立 — `5d7409a` 建立了 `specs/spec-version-bump/SPEC.md`（status draft） — class 1 — 改寫為「除本 SPEC 外沒有其他作用中的 SPEC」，並補 `--check` 在本分支的預期輸出。 — status: fixed（v0.2 §1.5 改寫為「除本 SPEC 外」）
+- [MEDIUM] specs/spec-version-bump/SPEC.md:84-85 — Must NOT 的理由與實際行為不符：`git log -S` 找不到時是 `die(2)` 大聲失敗，不是靜默失效；且 tier 1 根本不會走到該行 — `spec-archive.py:166-171` — class 1 — 結論保留，理由改寫為實測行為（Tier 2+ exit 2、Tier 1 不執行）。 — status: fixed（v0.2 §1.4 改寫為實測行為）
+- [LOW] specs/spec-version-bump/SPEC.md:25-26 — `docs/evidence-first.md:106` 的引文跨到 :107 — class 1 — 引用改為 :106-107。 — status: fixed（v0.2 §1.1 引用改為 :106-107）
+- [LOW] specs/spec-version-bump/SPEC.md:22-24 — 成因單點歸因不足，`dot_agents/workflows/evidence-first.md:66` 也明寫 bump，兩份 skill-doctor 報告另指 `templates/spec.md` 的註解為直接依據 — class 1 — §1 補上並列來源，否則 S9 只擋一半。 — status: fixed（v0.2 §1.1 補並列來源，S10 涵蓋 evidence-first.md:66）
 
 ### class 2 —— 規格缺口，折回草稿；仍有分歧者進核准請求
 
