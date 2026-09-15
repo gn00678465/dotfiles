@@ -1,7 +1,7 @@
 # SPEC — SPEC 核准紀錄的機械化檢查 (Tier 2)
 
-- `spec_version`: v1
-- `status`: approved
+- `spec_version`: v2
+- `status`: revised-pending-approval
 - `tier`: 2
 - `scope`: spec-version-bump
 - `base_ref`: `9a2e879`（`origin/main`，PR #22 合併點）
@@ -23,6 +23,8 @@ Tier 2 的理由：不涉及金流、認證、資料遺失、併發或公開 API
 - 不驗證升版當下是否合法——「什麼時候才可以開下一版」仍然只由散文規範。
 - 不驗證核准紀錄的加入時間或先後順序。封存前補記的核准與即時核准無法區分。
 - 不保證減少核准請求次數。
+- R2 只對正整數版號執行，所以把版號寫成 `v01` 或 `v1.2` 就完全跳過連續性。
+  這是 §2 正整數判定式的直接後果，記在這裡是因為它是一條可用的繞道。
 
 因此：**原始事件（v3 待核准時被 v4 取代）若在封存前替 v3 補一段格式完整的核准
 文字，本檢查會放行。** 這是已知且刻意的界線，不是疏漏。本檢查擋的是「缺紀錄」，
@@ -105,8 +107,9 @@ R1 與 R2 共用這一組規則。規則不明確，scenario 就寫不出 fixtur
 `## Approval` 與 `## 8. Approval record` 都成立。不得用「包含 Approval」的寬鬆
 比對。出現多個核准章節：exit 2（結構歧義）。
 
-**章節邊界**：自該標題起，到下一個 `##`（同級或更高）標題為止。`###` 屬於章節
-內部。
+**章節邊界**：自該標題起，到下一個「同級或更高」標題為止，層級以核准標題自身
+為準。`## Approval` 的章節內 `###` 屬於章節內部；`### Approval` 的章節在下一個
+`###` 就結束，因此裝不下任何分節式紀錄。兩種讀法只在後者分岔，寫下來以免再猜。
 
 **不算紀錄的內容**：圍欄程式碼區塊內的文字、HTML 註解內的文字、其他章節
 （含 `## Revisions`）內的文字。
@@ -115,13 +118,15 @@ R1 與 R2 共用這一組規則。規則不明確，scenario 就寫不出 fixtur
 - 日期，`YYYY-MM-DD`，且為有效曆日；
 - 字面 `approves`；
 - 完整版號 token，其後必須是欄位分隔符；
-- 非空的引號原話。引號形式接受 `「」`、ASCII 雙引號、以及 blockquote `>`。
+- 非空的引號原話，與版號同一行。引號形式接受 `「」` 與 ASCII 雙引號；
+  blockquote `>` 只在分節式成立——清單式是一行一筆，`>` 在同一行會多出一個
+  誤判面（`-> merged` 這種字串會被當成原話）。
 
 **分節式紀錄**，以 `### <完整版號> — <日期>` 起始，必須同時具備：
 - `approval: confirmed`（`decision: confirmed` 不算）；
 - `version bound` 與標題版號完整相等；
 - `date` 與標題日期相同；
-- 其下有非空的逐字引文。
+- 其下有非空的逐字引文：blockquote `>` 或 `「」`／ASCII 雙引號皆可。
 
 **同版多筆**：任一筆完整即滿足。`specs/archive/windows-support/SPEC.md:379` 的
 `### v5 的兩項選擇 — 2026-09-03` 帶 `decision: confirmed`，排在真正的
@@ -143,8 +148,8 @@ v1、v7、v6、v5決策、v5、v4、v3、v2。
 不分 tier。核准章節完全不存在 → exit 1（與空章節同路徑）。
 
 **R2（連續性）**：目前版號為正整數 `vN` 時，核准集合必須含 v1…vN 全部，起點一律
-v1 → 缺任一版 exit 1。非正整數版號不執行 R2，只受 R1 約束。**其後果是 `v0.x`
-的 SPEC 永遠無法封存**——這是刻意的性質，不是副作用。
+v1 → 缺任一版 exit 1。非正整數版號不執行 R2，只受 R1 約束——`v0.x` 的 SPEC 只要
+有自己那一筆完整紀錄就能封存，S9(a) 是它的正向控制。
 
 **判定順序**：先 R1，後 R2。兩者同時成立時訊息指向 R1。
 
@@ -167,16 +172,22 @@ stderr 片段外，另斷言 **HEAD 未變、SPEC 內容未變、來源目錄仍
 - **S3 版號前綴不得截斷**：目前 v1，核准章節只有一筆完整的
   `### v1.2 — 2026-09-15` 分節式紀錄 → exit 1。防禦對象是被否決的 `vN.1`／`vN.2`
   方案（§1.4）；現行規則不產生這種版號，此案例為防止該方案日後被重新引入。
-- **S4 分節式缺原話**：目前 v3，分節式紀錄有 `### v3 — 2026-09-15`、
-  `approval: confirmed`、`date:`，但無非空逐字引文 → exit 1。
+- **S4 分節式缺原話，同節另帶誘餌集合**：目前 v3，分節式紀錄有
+  `### v3 — 2026-09-15`、`approval: confirmed`、`date:`，但無非空逐字引文；
+  同一節另有七個都不該算數的東西，釘住 §2 的六條規則——``` 圍欄內與 `~~~` 圍欄內
+  的完整紀錄（圍欄）、HTML 註解內的（註解）、`decision: confirmed` 的、
+  `version bound` 與標題不符的、日期不是有效曆日的、版號 token 帶後綴的
+  → exit 1。任一個被算成紀錄，這個 fixture 就會通過 R1 而死在 R2，斷言的
+  stderr 因此轉紅。誘餌的順序有意義：`###` 紀錄的本文延伸到下一個標題，帶引號的
+  清單行放在上面會把原話送給那筆「必須沒有原話」的紀錄。
 - **S5 核准不得取自章節外**：目前 v3，核准章節只有樣板，但 `## Revisions` 底下有
   一筆格式完整的 v3 核准文字 → exit 1。
 - **S6 分節式與帶數字標題的成功路徑**（GREEN-guard，**非 RED**）：目前 v3，章節
   標題為 `## 8. Approval record`，內含 v1、v2、v3 三筆分節式紀錄且順序為 v1、v3、
   v2，另有一筆 `### v3 的兩項選擇` 帶 `decision: confirmed` → exit 0，stdout 含
   `archived`。此案例在 base ref 即為綠（base ref 的 `archive()` 不解析核准章節），
-  故不列入 RED 重建表；它的作用是釘住 §2 的四條解析規則（帶數字標題、非遞增順序、
-  同版多筆、decision 誘餌），任一條寫錯即轉紅。
+  故不列入 RED 重建表。實測它只釘得住「帶數字標題」一條：放寬另外三條之後 80 個
+  斷言仍然全綠。非遞增順序、同版多筆與 decision 誘餌改由 S4 的誘餌集合承載。
 - **S7 連續性缺中間版**：目前 v4，核准集合為 v1、v2、v4 → exit 1，stderr 指出缺 v3。
 - **S8 連續性起點為 v1**：目前 v2，核准集合只有 v2 → exit 1，stderr 指出缺 v1。
 - **S9 小數版號的兩側**：目前 v0.2、`status: approved`、evidence 版號相符——
@@ -188,6 +199,9 @@ stderr 片段外，另斷言 **HEAD 未變、SPEC 內容未變、來源目錄仍
   壞措辭的復原**，不宣稱證明三份文件語意一致；改寫措辭可繞過，此限制寫入 Honest
   notes。RED 以 `python3 tests/check_agent_doc_invariants.py <base-ref 工作樹>`
   人工觀察。
+- **S11 兩個核准章節無法評估**：目前 v1，SPEC 內有兩個 `## Approval` 標題 →
+  exit 2，stderr 含 `more than one Approval section`。這是本次唯一新增的 rc 2
+  路徑；沒有它，結構歧義這條規則被刪掉不會有任何案例轉紅。
 
 ## Must NOT
 
@@ -225,16 +239,21 @@ stderr 片段外，另斷言 **HEAD 未變、SPEC 內容未變、來源目錄仍
   `.scratch/spec-version-bump/evidence.md`，squad 紀錄於
   `.scratch/spec-version-bump/squad/<cut>.md`。
 - **新增相依**：無。全部使用 Python 標準函式庫。
-- **授權修改的檔案（10 個）**：
+- **授權修改的檔案（12 個）**：v2 新增最後兩個，理由見 Revisions。
   - `dot_agents/skills/spec-archive/scripts/spec-archive.py` — §2 解析函式、R1、R2、
-    檔頭拒絕清單說明。
-  - `tests/spec_archive_test.py` — S1–S9 案例、核准 fixture 輔助函式、**`expect()`
+    檔頭拒絕清單說明。v2 另加：分節式標題的行尾容許 `\r`（CRLF 的 SPEC.md 目前會
+    整批漏掉分節式紀錄；本腳本經 chezmoi 跨 repo 執行，而這個 repo 家族含 native
+    Windows）。
+  - `tests/spec_archive_test.py` — S1–S11 案例、核准 fixture 輔助函式、**`expect()`
     的擴充或新增 `expect_refused()`** 以承載四項額外斷言。既有 fixture 補核准紀錄，
     使其繼續測到原本的拒絕理由：`quux`（v3）補 v1–v3；`foo`（v2，建立時為 draft，
     其後翻為 approved）補 **v1 與 v2 兩筆**；`fred`（v1，同樣後翻）補 v1；
     `waldo`（v1）補 v1；`grault`（v0.2）補一筆完整 v0.2 紀錄，維持其最後一段的 exit 0。
+    v2 另加：S4 的誘餌集合、S3 的正向控制、`TEMPLATE_APPROVAL` 改為從
+    `templates/spec.md` 讀出、S11。
   - `tests/check_agent_doc_invariants.py` — `evidence-squad/SKILL.md` 的檔案句柄、
     兩條 `forbid`（涵蓋 `SKILL.md:43` 與 `evidence-first.md:66` 兩份壞措辭）。
+    v2 另加：一條 `require`，對應 `spec-archive/SKILL.md` 新增的拒絕條目。
   - `tools/gate-intent.sh` — 完整解析版號（消除其版號截斷註解自述的 `### v1.2` 截斷）、
     只把依 §2 結構完整的紀錄列入集合。**不改其 unconfirmed 仍 exit 0 的契約。**
   - `tools/gate.sh` — manifest 加 `spec-archive-tests`，以 `run_layer`
@@ -248,6 +267,11 @@ stderr 片段外，另斷言 **HEAD 未變、SPEC 內容未變、來源目錄仍
   - `dot_agents/skills/evidence-squad/SKILL.md` — point-cut 表的 **after spec** 列、
     **Finding classes** 的 class 2 改為引用工作流程的 Versioning 規則。
   - `.chezmoitemplates/evidence-first-contract.md` — 第 1 行標記 v0.8 → v0.9。
+  - `dot_agents/skills/spec-archive/SKILL.md`（v2 新增）— 「Refuses」清單補上 R1、
+    R2 與新的 rc 2；`tests/check_agent_doc_invariants.py` 補一條 `require`，維持
+    該 repo 既有的「skill 說一次、script 說一次」成對釘法。
+  - `AGENTS.md`（v2 新增）— `check_agent_doc_invariants.py` 的觸發條件補上
+    `dot_agents/skills/evidence-squad/`。
   - `docs/evidence-first.md` — 「核准 SPEC」條目、Phase 1 表格列、機械檢查與自律的
     對照表、合約版本段，四處敘述同步。
 - **不改**：`AGENTS.md`（既有觸發條件已涵蓋 `dot_agents/workflows/` 的修改）。
@@ -278,3 +302,39 @@ Append-only。每一版一筆：核准原話逐字、日期、綁定的 `spec_ve
   gate manifest 13 層。
 - 2026-09-15 — v1：內容與 v0.2 相同，依舊版號規則（合約 v0.8）在送到人面前的當下
   取整數版號。provenance：來自 v0.2，自 v0.2 起無內容變更。
+- 2026-09-15 — v2 待審：折入 after-implement squad cut 的 class 2
+  （`.scratch/spec-version-bump/squad/after-implement.md`，commit `d86b3dd`；
+  四個透鏡，class 1 十二條、class 2 十一條、class 3 五條）。class 1 已全部在
+  `085726d`／`58ab021`／`4f4e201`／`63c0208` 修掉，不需要新核准；本版承載的是
+  十一條 class 2。provenance：來自 v1，v1 的核准內容沒有被推翻，是被補正與擴充。
+
+  **本版改了什麼**（六項，全部是 v1 內文被實測證明寫錯或寫漏）：
+  1. §0 補上 R2 的已知繞道：版號寫成 `v01` 或 `v1.2` 完全跳過連續性。
+  2. §2 清單式的 blockquote `>` 子句移到分節式：`>` 只在分節式成立也只在分節式
+     實作，清單式接受 `>` 會把 `-> merged` 這種字串當成原話。
+  3. §2 章節邊界補一句：`### Approval` 的章節在下一個 `###` 就結束，裝不下分節式
+     紀錄。兩種讀法只在這個標題上分岔。
+  4. §3 刪掉「`v0.x` 的 SPEC 永遠無法封存」——該句與 S9(a)、Must NOT 以及實作行為
+     三者矛盾，`s9a` 實測封存成功。
+  5. S6 的宣稱縮到實測結果：它只釘得住「帶數字標題」一條，另外三條放寬後 80 個
+     斷言仍全綠。那三條改由 S4 的誘餌集合承載。
+  6. S4 改為誘餌集合，一個既有的 `expect_refused` 釘住 §2 的六條規則；新增 S11
+     覆蓋本次唯一新增的 rc 2 路徑。
+
+  **本版新授權什麼**（三項，核准即授權）：
+  1. 授權檔案清單 10 → 12：加入 `dot_agents/skills/spec-archive/SKILL.md`
+     （CLOSE 執行者實際讀的「Refuses」清單，唯獨缺本次新增的三條拒絕）與
+     `AGENTS.md`（`check_agent_doc_invariants.py` 的觸發條件沒有列 evidence-squad，
+     而新 invariant 讀的正是該 skill）。
+  2. `spec-archive.py` 的分節式標題行尾容許 `\r`：CRLF 的 SPEC.md 目前會整批漏掉
+     分節式紀錄，清單式照常。失效方向是誤拒，不是誤放。
+  3. `check_agent_doc_invariants.py` 補一條 `require`，維持「skill 說一次、
+     script 說一次」的成對釘法。
+
+  **審完仍不做的三件**（記入 evidence report 的 Honest notes，不進本版）：
+  `tools/gate-intent.sh` 的 awk 不加 fixture（§1.4 已否決跨解析器一致性 fixture，
+  且該腳本失效方向是 `unconfirmed` 仍 exit 0 的誠實降級）；不改 `tests/fixtures/
+  os-linux*.toml` 的 `distroLikeOverride` 缺口與 `.chezmoiignore` 的
+  `CLAUDE.local.md` 缺口（都是 class 3，base ref 逐條相同）；不為了讓 mutation
+  層轉綠而改 `tools/gate-mutants.py`（存活的六個 mutant 全針對本機沒有的
+  `pwsh.exe`，base ref 同樣 38/44）。
