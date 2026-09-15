@@ -381,6 +381,29 @@ temporarily remove or break the defence it validates, and watch the control go
 red. A control that passes with the defence removed is measuring nothing —
 this is a one-time proof, not a permanent extra layer.
 
+**Read the control's failure before accepting it.** The attribution rule below
+is written for mutants, and it applies here for the same reason: "the checker
+went red" and "the known-bad input made the checker go red" are different
+claims, and only the second is evidence. A control can fail for a reason that
+has nothing to do with the constraint — a stub written in the wrong language
+that the runner rejects before it evaluates anything, a fixture malformed in a
+way the tool refuses to parse, an environment error — and that red looks exactly
+like a working guard. What to require: the failure arises from the constraint's
+own assertion or refusal branch, and the known-bad input explains it. A failure
+message that names the file you touched is neither sufficient (a syntax error in
+that file names it too) nor necessary (a correct failure can surface in a
+downstream assertion that names something else). Rule out startup, parse,
+fixture-construction and environment failures instead — and note that a missing
+path is the intended stimulus, not contamination, when the constraint under test
+is "a missing input must be refused".
+
+Keep the two levels apart, because they go red in opposite directions. With the
+defence in place, the known-bad input makes the **checker** refuse and your
+assertion about it passes. With the defence removed, the checker wrongly accepts
+and your assertion fails. Saying only "watch it go red" leaves it ambiguous which
+process is expected to exit non-zero, and that ambiguity is where a control that
+proves nothing gets recorded as one that does.
+
 Equivalent-mutant note — with a mutation tool, a survivor is not automatically
 a failure: some mutants are semantically equivalent to the original and cannot
 be killed. Classify such survivors as "equivalent, because <reason>" in
@@ -447,13 +470,21 @@ EVIDENCE cites it, and the human can rerun the whole report with it. The
 contract — specified in full, with the manifest pattern and fail-closed shell
 idioms, in `references/entry-point.md`:
 
-- **Fresh by mechanism, not discipline**: the script starts by deleting stale
-  artifacts from previous runs (keep tool databases that accumulate value);
+- **Fresh by mechanism, not discipline**: the script deletes stale artifacts
+  from previous runs (keep tool databases that accumulate value) — but only
+  after resolving and validating the base ref, the scope and the required tools,
+  so a run refused on a configuration error — before any layer executes — never
+  destroys the last good run's artifacts (a layer can still exit 2 mid-run; that
+  rc carries no such promise);
   dev-tool versions are pinned so the rerun uses the same gate.
 - **Fail closed**: `set -e`, no `|| true`, no `2>/dev/null`, ambiguous exit
   codes spelled out; execution bound to completion by a fixed expected-layer
   manifest audited before printing success — a heading is not evidence that a
-  layer ran, and `set -e` through `&&` is not status handling.
+  layer ran, and `set -e` through `&&` is not status handling. The audit proves
+  every layer **executed**, never that every layer **measured** something: a
+  layer whose tool is unreachable can print its own skip notice, exit 0, and be
+  recorded like any other. That layer is `UNAVAILABLE` in EVIDENCE regardless of
+  how green the audit is.
 - **A text edit must assert it landed**: any layer that mutates or tampers by
   matching source text — mutation operators, coverage negative controls —
   counts its matches and fails when the count is not exactly what it expects.
@@ -598,6 +629,21 @@ dependence)`. A reader who cannot tell a substitute from the real layer reads
 is not a degraded run at all: three `N-A` layers describe the project, and
 EVIDENCE should say so rather than leaving a reader to count absences.
 
+**Separate a layer that did not run today from one that can never run here.**
+`UNAVAILABLE` covers both and they are not equally recoverable: an absent tool
+is fixed by installing it, while a check bound to a platform the current host
+is not — a Windows-only probe on Linux, a GPU path on a CPU runner — cannot
+fail in this environment no matter what the code does. A check that cannot fail
+is not evidence, and its most dangerous property is that it is usually reported
+as a pass: harnesses commonly count a skip as a success, so the suite goes green
+with that layer structurally unable to go red, and a completeness guard that
+asks "did this layer contribute anything?" is satisfied by the skip itself.
+Record such a layer as `UNAVAILABLE (cannot run in this environment: <the
+binding>)`, **count it**, and state in EVIDENCE which claims rest on a run that
+could not have failed. When a permanently-unreachable layer is the only cover
+for a behaviour, the honest report says that behaviour is unverified here, not
+that the gate is green.
+
 **`NOT REACHED` and the failing gate.** The entry point stops at the first
 broken layer (`references/entry-point.md`), so any gate that does its job
 leaves later layers unrun. That is correct behaviour, not an incomplete report:
@@ -709,8 +755,12 @@ values stay English even inside a localized report.
 A verification gate run is complete only when:
 
 - every applicable layer ran, or is recorded as `N-A` / `UNAVAILABLE` /
-  `SUBSTITUTED` / `NOT REACHED` / `DEPENDENCY UNMET` with a reason;
-- every number came from one fresh run of a persisted entry point;
+  `SUBSTITUTED` / `NOT REACHED` / `DEPENDENCY UNMET` with a reason, and any
+  layer that could not have failed in this environment is counted as such
+  rather than absorbed into a green total;
+- every number in the Gate table came from one fresh run of a persisted entry
+  point — the baseline and RED reconstruction run against `base` by definition
+  and are labelled as the prerequisite runs they are;
 - intent status, git facts status, and reproducibility status are each recorded
   and none was silently promoted;
 - the source state was identical before and after that run;
