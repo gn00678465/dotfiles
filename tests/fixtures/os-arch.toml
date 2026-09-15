@@ -6,4 +6,7 @@
     osOverride = "linux"
     archOverride = "amd64"
     distroOverride = "arch"
+    # 純 Arch 的 /etc/os-release 沒有 ID_LIKE 這一行。這裡的結果不會被主機翻動
+    # （distro 已經是 arch），但沒釘的 key 就是從主機讀來的，接縫要自足。
+    distroLikeOverride = ""
     isWSL = false

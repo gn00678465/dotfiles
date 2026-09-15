@@ -45,6 +45,17 @@ the check failed to run correctly.
 Run `tests/spec_archive_test.py` after changes to the spec-archive script.
 It checks cases that the script must reject.
 
+Run `tests/harness_test.py` after changes to `tests/run.sh`, `tests/lib.sh`,
+`tests/fixtures/os-*.toml`, or a `tools/gate*` script. It is the regression
+suite for the verification harness itself: the manifest audit reads a record
+file's last line and rejects duplicates; `gate.sh` validates the base ref, the
+scope and the tools before it deletes the previous run's artifacts, and its
+`versions` layer fails when a tool cannot report a version; the runner counts
+measured assertions rather than `# SKIP` ones; and every Linux fixture pins
+`distroLikeOverride`. Each case is paired with a mutant of the script under
+test that must go green without the fix. Exit code 1 means an assertion
+failed. Exit code 2 means the check could not run.
+
 ## Platform selection
 
 Use `.chezmoitemplates/platform.toml` as the only source of OS and
@@ -299,7 +310,18 @@ SPEC. Copy these headers verbatim into the evidence report.
 
 Run every layer through `run_layer` to preserve its exit code instead of
 `tee`'s. `gate-manifest-audit.sh` fails if a declared layer did not run.
-Gate artifacts go in `.gate/<scope>/`, which git ignores.
+Gate artifacts go in `.gate/<scope>/`, which git ignores. `gate.sh` deletes
+them only after the base ref, the scope and the required tools check out, so a
+run refused on a configuration error keeps the last good run's evidence.
+
+`tests/run.sh` reports measured assertions separately from skipped ones. A
+layer whose assertions are all `# SKIP` measured nothing and cannot go red
+here; the runner names it in a `# skip-only 層` line that `gate.sh` repeats in
+its closing summary, and the evidence report records it as
+`UNAVAILABLE (cannot run in this environment)`. Only L4, L7 and L8 may be
+skip-only — they have the declared WSL-interop precondition in the table
+above. Any other layer that contributes nothing but skips is a failure: it
+was disabled, not blocked by the environment.
 
 ## Evidence-first artifacts
 

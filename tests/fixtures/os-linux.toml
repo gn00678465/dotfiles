@@ -4,5 +4,10 @@
 [data]
     osOverride = "linux"
     distroOverride = "debian"
+    # Debian 的 /etc/os-release 沒有 ID_LIKE 這一行。不釘這個 key，platform.toml
+    # 會退回渲染主機自己的 idLike，於是 ID_LIKE 含 arch 的主機（omarchy、Manjaro、
+    # EndeavourOS）會把這個 fixture 算成 pacman。釘 distroOverride 擋不住它：
+    # 發行版判斷是 ID 或 ID_LIKE 任一命中。
+    distroLikeOverride = ""
     archOverride = "amd64"
     isWSL = false
