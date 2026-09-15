@@ -1,7 +1,7 @@
 # SPEC — SPEC 核准紀錄的機械化檢查 (Tier 2)
 
 - `spec_version`: v2
-- `status`: approved
+- `status`: shipped
 - `tier`: 2
 - `scope`: spec-version-bump
 - `base_ref`: `9a2e879`（`origin/main`，PR #22 合併點）
