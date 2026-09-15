@@ -33,7 +33,7 @@
 - [MED] spec-archive.py::APPROVAL_LIST_RE — 日期只比對形狀，`2026-13-45`、`2026-02-29` 都算核准；SPEC §2:115 明寫「且為有效曆日」 — 實測該日期可讓 v1 封存 — class 1 — `datetime.date.fromisoformat()` — status: fixed（`58ab021`）
 - [MED] spec-archive.py::_without_noise — 只剝除 ``` 圍欄，`~~~` 也是 CommonMark 圍欄，§2:111 說圍欄內不算紀錄 — 實測 `~~~` 內的紀錄 `rc=0 archived=True` — class 1 — 兩種圍欄都剝且要求成對 — status: fixed（`58ab021`）
 - [MED] spec-archive.py 檔頭 — SPEC Setup plan:229-231 授權並宣告要改「檔頭拒絕清單說明」，實際完全沒動（反向漏失）；rc 1 清單沒有 R1／R2，rc 2 清單沒有 `more than one Approval section` — `git diff` 第一個 hunk 起點是 `@@ -86,6 +86,88 @@` — class 1 — 補上 — status: fixed（`58ab021`）
-- [MED] tests/check_agent_doc_invariants.py::forbid — 兩條 desc 宣稱語意性質（「class 2 不會下令升版」），而 SPEC S10:186 明寫此檢查「只擋這兩句已知壞措辭的復原」；且 desc 與它們守著的文件現行內容相反 — 使用者對 S10 的指示原話是「改名為擋住已知壞措辭復原」 — class 1 — desc 改成它實際證明的事 — status: fixed（`4f4e201`）
+- [MED] tests/check_agent_doc_invariants.py::forbid — 兩條 desc 宣稱語意性質（「第二類發現不會下令升版」），而 SPEC S10:186 明寫此檢查「只擋這兩句已知壞措辭的復原」；且 desc 與它們守著的文件現行內容相反 — 使用者對 S10 的指示原話是「改名為擋住已知壞措辭復原」 — class 1 — desc 改成它實際證明的事 — status: fixed（`4f4e201`）
 - [MED] docs/evidence-first.md — 同一份文件兩處列舉 `spec-archive` 的拒絕集合，這次只更新了機械擋住表，Phase 6 表格列仍是舊集合 — class 1 — 同步 — status: fixed（`4f4e201`）
 - [MED] docs/evidence-first.md — 改寫時刪掉「SPEC 改過就回到 `revised-pending-approval`，要重新核准才能繼續實作」整句，該詞現在整份 docs 查不到 — `grep -n revised-pending-approval` 只剩範本與 workflow — class 1 — 那是核准閘門規則不是版號規則，補回 — status: fixed（`4f4e201`）
 - [MED] dot_agents/workflows/evidence-first.md::Approval — 該段教 agent 寫「原話、日期、版本」，照抄寫出的紀錄 CLOSE 解析不到（清單式要字面 `approves`，分節式要 `approval: confirmed`） — 實測兩種照抄形狀皆被拒 — class 1 — 補一句指向範本的兩種形狀與關鍵字 — status: fixed（`4f4e201`）

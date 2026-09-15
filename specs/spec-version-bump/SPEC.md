@@ -304,9 +304,9 @@ Append-only。每一版一筆：核准原話逐字、日期、綁定的 `spec_ve
   取整數版號。provenance：來自 v0.2，自 v0.2 起無內容變更。
 - 2026-09-15 — v2 待審：折入 after-implement squad cut 的 class 2
   （`.scratch/spec-version-bump/squad/after-implement.md`，commit `d86b3dd`；
-  四個透鏡，class 1 十二條、class 2 十一條、class 3 五條）。class 1 已全部在
+  四個透鏡，class 1 十三條、class 2 十條、class 3 五條）。class 1 已全部在
   `085726d`／`58ab021`／`4f4e201`／`63c0208` 修掉，不需要新核准；本版承載的是
-  十一條 class 2。provenance：來自 v1，v1 的核准內容沒有被推翻，是被補正與擴充。
+  十條 class 2。provenance：來自 v1，v1 的核准內容沒有被推翻，是被補正與擴充。
 
   **本版改了什麼**（六項，全部是 v1 內文被實測證明寫錯或寫漏）：
   1. §0 補上 R2 的已知繞道：版號寫成 `v01` 或 `v1.2` 完全跳過連續性。
