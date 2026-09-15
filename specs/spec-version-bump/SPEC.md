@@ -1,7 +1,7 @@
 # SPEC — SPEC 核准紀錄的機械化檢查 (Tier 2)
 
 - `spec_version`: v1
-- `status`: draft
+- `status`: approved
 - `tier`: 2
 - `scope`: spec-version-bump
 - `base_ref`: `9a2e879`（`origin/main`，PR #22 合併點）
@@ -256,7 +256,7 @@ stderr 片段外，另斷言 **HEAD 未變、SPEC 內容未變、來源目錄仍
 
 Append-only。每一版一筆：核准原話逐字、日期、綁定的 `spec_version`。
 
-<!-- v1 已送審，等待核准 -->
+- 2026-09-15 — approves v1 — 「核准 SPEC v1」
 
 ## Revisions
 
