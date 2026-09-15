@@ -1,6 +1,6 @@
 # SPEC — SPEC 核准紀錄的機械化檢查 (Tier 2)
 
-- `spec_version`: v0.2
+- `spec_version`: v1
 - `status`: draft
 - `tier`: 2
 - `scope`: spec-version-bump
@@ -256,7 +256,7 @@ stderr 片段外，另斷言 **HEAD 未變、SPEC 內容未變、來源目錄仍
 
 Append-only。每一版一筆：核准原話逐字、日期、綁定的 `spec_version`。
 
-<!-- 尚未送審 -->
+<!-- v1 已送審，等待核准 -->
 
 ## Revisions
 
@@ -276,3 +276,5 @@ Append-only。每一版一筆：核准原話逐字、日期、綁定的 `spec_ve
   行號必然過期。指向已封存 SPEC 的行號保留，因為 Must NOT 禁止改動它們。
   每個計數當場量測：doc invariants 90、spec_archive assertions 37、已封存 SPEC 4 份、
   gate manifest 13 層。
+- 2026-09-15 — v1：內容與 v0.2 相同，依舊版號規則（合約 v0.8）在送到人面前的當下
+  取整數版號。provenance：來自 v0.2，自 v0.2 起無內容變更。
