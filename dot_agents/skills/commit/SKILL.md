@@ -275,6 +275,27 @@ GIT_INDEX_FILE="$IDX" git apply --cached "$P"
 GIT_INDEX_FILE="$IDX" git commit -F "$GITDIR/COMMIT_EDITMSG"
 ```
 
+   PowerShell（pwsh 7 與 5.1 同一段）。修補檔用 `--output=` 寫出：5.1 的 `>` 會把它轉成
+   UTF-16，`git apply` 就失敗。`GIT_INDEX_FILE` 在 `finally` 清掉，否則同一個終端機之後的
+   git 指令都會用到臨時索引：
+
+```powershell
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$path = Join-Path (git rev-parse --absolute-git-dir) 'COMMIT_EDITMSG'
+# 先依 5b 的寫入指引，把「這一群」的訊息寫進 $path
+$idx = [IO.Path]::GetTempFileName(); $p = [IO.Path]::GetTempFileName()
+try {
+    git diff --cached --binary --output=$p -- path/one path/two; if ($LASTEXITCODE) { throw 'git diff 失敗' }
+    $env:GIT_INDEX_FILE = $idx
+    git read-tree HEAD;    if ($LASTEXITCODE) { throw 'git read-tree 失敗' }
+    git apply --cached $p; if ($LASTEXITCODE) { throw 'git apply 失敗' }
+    git commit -F $path;   if ($LASTEXITCODE) { throw 'git commit 失敗' }
+} finally {
+    Remove-Item Env:GIT_INDEX_FILE -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $idx, $p -ErrorAction SilentlyContinue
+}
+```
+
    **失敗就停在這一群**，不要繼續下一群：已提交的群留著，未提交的群仍在原索引裡，
    回報停在哪一群與原因。
 
@@ -356,6 +377,8 @@ GITDIR=$(git rev-parse --absolute-git-dir)
 ⚠️ **每個區塊自己取路徑，整塊一次執行**。Claude Code 的 `Bash` 與 `PowerShell` 工具每次呼叫都是新的 shell，上一次呼叫設定的 `$GITDIR`、`$path`、`$BEFORE_TREE` 在下一次都是空值：`-F "$GITDIR/COMMIT_EDITMSG"` 會讀到 git 安裝目錄下的檔案，核對段會回報 tree 已變，但實際沒有變。所以本檔每個區塊都先取路徑，不要把一個區塊拆成多次呼叫。
 
 ⚠️ **PowerShell 區塊先把 `[Console]::OutputEncoding` 設成 UTF-8**。PowerShell 用主控台的 code page 解碼 `git` 的輸出，繁體中文 Windows 預設是 950。repo 路徑含中文時，`$path` 會變成亂碼，pwsh 7 與 5.1 都會寫入失敗。Claude Code 的 `PowerShell` 工具已經是 65001，但終端機的 pwsh 與 5.1 不是。
+
+⚠️ **不要用標準輸入把腳本傳給 PowerShell**（`... | pwsh -Command -` 或 `powershell -Command -`）。在這個模式下，here-string 後面沒有空行時，整段會被丟棄，檔案沒有寫出，但 rc 仍是 0。中文也會以主控台 code page 解碼，寫出的位元組已經損毀。要傳腳本，請在主控台直接輸入、用 `-Command` 參數傳入，或用 `-File` 執行。
 
 ⚠️ **不要使用 Claude Code 的 `Write` 工具**。`COMMIT_EDITMSG` 在任何一次 commit 之後就已經存在，`Write` 會以 `File has not been read yet. Read it first before writing to it.` 失敗。
 

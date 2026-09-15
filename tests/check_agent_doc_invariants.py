@@ -131,6 +131,32 @@ def blocks_self_contained(file: Path) -> None:
     CHECKS += 1
 
 
+def powershell_split_block(file: Path) -> None:
+    """The split must not reach the real index or corrupt the patch: Windows
+    PowerShell 5.1 re-encodes native output sent through `>` or a pipe, and a
+    GIT_INDEX_FILE left in an interactive session redirects every later git
+    command to the temporary index."""
+    global CHECKS
+    split = [b for _, lang, b in code_blocks(file)
+             if lang == "powershell" and "GIT_INDEX_FILE" in b]
+    if len(split) != 1:
+        die(1, f"{file} needs exactly one PowerShell split block, found {len(split)}")
+    body = split[0]
+    if "--output=" not in body or re.search(r"git diff[^\n]*(>|\|)", body):
+        die(1, f"{file} PowerShell split block must write the patch with git diff --output=")
+    setenv = re.search(r"\$env:GIT_INDEX_FILE\s*=", body)
+    if setenv is None or not setenv.start() < body.find("git read-tree"):
+        die(1, f"{file} PowerShell split block must set GIT_INDEX_FILE before git read-tree")
+    fin = body.find("finally")
+    if fin < 0 or "Remove-Item Env:GIT_INDEX_FILE" not in body[fin:]:
+        die(1, f"{file} PowerShell split block must clear GIT_INDEX_FILE in finally")
+    for cmd in ("git diff", "git read-tree", "git apply", "git commit"):
+        line = next((l for l in body.splitlines() if cmd in l), "")
+        if "$LASTEXITCODE" not in line:
+            die(1, f"{file} PowerShell split block does not check the exit code of {cmd}")
+    CHECKS += 1
+
+
 def main() -> None:
     global CHECKS
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else \
@@ -342,6 +368,12 @@ def main() -> None:
 
     # 18e. Every commit-skill code block runs alone in a fresh shell.
     blocks_self_contained(commit_skill)
+
+    # 18f. The PowerShell channel has its own atomic split, and stdin mode is
+    #      ruled out: `-Command -` drops a here-string with no blank line after
+    #      it and decodes Chinese with the console code page, both with rc=0.
+    powershell_split_block(commit_skill)
+    require(commit_skill, "stdin script mode is ruled out", "`powershell -Command -`")
 
     # 19. SPEC global-agent-instructions S8: GREEN may run the affected tests
     #     first (full suite only when it stays fast); the final gate always
