@@ -86,6 +86,88 @@ def repo_root() -> Path:
     return Path(r.stdout.strip())
 
 
+# --- Approval records (SPEC spec-version-bump §2) ---------------------------
+# Two record shapes are load-bearing in this repo and both must parse: the
+# template's list form, and the sectioned form `windows-support` uses. Three
+# real-world traps decide the shape of this code — a numbered heading
+# (`## 8. Approval record`), records that are not in ascending order, and a
+# same-version `decision: confirmed` note sitting beside the real approval.
+# So: parse to a SET of versions, and let the heading shape exclude the note.
+VERSION_TOKEN = r"v[0-9]+(?:\.[0-9]+)*"
+POSITIVE_INTEGER_VERSION_RE = re.compile(r"v[1-9][0-9]*")
+APPROVAL_HEADING_RE = re.compile(r"^#{2,}[ \t]*(?:\d+\.[ \t]*)?Approval\b[^\n]*$",
+                                 re.MULTILINE)
+# A quote with at least one non-space character. `global-agent-instructions`
+# uses ASCII quotes, the others use 「」; both are in git, so both parse.
+_QUOTE = r"(?:「[^」\n]*[^\s」][^」\n]*」|\"[^\"\n]*[^\s\"][^\"\n]*\")"
+APPROVAL_LIST_RE = re.compile(
+    rf"^[ \t]*-[ \t]*(\d{{4}}-\d{{2}}-\d{{2}})[ \t]*[—–-][ \t]*approves[ \t]+"
+    rf"({VERSION_TOKEN})(?![0-9.])[^\n]*?{_QUOTE}", re.MULTILINE)
+# `### v5 的兩項選擇 — <date>` does not match: the date must follow the version
+# token directly. That is what keeps a decision note out of the approval set.
+APPROVAL_SECTION_HEAD_RE = re.compile(
+    rf"^#{{3,}}[ \t]*({VERSION_TOKEN})(?![0-9.])[ \t]*[—–-][ \t]*"
+    rf"(\d{{4}}-\d{{2}}-\d{{2}})[ \t]*$", re.MULTILINE)
+
+
+def _without_noise(text: str) -> str:
+    """Fenced code and HTML comments are not records. The spec template ships
+    a commented-out placeholder inside its own Approval section, so without
+    this every freshly-created spec would look approved."""
+    text = re.sub(r"^```.*?^```", "", text, flags=re.MULTILINE | re.DOTALL)
+    return re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+
+
+def approval_section(text: str, rel: str) -> str | None:
+    """The section runs to the next heading of the same level or higher, so
+    the `###` records inside a `## Approval` stay in."""
+    heads = list(APPROVAL_HEADING_RE.finditer(text))
+    if not heads:
+        return None
+    if len(heads) > 1:
+        die(2, f"{rel}: more than one Approval section — structure is ambiguous")
+    head = heads[0]
+    level = len(head.group(0)) - len(head.group(0).lstrip("#"))
+    nxt = re.compile(rf"^#{{1,{level}}}[ \t]", re.MULTILINE).search(text, head.end())
+    return text[head.end():nxt.start() if nxt else len(text)]
+
+
+def approved_versions(section: str) -> set[str]:
+    found = {m.group(2) for m in APPROVAL_LIST_RE.finditer(section)}
+    for m in APPROVAL_SECTION_HEAD_RE.finditer(section):
+        version, date = m.group(1), m.group(2)
+        nxt = re.compile(r"^#{2,}[ \t]", re.MULTILINE).search(section, m.end())
+        body = section[m.end():nxt.start() if nxt else len(section)]
+        if not re.search(r"\bapproval:\s*confirmed\b", body):
+            continue
+        if not re.search(rf"version bound:\s*{re.escape(version)}(?![0-9.])", body):
+            continue
+        if not re.search(rf"date:\s*{re.escape(date)}\b", body):
+            continue
+        if not (re.search(r"^[ \t]*>[ \t]*\S", body, re.MULTILINE)
+                or re.search(_QUOTE, body)):
+            continue
+        found.add(version)
+    return found
+
+
+def check_approval(text: str, rel: str, version: str) -> None:
+    """R1 completeness, then R2 continuity. R1 first: when both fire the
+    message names the version being archived, not an ancestor."""
+    section = approval_section(_without_noise(text), rel)
+    found = approved_versions(section) if section is not None else set()
+    if version not in found:
+        die(1, f"{rel}: no complete approval record for {version} in the "
+               f"Approval section — an approved spec ships with the words that "
+               f"approved THIS version")
+    if POSITIVE_INTEGER_VERSION_RE.fullmatch(version):
+        for i in range(1, int(version[1:])):
+            if f"v{i}" not in found:
+                die(1, f"{rel}: approval sequence incomplete — no record for "
+                       f"v{i}, but the spec is at {version}. An integer version "
+                       f"is spent only on a version the human approved")
+
+
 def read_status(spec: Path) -> tuple[str, str]:
     try:
         text = spec.read_text(encoding="utf-8")
@@ -230,6 +312,9 @@ def archive(root: Path, scope: str) -> None:
     t = TIER_RE.search(text)
     if t is None:
         die(2, f"cannot parse the `tier` line in {spec.relative_to(root)}")
+    # After tier, before the verdict: the fixtures that pin the evidence and
+    # tier messages die earlier and keep their own reasons.
+    check_approval(text, spec.relative_to(root).as_posix(), v.group(1))
     check_verdict(root, ev_path)
     check_squad(root, scope, spec.relative_to(root).as_posix(), ev_path, int(t.group(1)))
 
