@@ -413,8 +413,22 @@ def main() -> None:
     require(commit_skill, "interrupted split checks git log before reporting",
             "被 Ctrl+C 中斷")
 
+    # A POSIX block that turns on `set -e` or sets a trap must scope them to a
+    # subshell: pasted into an interactive bash, a failing step closed the
+    # terminal, and after success a later unrelated failure did.
+    for start, lang, body in code_blocks(commit_skill):
+        if lang != "powershell" and re.search(r"^\s*(set -e|trap )", body, re.M):
+            lines = [l for l in body.splitlines() if l.strip()]
+            if not (lines[0].startswith("(") and lines[-1].strip().startswith(")")):
+                die(1, f"{commit_skill}:{start} shell block with set -e/trap is not wrapped in ( ... )")
+    CHECKS += 1
+
     # 18g. Rewording an older commit is an executable block, not prose.
     reword_blocks(commit_skill)
+    # A root target has no `<sha>^`; the block stops, and the agent must
+    # report that instead of improvising a `--root` rewrite.
+    require(commit_skill, "root-commit target stops the reword block", "目標是根提交")
+    require(commit_skill, "reword block states its git version floor", "git 2.38")
     forbid(commit_skill, "no unexecutable interactive-rebase instruction",
            "以互動式 rebase 只改那一筆的訊息")
     # Claude Code's PowerShell tool refused the whole reword block, reading

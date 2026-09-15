@@ -264,15 +264,17 @@ python <skill-dir>/scripts/analyze_git.py
    不要用變數展開——有些 shell 不對未加引號的展開分詞，整群會變成一個不存在的路徑：
 
 ```sh
-set -e                                    # 任一步失敗即中止這一群
-GITDIR=$(git rev-parse --absolute-git-dir)
-IDX=$(mktemp); P=$(mktemp)
-trap 'rm -f "$IDX" "$P"' EXIT             # 清理不吃掉失敗的退出碼
-# 先依 5b 的寫入指引，把「這一群」的訊息寫進 "$GITDIR/COMMIT_EDITMSG"
-git diff --cached --binary -- path/one path/two > "$P"   # 原索引的內容
-GIT_INDEX_FILE="$IDX" git read-tree HEAD
-GIT_INDEX_FILE="$IDX" git apply --cached "$P"
-GIT_INDEX_FILE="$IDX" git commit -F "$GITDIR/COMMIT_EDITMSG"
+(                                           # 子 shell：set -e 與 trap 不留在互動終端機
+  set -e                                    # 任一步失敗即中止這一群
+  GITDIR=$(git rev-parse --absolute-git-dir)
+  IDX=$(mktemp); P=$(mktemp)
+  trap 'rm -f "$IDX" "$P"' EXIT             # 清理不吃掉失敗的退出碼
+  # 先依 5b 的寫入指引，把「這一群」的訊息寫進 "$GITDIR/COMMIT_EDITMSG"
+  git diff --cached --binary -- path/one path/two > "$P"   # 原索引的內容
+  GIT_INDEX_FILE="$IDX" git read-tree HEAD
+  GIT_INDEX_FILE="$IDX" git apply --cached "$P"
+  GIT_INDEX_FILE="$IDX" git commit -F "$GITDIR/COMMIT_EDITMSG"
+)
 ```
 
    PowerShell（pwsh 7 與 5.1 同一段）。修補檔用 `--output=` 寫出：5.1 的 `>` 會把它轉成
@@ -491,8 +493,10 @@ diff -u "$OLD" "$GITDIR/COMMIT_EDITMSG"; rm -f "$OLD"
    - 工作樹或索引有變更時 rebase 會拒絕執行。**不要自行 stash**，回報使用者。
      三個 `--no-*` 旗標蓋過使用者的 git 設定（本 repo 的 git config 就開了前兩項）：
      `rebase.autoStash` 會把已暫存的變更還原成未暫存，`rebase.autoSquash` 會併掉範圍內的
-     `fixup!` 提交，`rebase.updateRefs` 會改寫指向範圍內的其他分支。
+     `fixup!` 提交，`rebase.updateRefs` 會改寫指向範圍內的其他分支。`--no-update-refs` 需要
+     git 2.38 以上；更舊的版本以 `unknown option` 停止，回報使用者升級 git。
    - 範圍內有合併提交時停止並回報：`git rebase -i` 會把合併攤平，改到的不只訊息。
+   - 目標是根提交時沒有 `<sha>^` 可當基準，區塊會失敗並停止；回報使用者，不要自行改用 `--root`。
    - rebase 會覆寫 `COMMIT_EDITMSG`，所以區塊先把新訊息複製到暫存檔。
    - 核對範圍內**每一筆**提交的 tree，不只 HEAD。
 
