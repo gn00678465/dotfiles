@@ -51,10 +51,13 @@ fi
 # `- <date> — approves vN — 「原話」`，與 windows-support 的分節式 `### vN — <date>`
 # 加上 approval/version bound/date/引文。這裡只把結構完整的紀錄列入集合。
 #
-# 舊版只 grep `^### v[0-9]+|approves v[0-9]+`，兩種假陽性都在 git 裡踩得到：
-# `global-agent-instructions` 的散文寫著 approves <spec_version>，而
-# `windows-support` 有 `### v5 的兩項選擇 — <date>` 這種決策小節；兩者都會被算成核准，
-# 讓標頭印出 confirmed。版號也整段比對，不再截斷（`### v1.2` 不再讀成 v1）。
+# 舊版只 grep `^### v[0-9]+|approves v[0-9]+`：任何一行含 `### v5` 或 `approves v5`
+# 都算一筆核准，不管它是不是紀錄。git 裡目前沒有因此誤判的檔案——實測
+# `windows-support` 的 `### v5 的兩項選擇 — <date>` 決策小節確實命中，但它跟真正的
+# v5 同版號，去重後集合不變；`global-agent-instructions:117` 的散文寫的是
+# `approves <spec_version>`，沒有數字，舊式樣本來就不命中。本次改的是形狀而不是
+# 已發生的誤判：五份真實 SPEC 的集合與判決在改寫前後逐位元組相同。
+# 版號整段比對，不再截斷（`### v1.2` 不再讀成 v1）。
 # 去重在 awk 裡做，排序把版號依 `.` 拆成數值鍵：舊的 `sort -t v -k2,2n -u` 只取 v 後面
 # 一個數值鍵，會把 v0.1 與 v0.10 當成同一版去掉一筆。
 #
@@ -76,6 +79,14 @@ function quoted(s,   a, t, b, inner) {
     return 0
 }
 function emit(v) { if (!(v in seen)) { seen[v] = 1; print v } }
+function validdate(s,   y, m, d, dim) {
+    y = substr(s, 1, 4) + 0; m = substr(s, 6, 2) + 0; d = substr(s, 9, 2) + 0
+    if (m < 1 || m > 12 || d < 1) return 0
+    dim = 31
+    if (m == 4 || m == 6 || m == 9 || m == 11) dim = 30
+    if (m == 2) dim = (y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)) ? 29 : 28
+    return d <= dim
+}
 function close_record() {
     if (rec && f_appr && f_bound && f_date && f_quote) emit(rec_ver)
     rec = 0; f_appr = 0; f_bound = 0; f_date = 0; f_quote = 0
@@ -92,7 +103,11 @@ function close_record() {
         $0 = substr($0, 1, p - 1) substr($0, p + q + 2)
     }
 }
-/^[ \t]*```/ { fence = !fence; next }
+/^(```|~~~)/ {
+    if (!fence) { fence = 1; fencech = substr($0, 1, 3) }
+    else if (substr($0, 1, 3) == fencech) fence = 0
+    next
+}
 fence { next }
 /^#+([ \t]|$)/ {
     l = lvl($0)
@@ -105,10 +120,14 @@ fence { next }
     }
     close_record()
     h = $0; sub(/^#+[ \t]*/, "", h)
-    if (l >= 3 && h ~ /^v[0-9]+(\.[0-9]+)*[ \t]*(—|–|-)[ \t]*[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][ \t]*$/) {
-        match(h, /^v[0-9]+(\.[0-9]+)*/); rec_ver = substr(h, 1, RLENGTH)
-        match(h, /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/); rec_date = substr(h, RSTART, RLENGTH)
-        rec = 1
+    if (l >= 3 && match(h, /^v[0-9]+(\.[0-9]+)*/)) {
+        rec_ver = substr(h, 1, RLENGTH); rest = substr(h, RLENGTH + 1)
+        if (substr(rest, 1, 1) !~ /[[:alnum:]_.-]/ &&
+            rest ~ /^[ \t]*(—|–|-)[ \t]*[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][ \t]*$/) {
+            match(rest, /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/)
+            rec_date = substr(rest, RSTART, RLENGTH)
+            if (validdate(rec_date)) rec = 1
+        }
     }
     next
 }
@@ -116,15 +135,17 @@ fence { next }
 {
     if (match($0, /^[ \t]*-[ \t]*[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][ \t]*(—|–|-)[ \t]*approves[ \t]+v[0-9]+(\.[0-9]+)*/)) {
         tok = substr($0, RSTART, RLENGTH); tail = substr($0, RSTART + RLENGTH)
+        match(tok, /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/)
+        dt = substr(tok, RSTART, RLENGTH)
         sub(/^.*approves[ \t]+/, "", tok)
-        if (substr(tail, 1, 1) !~ /[0-9.]/ && quoted(tail)) emit(tok)
+        if (substr(tail, 1, 1) !~ /[[:alnum:]_.-]/ && validdate(dt) && quoted(tail)) emit(tok)
     }
     if (!rec) next
     if ($0 ~ /approval:[ \t]*confirmed([^A-Za-z0-9_]|$)/) f_appr = 1
     if (match($0, /version bound:[ \t]*v[0-9]+(\.[0-9]+)*/)) {
         tok = substr($0, RSTART, RLENGTH); nxt = substr($0, RSTART + RLENGTH, 1)
         sub(/^version bound:[ \t]*/, "", tok)
-        if (tok == rec_ver && nxt !~ /[0-9.]/) f_bound = 1
+        if (tok == rec_ver && nxt !~ /[[:alnum:]_.-]/) f_bound = 1
     }
     if ($0 ~ ("date:[ \t]*" rec_date "([^0-9]|$)")) f_date = 1
     if ($0 ~ /^[ \t]*>[ \t]*[^ \t]/ || quoted($0)) f_quote = 1
