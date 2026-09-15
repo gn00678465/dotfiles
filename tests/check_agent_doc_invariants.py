@@ -270,11 +270,33 @@ def main() -> None:
     forbid(commit_skill, "no re-ask after commit already ran",
            "是否需要協助執行上述 commit 指令")
     require(commit_skill, "reports the already-run commit instead",
-            "commit 已於步驟 4 完成")
+            "commit 已完成，附上 commit SHA")
     forbid(commit_skill, "no forced split on type difference alone",
            "即使 score ≤ 8 也應進入步驟 4")
-    require(commit_skill, "split gated on independent buildability",
-            "無法各自建置或獨立還原")
+
+    # 18b. The split rule is a direction, not a keyword. A string check for
+    #      "無法各自建置或獨立還原" passed while the text said the opposite of
+    #      what it means, so pin the direction and the two ways to invert it:
+    #      groups that cannot stand alone stay in one commit, and the score
+    #      picks analysis depth only.
+    require(commit_skill, "inseparable groups stay in one commit",
+            "無法各自建置或獨立還原 → 留在同一個提交")
+    require(commit_skill, "score sizes the analysis, not the split",
+            "只決定**分析深度**")
+    forbid(commit_skill, "a high score alone does not force a split",
+           "| `> 8` | 拆分 |")
+
+    # 18c. Rewriting a message must not rewrite the tree: `--amend` without
+    #      `--only` folds whatever sits in the index into the commit.
+    require(commit_skill, "message-only amend keeps the index out",
+            "git commit --amend --only -F")
+    forbid(commit_skill, "no bare amend in the rewrite path",
+           "git commit --amend -F ")
+
+    # 18d. Writing a message is not committing: the skill must keep a path
+    #      that delivers the text and stops.
+    require(commit_skill, "message-only delivery path exists",
+            "步驟 5a")
 
     # 19. SPEC global-agent-instructions S8: GREEN may run the affected tests
     #     first (full suite only when it stays fast); the final gate always

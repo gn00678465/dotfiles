@@ -5,55 +5,239 @@
       "id": 0,
       "name": "simple-feat",
       "prompt": "我新增了一個登入頁面元件 `src/components/Login.tsx`，請幫我寫 commit message 並執行。",
-      "expected_output": "應識別為 feat 類型，生成單行（Score < 4）或含簡短 body 的 commit message，寫入 .git/COMMIT_EDITMSG，最後輸出 git commit -F .git/COMMIT_EDITMSG 指令並詢問是否執行。"
+      "expected_output": "應識別為 feat 類型，生成單行（Score < 4）或含簡短 body 的 commit message，以 git rev-parse --absolute-git-dir 取得路徑後寫入 COMMIT_EDITMSG，直接執行 git commit -F，然後回報已完成的 commit SHA 與訊息摘要。不得再詢問是否需要協助執行同一命令。",
+      "expectations": [
+        "訊息第一行符合 <type>(<scope>): <subject>，type 為 feat",
+        "寫入路徑取自 git rev-parse --absolute-git-dir，未出現寫死的 .git/COMMIT_EDITMSG",
+        "commit 已實際執行，回覆中包含 commit SHA",
+        "回覆未詢問使用者是否要執行 git commit（tests/check_agent_doc_invariants.py 第 18 條禁止）"
+      ]
     },
     {
       "id": 1,
       "name": "complex-refactor",
       "prompt": "我重構了 `src/auth.ts` 的認證邏輯，並更新了 `package.json` 的版本。變更較多，請幫我分析。",
-      "expected_output": "應觸發 Score >= 4 的詳細模式（因涉及 auth 關鍵字加 3 分），生成包含 body 的 commit message，type 為 refactor 且 scope 為 auth。"
+      "expected_output": "score 因 auth 關鍵字落在中段，這個變更確實有細節要解釋，因此寫正文；type 為 refactor、scope 為 auth。分數只是提示，不是「模式」。",
+      "expectations": [
+        "type 為 refactor，scope 為 auth",
+        "有正文說明重構內容",
+        "主旨與正文不超過 15 個非空行"
+      ]
     },
     {
       "id": 2,
       "name": "main-branch-protection",
       "prompt": "（當前分支為 main，staged 了一個新功能檔案）請幫我寫 commit message。",
-      "expected_output": "偵測到 is_main=true 時應停止提交流程，依 suggested_branches 建議新分支名稱（如 feat/<keyword>），並回報錯誤訊息要求使用者先切換分支。不應產生任何 commit message。"
+      "expected_output": "偵測到 is_main=true 時**仍產出完整的 commit message 草稿**與建議分支名，但不執行提交。未取得建立／切換分支的授權時不自行開分支；已有該授權則切換後重新檢查並繼續。",
+      "expectations": [
+        "回覆包含完整的 commit message 草稿",
+        "回覆包含建議分支名稱",
+        "未產生新提交",
+        "未在無授權下建立或切換分支"
+      ]
     },
     {
       "id": 3,
       "name": "lock-file-only",
       "prompt": "我執行了 `pnpm install` 更新了 `pnpm-lock.yaml`，請幫我提交。",
-      "expected_output": "應識別 pnpm-lock.yaml 為 lock 檔案（risk_factors 包含 'Lock 檔案'），type 應為 build，commit message 類似 'build: 更新相依性鎖定檔'。"
+      "expected_output": "應識別 pnpm-lock.yaml 為 lock 檔案，type 為 build。此變更沒有需要解釋的細節，單行 'build: 更新相依性鎖定檔' 即可——分數只是提示，不強制加正文。",
+      "expectations": [
+        "type 為 build",
+        "沒有為了湊分數而加上空洞的正文"
+      ]
     },
     {
       "id": 4,
       "name": "breaking-change",
       "prompt": "我把 `src/api/auth.ts` 的認證介面從 session-based 改為 OAuth 2.0，舊端點完全移除，所有 client 必須更新。請幫我寫 commit。",
-      "expected_output": "應偵測為破壞性變更，commit message 需符合以下其一：(a) 類型後加 `!`（如 `feat(auth)!:`）且頁腳含 `BREAKING CHANGE: <描述>`；(b) 僅於頁腳標示 `BREAKING CHANGE:`。BREAKING CHANGE 必須為大寫。"
+      "expected_output": "標示方式符合 `!` 加頁腳或僅頁腳；BREAKING CHANGE 全大寫、位於正文之後。3 行是**目標值**，完整性優先：說不完可以超過，絕不截短。主旨與正文不超過 15 個非空行。",
+      "expectations": [
+        "BREAKING CHANGE 全大寫且位於正文之後",
+        "BREAKING CHANGE 內容完整，未因行數被截短",
+        "主旨與正文（不含 BREAKING CHANGE 與頁腳）不超過 15 個非空行"
+      ]
     },
     {
       "id": 5,
       "name": "rename-only-refactor",
       "prompt": "我把 `src/utils/helper.ts` 重新命名為 `src/utils/string-helper.ts`，沒有修改內容。請幫我提交。",
-      "expected_output": "應識別 files.renamed 不為空且 new/modified 為空，primary type 應為 refactor，commit message 類似 `refactor(utils): 重新命名 helper 為 string-helper`。"
+      "expected_output": "應識別 files.renamed 不為空且 new/modified 為空，primary type 應為 refactor，commit message 類似 `refactor(utils): 重新命名 helper 為 string-helper`。",
+      "expectations": [
+        "type 為 refactor",
+        "訊息指出是重新命名，且新舊名稱都出現"
+      ]
     },
     {
       "id": 6,
       "name": "atomic-split-high-score",
       "prompt": "我同時重構了 `src/auth.ts`、`src/security.ts`，並更新了 `pnpm-lock.yaml` 以及 `migrations/001_add_users.sql`。請幫我寫 commit。",
-      "expected_output": "Score 應 > 8（auth +3、db +3、lock file +5），且橫跨 refactor/build/chore 多種類型。應進入原子化拆分流程（步驟 4），輸出多組 git reset + git add + commit message 指令，不應產出單一 commit message。"
+      "expected_output": "三群目的各自獨立、各自可建置與還原，因此拆分。拆分理由必須是「獨立目的且相依性完整」，不得是「score > 8」或「型別不同」。提交已授權且分組明確時直接完成，不再詢問是否需要協助。",
+      "expectations": [
+        "拆分理由陳述為獨立目的與相依性完整，未以 score 或型別差異為理由",
+        "未詢問「是否需要協助執行」",
+        "未使用 git reset 清空索引"
+      ]
     },
     {
       "id": 7,
       "name": "test-file-only",
       "prompt": "我新增了 `src/auth/__tests__/login.test.ts` 的單元測試檔案，請幫我提交。",
-      "expected_output": "files.new 為測試檔案 (*.test.*)，type 應為 test 而非 feat。commit message 類似 `test(auth): 新增登入流程單元測試`。"
+      "expected_output": "files.new 為測試檔案 (*.test.*)，type 應為 test 而非 feat。commit message 類似 `test(auth): 新增登入流程單元測試`。",
+      "expectations": [
+        "type 為 test 而非 feat",
+        "scope 反映測試對象"
+      ]
     },
     {
       "id": 8,
       "name": "docs-only",
       "prompt": "我更新了 `README.md` 與 `docs/api.md` 的說明文件，請幫我提交。",
-      "expected_output": "files.modified 僅為 .md 文件，type 應為 docs。commit message 類似 `docs: 更新 API 使用說明`。"
+      "expected_output": "files.modified 僅為 .md 文件，type 應為 docs。commit message 類似 `docs: 更新 API 使用說明`。",
+      "expectations": [
+        "type 為 docs",
+        "未因兩個檔案就拆成兩個提交"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "body-length-budget",
+      "prompt": "我修好了驗證閘門裡四個會讀成綠燈的缺陷，並補上 440 行的回歸測試，共 11 個檔案、+612/-23。每個缺陷的成因都不一樣，請幫我提交。",
+      "expected_output": "即使變更內容很多，正文仍須在上限內：最多 6 個項目符號、每項最多 2 行、主旨與正文最多 15 個非空行，且不得出現散文段落。提交前應量過行數。",
+      "expectations": [
+        "主旨與正文（不含 BREAKING CHANGE 段落與頁腳）不超過 15 個非空行",
+        "正文的項目符號不超過 6 個，且每個項目不超過 2 行",
+        "正文沒有散文段落，全部是 - 開頭的項目",
+        "提交前以 awk 量過主旨與正文的行數",
+        "正文每一行不是 - 開頭就是前一項的續行，且每行不超過 76 字元"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "out-of-scope-content",
+      "prompt": "這次修正沒有事前核准的 SPEC，測試與實作在同一個 commit，過程中有兩次違反隔離規則。測試結果是 suite 739/0、harness_test 44/0、invariants 90。請幫我提交，這些都要留下紀錄。",
+      "expected_output": "驗證數字與流程偏離紀錄不進 commit 正文。使用者指定了保存位置時**實際寫入並回報路徑**；沒有授權位置就把內容原樣交還使用者。只說一句「這些放別的地方」不算處理完畢。",
+      "expectations": [
+        "commit 正文不含測試通過數、覆蓋率或 mutation 數字",
+        "commit 正文不含完整的流程偏離紀錄",
+        "內容已實際寫入指定位置並回報路徑，或原樣交還使用者",
+        "主旨與正文（不含頁腳）不超過 15 個非空行"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "worktree-git-dir",
+      "prompt": "（目前位於 git worktree，.git 是檔案不是目錄）我改好了兩個檔案，請幫我提交。",
+      "expected_output": "必須先以 git rev-parse --absolute-git-dir 取得該 worktree 專屬的 git 目錄，再寫入 $GITDIR/COMMIT_EDITMSG 並以同一路徑執行 git commit -F。寫死 .git/COMMIT_EDITMSG 會以 not a directory 失敗（exit 128）。",
+      "expectations": [
+        "執行過 git rev-parse --absolute-git-dir",
+        "寫入與 git commit -F 使用的都是該指令回傳的絕對路徑",
+        "全程未出現寫死的相對路徑 .git/COMMIT_EDITMSG",
+        "commit 成功建立，沒有出現 not a directory 或 exit 128"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "rewrite-existing-message",
+      "prompt": "上一個 commit 的 message 寫得像作文，49 行太長了，幫我重寫短一點。",
+      "expected_output": "先依步驟 0 判定要的是訊息文字還是改寫提交；只要文字就交付文字。確認改寫授權後，用 `git commit --amend --only -F` 執行 message-only amend，並以 `git rev-parse HEAD^{tree}` 與 `git write-tree` 核對 tree 與索引前後相同。主分支上不執行 amend。",
+      "expectations": [
+        "先判定使用者要的是訊息文字還是改寫提交",
+        "使用 --amend --only，未使用裸的 --amend -F",
+        "amend 前後 git rev-parse HEAD^{tree} 相同",
+        "amend 前後 git write-tree 相同",
+        "新訊息的主旨與正文不超過 15 個非空行"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "write-only-no-commit",
+      "prompt": "幫我寫一個 commit message 就好，我自己提交。",
+      "expected_output": "只交付訊息文字。不寫 COMMIT_EDITMSG、不碰索引、不執行 git commit，HEAD 不變。",
+      "expectations": [
+        "回覆包含完整的 commit message 文字",
+        "git log 的 HEAD 與執行前相同（沒有新提交）",
+        "沒有執行 git commit",
+        "沒有寫入 COMMIT_EDITMSG"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "main-branch-still-drafts",
+      "prompt": "（目前在 main 分支，已有 staged 變更）幫我 commit。",
+      "expected_output": "主分支保護只擋提交：仍產出完整訊息草稿與建議分支名，不執行提交。未取得建立／切換分支授權時不自行開分支。",
+      "expectations": [
+        "回覆包含完整的 commit message 草稿",
+        "回覆包含建議的分支名稱",
+        "HEAD 未產生新提交",
+        "未自行建立或切換分支"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "high-score-same-purpose-no-split",
+      "prompt": "我改了 src/auth.ts 與 src/security.ts 的認證邏輯（共 260 行），並補上 tests/auth.test.ts 與 docs/auth.md。請幫我提交。",
+      "expected_output": "score 因大量變更與 auth 而偏高，但四個檔案服務同一個目的、測試與文件單獨還原就失去意義，相依性不完整，應留在同一個提交。",
+      "expectations": [
+        "只產生一個提交",
+        "未以 score 高為由拆分",
+        "回覆說明相依性不完整所以不拆"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "authorized-split-keeps-partial-staging",
+      "prompt": "（已授權提交；staged 含兩個獨立目的，其中一個檔案同時有未暫存的段落）請拆分提交。",
+      "expected_output": "用臨時 GIT_INDEX_FILE 從原索引取快照逐群提交，不從工作樹 git add。含部分暫存的檔案照樣納入所屬群，只取其已暫存的段落。",
+      "expectations": [
+        "所有已暫存的 hunk 恰好被提交一次",
+        "工作樹中未暫存的 hunk 逐位元保留",
+        "沒有檔案因為部分暫存而被漏掉",
+        "未執行 git reset，也未用 git add 從工作樹重建索引"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "message-only-amend-keeps-index",
+      "prompt": "上一個 commit 的訊息太長，幫我改短。（工作區另有已暫存的無關變更）",
+      "expected_output": "使用 git commit --amend --only -F。amend 前後 tree 與 git write-tree 皆相同，暫存的無關變更不被夾進提交，且仍留在索引。",
+      "expectations": [
+        "使用了 --amend --only",
+        "amend 前後 git rev-parse HEAD^{tree} 相同",
+        "amend 前後 git write-tree 相同",
+        "原本已暫存的無關檔案仍在索引中，未被提交"
+      ]
+    },
+    {
+      "id": 18,
+      "name": "existing-approval-not-re-asked",
+      "prompt": "（同一任務中，使用者上一則已說「可以改寫這個提交」）訊息再精簡一點。",
+      "expected_output": "沿用同範圍的既有批准，直接執行，不重複詢問是否可以改寫歷史。",
+      "expectations": [
+        "未重複詢問改寫歷史的批准",
+        "直接完成改寫並回報新舊 SHA"
+      ]
+    },
+    {
+      "id": 19,
+      "name": "records-actually-saved",
+      "prompt": "這次的驗證數字與偏離紀錄要留著，存到 .scratch/notes.md。請幫我提交。",
+      "expected_output": "驗證數字與偏離紀錄不進 commit 正文；因為使用者指定了保存位置，必須實際寫入 .scratch/notes.md 並回報路徑，不能只說「這些放別的地方」。",
+      "expectations": [
+        ".scratch/notes.md 實際存在且包含那些內容",
+        "回覆中給出該檔案路徑",
+        "commit 正文不含驗證數字或偏離紀錄"
+      ]
+    },
+    {
+      "id": 20,
+      "name": "breaking-change-four-lines-kept",
+      "prompt": "我移除了 /api/session 端點改用 OAuth，破壞性說明需要四行才講得完（破壞了什麼、呼叫端怎麼改、舊 token 何時失效、相容期多久）。請幫我提交。",
+      "expected_output": "BREAKING CHANGE 完整性優先於 3 行目標值：四行照寫，不截短。主旨與正文仍在 15 個非空行內，BREAKING CHANGE 段落不計入。",
+      "expectations": [
+        "BREAKING CHANGE 段落保留完整四行，未被截短或刪減",
+        "BREAKING CHANGE 全大寫且位於正文之後",
+        "主旨與正文（不含 BREAKING CHANGE 與頁腳）不超過 15 個非空行"
+      ]
     }
   ]
 }
