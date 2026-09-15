@@ -297,7 +297,9 @@ try {
 ```
 
    **失敗就停在這一群**，不要繼續下一群：已提交的群留著，未提交的群仍在原索引裡，
-   回報停在哪一群與原因。
+   回報停在哪一群與原因。**被 Ctrl+C 中斷時，先用 `git log -1` 確認這一群是否已提交**，
+   再回報：Windows 上在 hook 執行中中斷，shell 顯示中斷，git 仍完成了提交。重跑已提交
+   的群會因修補檔為空而失敗，不會重複提交。
 
    工作樹完全不碰，`git add` 一次都不用：未暫存的段落逐位元保留。真實索引保留尚未
    提交的群；已提交的群因 HEAD 追上而自然不再算 staged。
@@ -479,9 +481,56 @@ diff -u "$OLD" "$GITDIR/COMMIT_EDITMSG"; rm -f "$OLD"
 3. **依目標分流**，不要一律 amend HEAD：
 
    - **目標就是最新一筆** → 做第 4 點。
-   - **目標是更早的提交** → 取得明確批准後，以互動式 rebase 只改那一筆的訊息，其餘
-     內容保留；**不要套用第 4 點的 amend 指令，那只適用於 HEAD**。完成後核對目標提交
-     與分支的 tree 與改寫前相同。
+   - **目標是更早的提交** → 取得明確批准後，用下面的區塊只改那一筆的訊息。**不要套用
+     第 4 點的 amend 指令，那只適用於 HEAD**。
+
+   Claude Code 的工具不能操作互動式編輯器，所以區塊用 `GIT_SEQUENCE_EDITOR` 把第一行的
+   動作改成 `reword`，用 `GIT_EDITOR` 填入新訊息，讓 `git rebase -i` 不需要人操作。
+   動作不寫死 `pick`：設定 `rebase.abbreviateCommands` 時第一行是 `p`。
+
+   - 工作樹或索引有變更時 rebase 會拒絕執行。**不要自行 stash**，回報使用者。
+     三個 `--no-*` 旗標蓋過使用者的 git 設定（本 repo 的 git config 就開了前兩項）：
+     `rebase.autoStash` 會把已暫存的變更還原成未暫存，`rebase.autoSquash` 會併掉範圍內的
+     `fixup!` 提交，`rebase.updateRefs` 會改寫指向範圍內的其他分支。
+   - 範圍內有合併提交時停止並回報：`git rebase -i` 會把合併攤平，改到的不只訊息。
+   - rebase 會覆寫 `COMMIT_EDITMSG`，所以區塊先把新訊息複製到暫存檔。
+   - 核對範圍內**每一筆**提交的 tree，不只 HEAD。
+
+```sh
+GITDIR=$(git rev-parse --absolute-git-dir)
+TARGET=$(git rev-parse --verify '<sha>^{commit}')
+MSG=$(mktemp); cp "$GITDIR/COMMIT_EDITMSG" "$MSG"
+BEFORE=$(git log --format=%T "$TARGET^..HEAD")
+if [ -n "$(git rev-list --merges "$TARGET^..HEAD")" ]; then
+  echo "範圍內有合併提交：停止並回報"
+elif GIT_SEQUENCE_EDITOR="sed -i '1s/^[^ ]*/reword/'" GIT_EDITOR="cp '$MSG'" \
+     git rebase -i --no-autostash --no-autosquash --no-update-refs "$TARGET^"; then
+  if [ "$(git log --format=%T "$TARGET^..HEAD")" = "$BEFORE" ]; then echo "每一筆 tree 未變"
+  else echo "tree 變了：回報這件事"; fi
+else
+  git rebase --abort 2>/dev/null; echo "rebase 失敗，分支已還原：回報這件事"
+fi
+rm -f "$MSG"
+```
+
+```powershell
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$path   = Join-Path (git rev-parse --absolute-git-dir) 'COMMIT_EDITMSG'
+$target = git rev-parse --verify '<sha>^{commit}'
+$msg    = [IO.Path]::GetTempFileName(); Copy-Item -LiteralPath $path -Destination $msg
+$before = (git log --format=%T "$target^..HEAD") -join ' '
+try {
+    if (git rev-list --merges "$target^..HEAD") { throw '範圍內有合併提交：停止並回報' }
+    $env:GIT_SEQUENCE_EDITOR = "sed -i '1s/^[^ ]*/reword/'"
+    $env:GIT_EDITOR = "cp '$msg'"
+    git rebase -i --no-autostash --no-autosquash --no-update-refs "$target^"
+    if ($LASTEXITCODE) { git rebase --abort 2>$null; throw 'rebase 失敗，分支已還原：回報這件事' }
+    if (((git log --format=%T "$target^..HEAD") -join ' ') -eq $before) { '每一筆 tree 未變' } else { 'tree 變了：回報這件事' }
+} finally {
+    Remove-Item Env:GIT_SEQUENCE_EDITOR, Env:GIT_EDITOR -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $msg -ErrorAction SilentlyContinue
+}
+```
 
 4. **執行 message-only amend 並核對**。`--only` 是關鍵，少了它索引內容會被吞進提交。
    記錄基準、amend、核對三段放在同一個區塊，**一次呼叫執行完**（原因見寫入指引）。
@@ -511,7 +560,7 @@ if ((git write-tree) -eq $BEFORE_INDEX) { "索引未變" } else { "索引變了"
 5. **SHA 引用**：只改**使用者授權你改的**檔案。歷史證據（evidence report、驗證報告、
    已送出的 PR）一律不改，加註「`<old>` 與 `<new>` 的 tree 相同」即可。未授權的檔案
    （含 README、待辦）把該改的位置列給使用者，不自行動手。
-6. **回報**：新舊 SHA、行數變化、第 4 點的核對結果、改了哪些引用、哪些沒改。
+6. **回報**：新舊 SHA、行數變化、第 3 或第 4 點的核對結果、改了哪些引用、哪些沒改。
 
 ## 範例
 

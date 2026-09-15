@@ -157,6 +157,40 @@ def powershell_split_block(file: Path) -> None:
     CHECKS += 1
 
 
+def reword_blocks(file: Path) -> None:
+    """Claude Code's tools cannot drive an interactive editor, so rewording an
+    older commit needs `git rebase -i` with both editors replaced. A todo list
+    written with `rebase.abbreviateCommands` starts with `p`, not `pick`, and
+    `-i` flattens merges, which would change more than the message. The
+    rebase.autoStash, rebase.autoSquash and rebase.updateRefs settings (this
+    repo's own git config sets the first two) would unstage the user's index,
+    squash fixup! commits, or move other branches."""
+    global CHECKS
+    found = {"sh": 0, "powershell": 0}
+    for start, lang, body in code_blocks(file):
+        if "GIT_SEQUENCE_EDITOR" not in body:
+            continue
+        kind = "powershell" if lang == "powershell" else "sh"
+        found[kind] += 1
+        for needle in ("GIT_EDITOR", "git rebase -i --no-autostash --no-autosquash --no-update-refs",
+                       "git rebase --abort", "--merges", "--format=%T"):
+            if needle not in body:
+                die(1, f"{file}:{start} reword block lacks {needle}")
+        if "^pick" in body:
+            die(1, f"{file}:{start} reword block hardcodes 'pick' in the todo edit")
+        if kind == "powershell":
+            fin = body.find("finally")
+            if fin < 0 or "Env:GIT_SEQUENCE_EDITOR" not in body[fin:] or "Env:GIT_EDITOR" not in body[fin:]:
+                die(1, f"{file}:{start} PowerShell reword block must clear both editors in finally")
+            line = next((l for l in body.splitlines() if "git rebase -i" in l), "")
+            after = body[body.find(line) + len(line):].lstrip()
+            if "$LASTEXITCODE" not in line and not after.startswith("if ($LASTEXITCODE)"):
+                die(1, f"{file}:{start} PowerShell reword block does not check git rebase -i exit code")
+    if found != {"sh": 1, "powershell": 1}:
+        die(1, f"{file} needs one POSIX and one PowerShell reword block, found {found}")
+    CHECKS += 1
+
+
 def main() -> None:
     global CHECKS
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else \
@@ -374,6 +408,19 @@ def main() -> None:
     #      it and decodes Chinese with the console code page, both with rc=0.
     powershell_split_block(commit_skill)
     require(commit_skill, "stdin script mode is ruled out", "`powershell -Command -`")
+    # A Ctrl+C during a hook left the group committed on Windows while the
+    # shell reported an interruption; the report must come from git, not the shell.
+    require(commit_skill, "interrupted split checks git log before reporting",
+            "被 Ctrl+C 中斷")
+
+    # 18g. Rewording an older commit is an executable block, not prose.
+    reword_blocks(commit_skill)
+    forbid(commit_skill, "no unexecutable interactive-rebase instruction",
+           "以互動式 rebase 只改那一筆的訊息")
+    # Claude Code's PowerShell tool refused the whole reword block, reading
+    # `-replace '\\', '/'` as a Remove-Item target. Git's sh takes backslashes.
+    forbid(commit_skill, "no backslash literal that trips the PowerShell tool's path guard",
+           "-replace '\\\\'")
 
     # 19. SPEC global-agent-instructions S8: GREEN may run the affected tests
     #     first (full suite only when it stays fast); the final gate always
