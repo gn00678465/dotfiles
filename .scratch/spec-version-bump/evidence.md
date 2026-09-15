@@ -258,6 +258,14 @@ mutation 轉綠只能換一台有 WSL interop 的主機。這兩項都在 SPEC �
 - **H15**：Gate 表的數字出自入口的一次執行，產出落在暫存 worktree 的 `.gate/` 內
   （`.gate/` 被 git 忽略，不進版控）。來源根目錄另有一份更早、中斷過的 `.gate/`
   殘留；讀本報告時請以入口記的 commit 為準，不要拿根目錄那份對照。
+- **H16**：`spec-archive.py` 不讀本報告的 `headline`。它檢查報告存在、已提交、
+  `spec_version` 與 SPEC 相同，但 gate 是綠是紅它一概不看，所以「A failing gate
+  blocks done」在 CLOSE 這一端原本只是散文。本輪因此寫了
+  `.scratch/spec-version-bump/verification.md` 並填 `final_verdict: blocked`——
+  那一欄是 `check_verdict`（`:254-270`）唯一會讀的東西，填了就讓 CLOSE 以 exit 1
+  拒絕。沒有新增任何檢查，只是把既有的那一個接上。要解除封鎖必須動這個檔，
+  而它在版控裡，改動留得下痕跡。CLOSE 自己不看 headline 這個洞仍然存在，
+  不屬於本 scope。
 - **H9**：本次為修正 after-spec squad 紀錄的六個 `status: fixed` 標記改寫過一次歷史
   （`5928595` → `63c0208`，其後 9 個 commit 重放）。`check_squad` 要求 after-spec 的
   最後一次 commit 早於核准 commit，另開新 commit 會弄破該條件。備份 ref
