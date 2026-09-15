@@ -89,6 +89,48 @@ def count_numbered_rules(file: Path, heading: str, expected: int) -> None:
         die(1, f"'{heading}' in {file} has {n} numbered rules, expected {expected}")
 
 
+def code_blocks(file: Path) -> list[tuple[int, str, str]]:
+    blocks, lang, start, body = [], None, 0, []
+    for n, line in enumerate(read(file).splitlines(), 1):
+        if lang is None:
+            m = re.match(r"^```(bash|sh|powershell)\s*$", line)
+            if m:
+                lang, start, body = m.group(1), n, []
+        elif line.startswith("```"):
+            blocks.append((start, lang, "\n".join(body)))
+            lang = None
+        else:
+            body.append(line)
+    return blocks
+
+
+def blocks_self_contained(file: Path) -> None:
+    """Claude Code's Bash and PowerShell tools start a new shell per call, so
+    a variable set by an earlier block is empty in the next one: a verify
+    block then reports a changed tree that did not change, and `-F
+    "$GITDIR/..."` reads a file under the git install directory instead."""
+    global CHECKS
+    sh_vars = ("GITDIR", "BEFORE_TREE", "BEFORE_INDEX")
+    ps_vars = ("path", "BEFORE_TREE", "BEFORE_INDEX")
+    for start, lang, body in code_blocks(file):
+        if lang == "powershell":
+            for v in ps_vars:
+                if re.search(rf"\${v}\b(?!\s*=)", body, re.I) and \
+                        not re.search(rf"^\s*\${v}\s*=", body, re.I | re.M):
+                    die(1, f"{file}:{start} PowerShell block reads ${v} without setting it")
+            # Windows PowerShell decodes native output with the console code
+            # page (950 on zh-TW), which garbles a non-ASCII git dir path.
+            rp = body.find("git rev-parse --absolute-git-dir")
+            enc = body.find("[Console]::OutputEncoding")
+            if rp >= 0 and not 0 <= enc < rp:
+                die(1, f"{file}:{start} PowerShell block runs git rev-parse before setting UTF-8 OutputEncoding")
+        else:
+            for v in sh_vars:
+                if re.search(rf"\$\{{?{v}\b", body) and not re.search(rf"\b{v}=", body):
+                    die(1, f"{file}:{start} shell block reads ${v} without setting it")
+    CHECKS += 1
+
+
 def main() -> None:
     global CHECKS
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else \
@@ -297,6 +339,9 @@ def main() -> None:
     #      that delivers the text and stops.
     require(commit_skill, "message-only delivery path exists",
             "步驟 5a")
+
+    # 18e. Every commit-skill code block runs alone in a fresh shell.
+    blocks_self_contained(commit_skill)
 
     # 19. SPEC global-agent-instructions S8: GREEN may run the affected tests
     #     first (full suite only when it stays fast); the final gate always

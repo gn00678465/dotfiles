@@ -75,6 +75,7 @@ description: 分析 git staged changes，根據 Conventional Commits (1.0.0-beta
 POSIX shell：
 
 ```bash
+GITDIR=$(git rev-parse --absolute-git-dir)
 awk 'NR==1{n++; next} /^BREAKING CHANGE:/{exit} /^[A-Za-z][A-Za-z0-9-]*: /{exit} NF{n++}
      END{print n}' "$GITDIR/COMMIT_EDITMSG"
 ```
@@ -82,6 +83,8 @@ awk 'NR==1{n++; next} /^BREAKING CHANGE:/{exit} /^[A-Za-z][A-Za-z0-9-]*: /{exit}
 PowerShell（pwsh 6+ 與 Windows PowerShell 5.1 同一段）：
 
 ```powershell
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$path = Join-Path (git rev-parse --absolute-git-dir) 'COMMIT_EDITMSG'
 $n = 0; $i = 0
 foreach ($l in Get-Content -Encoding utf8 $path) {
     $i++
@@ -328,11 +331,14 @@ GIT_INDEX_FILE="$IDX" git commit -F "$GITDIR/COMMIT_EDITMSG"
 6. **提交**：
 
 ```bash
-git commit -F "$GITDIR/COMMIT_EDITMSG"          # POSIX
+GITDIR=$(git rev-parse --absolute-git-dir)      # POSIX
+git commit -F "$GITDIR/COMMIT_EDITMSG"
 ```
 
 ```powershell
-git commit -F $path                              # PowerShell
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)   # PowerShell
+$path = Join-Path (git rev-parse --absolute-git-dir) 'COMMIT_EDITMSG'
+git commit -F $path
 ```
 
 7. **回報結果**：commit 已完成，附上 commit SHA 與訊息摘要；不再詢問是否需要協助執行同一命令。
@@ -346,6 +352,10 @@ git commit -F $path                              # PowerShell
 ```bash
 GITDIR=$(git rev-parse --absolute-git-dir)
 ```
+
+⚠️ **每個區塊自己取路徑，整塊一次執行**。Claude Code 的 `Bash` 與 `PowerShell` 工具每次呼叫都是新的 shell，上一次呼叫設定的 `$GITDIR`、`$path`、`$BEFORE_TREE` 在下一次都是空值：`-F "$GITDIR/COMMIT_EDITMSG"` 會讀到 git 安裝目錄下的檔案，核對段會回報 tree 已變，但實際沒有變。所以本檔每個區塊都先取路徑，不要把一個區塊拆成多次呼叫。
+
+⚠️ **PowerShell 區塊先把 `[Console]::OutputEncoding` 設成 UTF-8**。PowerShell 用主控台的 code page 解碼 `git` 的輸出，繁體中文 Windows 預設是 950。repo 路徑含中文時，`$path` 會變成亂碼，pwsh 7 與 5.1 都會寫入失敗。Claude Code 的 `PowerShell` 工具已經是 65001，但終端機的 pwsh 與 5.1 不是。
 
 ⚠️ **不要使用 Claude Code 的 `Write` 工具**。`COMMIT_EDITMSG` 在任何一次 commit 之後就已經存在，`Write` 會以 `File has not been read yet. Read it first before writing to it.` 失敗。
 
@@ -383,6 +393,7 @@ EOF
 ⚠️ 閉合的 `'@` **必須在第 0 欄，不能有縮排**，否則 here-string 解析失敗。
 
 ```powershell
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 $path = Join-Path (git rev-parse --absolute-git-dir) 'COMMIT_EDITMSG'
 @'
 <type>(<scope>): <subject>
@@ -405,9 +416,12 @@ $msg = @'
 - bullet 1
 - bullet 2
 '@
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 $path = Join-Path (git rev-parse --absolute-git-dir) 'COMMIT_EDITMSG'
 [System.IO.File]::WriteAllText($path, $msg, [System.Text.UTF8Encoding]::new($false))
 ```
+
+把這段存成 `.ps1` 再用 `-File` 執行時，檔案必須有 UTF-8 BOM。5.1 用 ANSI code page 讀取無 BOM 的腳本，中文字元會吃掉 here-string 結尾的 `'@`，造成解析失敗（`字串遺漏結尾字元: '@`）。在主控台直接輸入，或用 `-Command` 參數傳入，都不受影響。
 
 ##### 退路（任何通道皆不可用時）
 
@@ -419,23 +433,16 @@ $path = Join-Path (git rev-parse --absolute-git-dir) 'COMMIT_EDITMSG'
 交付文字。出現「重寫」「太長」字樣不等於授權改寫歷史。主分支保護照樣適用：在
 main／master 上不執行 amend。
 
-1. **取路徑並記錄基準**（在任何寫入之前）：
+1. **重寫並預覽**：`git log -1 --format=%B <sha>` 看現況，套用「長度上限（硬性）」與
+   「不寫進 commit message 的內容」兩節，寫進 `COMMIT_EDITMSG`，再並排：
 
 ```sh
 GITDIR=$(git rev-parse --absolute-git-dir)
-BEFORE_TREE=$(git rev-parse HEAD^{tree})
-BEFORE_INDEX=$(git write-tree)   # 索引的完整內容；檔名清單證明不了內容沒變
-```
-
-2. **重寫並預覽**：`git log -1 --format=%B <sha>` 看現況，套用「長度上限（硬性）」與
-   「不寫進 commit message 的內容」兩節，寫進 `"$GITDIR/COMMIT_EDITMSG"`，再並排：
-
-```sh
 OLD=$(mktemp); git log -1 --format=%B <sha> > "$OLD"
 diff -u "$OLD" "$GITDIR/COMMIT_EDITMSG"; rm -f "$OLD"
 ```
 
-3. **確認授權**：
+2. **確認授權**：
 
    | 目標 | 需要 |
    |------|------|
@@ -446,29 +453,22 @@ diff -u "$OLD" "$GITDIR/COMMIT_EDITMSG"; rm -f "$OLD"
    對話中已有**同範圍**批准就沿用，不重問。查不到遠端（`git branch -r` 無對應分支、
    `git ls-remote` 不通）只代表**證據不足**，不能當作沒分享——證據不足時當已分享處理。
 
-4. **依目標分流**，不要一律 amend HEAD：
+3. **依目標分流**，不要一律 amend HEAD：
 
-   - **目標就是最新一筆** → 做第 5 點。
+   - **目標就是最新一筆** → 做第 4 點。
    - **目標是更早的提交** → 取得明確批准後，以互動式 rebase 只改那一筆的訊息，其餘
-     內容保留；**不要套用第 5 點的 amend 指令，那只適用於 HEAD**。完成後核對目標提交
+     內容保留；**不要套用第 4 點的 amend 指令，那只適用於 HEAD**。完成後核對目標提交
      與分支的 tree 與改寫前相同。
 
-5. **執行 message-only amend**。`--only` 是關鍵，少了它索引內容會被吞進提交：
+4. **執行 message-only amend 並核對**。`--only` 是關鍵，少了它索引內容會被吞進提交。
+   記錄基準、amend、核對三段放在同一個區塊，**一次呼叫執行完**（原因見寫入指引）。
+   核對失敗必須講出來：
 
 ```sh
+GITDIR=$(git rev-parse --absolute-git-dir)
+BEFORE_TREE=$(git rev-parse HEAD^{tree})
+BEFORE_INDEX=$(git write-tree)   # 索引的完整內容；檔名清單證明不了內容沒變
 git commit --amend --only -F "$GITDIR/COMMIT_EDITMSG"
-```
-
-```powershell
-$path         = Join-Path (git rev-parse --absolute-git-dir) 'COMMIT_EDITMSG'
-$BEFORE_TREE  = git rev-parse 'HEAD^{tree}'    # 引號：PS 會把 {} 當運算式
-$BEFORE_INDEX = git write-tree
-git commit --amend --only -F $path
-```
-
-6. **核對，失敗必須講出來**：
-
-```sh
 if [ "$(git rev-parse HEAD^{tree})" = "$BEFORE_TREE" ]; then echo "tree 未變"
 else echo "tree 變了：提交內容被改動，回報這件事"; fi
 if [ "$(git write-tree)" = "$BEFORE_INDEX" ]; then echo "索引未變"
@@ -476,14 +476,19 @@ else echo "索引變了：回報這件事"; fi
 ```
 
 ```powershell
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$path         = Join-Path (git rev-parse --absolute-git-dir) 'COMMIT_EDITMSG'
+$BEFORE_TREE  = git rev-parse 'HEAD^{tree}'    # 引號：PS 會把 {} 當運算式
+$BEFORE_INDEX = git write-tree
+git commit --amend --only -F $path
 if ((git rev-parse 'HEAD^{tree}') -eq $BEFORE_TREE) { "tree 未變" } else { "tree 變了：提交內容被改動" }
 if ((git write-tree) -eq $BEFORE_INDEX) { "索引未變" } else { "索引變了" }
 ```
 
-7. **SHA 引用**：只改**使用者授權你改的**檔案。歷史證據（evidence report、驗證報告、
+5. **SHA 引用**：只改**使用者授權你改的**檔案。歷史證據（evidence report、驗證報告、
    已送出的 PR）一律不改，加註「`<old>` 與 `<new>` 的 tree 相同」即可。未授權的檔案
    （含 README、待辦）把該改的位置列給使用者，不自行動手。
-8. **回報**：新舊 SHA、行數變化、第 6 點的核對結果、改了哪些引用、哪些沒改。
+6. **回報**：新舊 SHA、行數變化、第 4 點的核對結果、改了哪些引用、哪些沒改。
 
 ## 範例
 
