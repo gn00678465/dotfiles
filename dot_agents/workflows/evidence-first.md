@@ -52,7 +52,8 @@ The spec contains:
   step.
 - **Approval** — append-only record of the structured act that approved each
   spec version: the approving words verbatim, the date, and the version they
-  bind. Filled at SPEC REVIEW and committed with the spec.
+  bind, in one of the template's two record shapes. Filled at SPEC REVIEW and
+  committed with the spec; `spec-archive` parses this section at CLOSE.
 - **Versioning** — `spec_version` names an approval baseline, not an edit
   count. Pre-approval drafts are `v0.1`, `v0.2`, ...; `v1` is the first
   version put in front of the human. After that, the next integer is claimed
@@ -67,8 +68,9 @@ The spec contains:
   integer `vN` whose Approval section is missing any of `v1`…`vN`.
 - **Revisions** — append-only log. If implementation reveals the spec was
   wrong, say so explicitly and revise it visibly here — never silently drift.
-  A revision invalidates prior approval: open the next pending version, set
-  `status` back to `revised-pending-approval`, and re-request. While that
+  A revision to the approved contract invalidates prior approval: open the
+  next pending version — one integer for the whole round, not one per finding
+  — set `status` back to `revised-pending-approval`, and re-request. While that
   version is pending, fold every further change and every review round into
   it — a rejection revises it in place, it does not open another. Batch the
   re-request: a
@@ -163,9 +165,11 @@ does:
 - **Approval is a structured act bound to one spec version, not a parsed
   phrase.** Request it with an explicit structured prompt whose question
   names the version being approved; quote the selection verbatim into the
-  spec's `## Approval` section (words, date, version bound), flip `status`
-  to `approved`, and commit both in one act (the setup plan is where that
-  was authorized). The flip is not bookkeeping: `spec-archive` refuses any
+  spec's `## Approval` section (words, date, version bound) in one of the two
+  shapes the template carries — CLOSE parses for the literal `approves` of the
+  list form or the `approval: confirmed` of the sectioned one, and a record
+  written in neither shape does not archive — flip `status` to `approved`, and
+  commit both in one act (the setup plan is where that was authorized). The flip is not bookkeeping: `spec-archive` refuses any
   other status at CLOSE, so a spec approved but left at `draft` records
   consent it cannot act on. A committed,
   human-approved spec makes later drift a literal `git diff`, makes the

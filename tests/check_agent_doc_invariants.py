@@ -348,9 +348,9 @@ def main() -> None:
     #     — nothing more. It does not prove the three documents agree, and a
     #     rephrasing walks past it; that limit is on record in the scope's
     #     evidence report rather than hidden behind the check's name.
-    forbid(squad_skill, "class 2 does not order a version bump",
+    forbid(squad_skill, "the class-2 wording that ordered a bump has not returned",
            "the version is bumped")
-    forbid(workflow, "revisions do not order a version bump",
+    forbid(workflow, "the Revisions wording that ordered a bump has not returned",
            "bump the version, set")
 
     print(f"OK: {CHECKS} invariants hold")

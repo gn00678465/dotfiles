@@ -36,6 +36,7 @@ Evidence-first 是一份合約。它要求 repo 在變更完成時帶著五個�
    的契約時才取下一個整數，而且只取一次——那個待審版號會一路承載後續的修改
    直到被核准，被退回也是原地改，不再開新版。agent 把核准的原話、日期、版本
    逐字寫進 SPEC 的 Approval 一節，與 SPEC 一起提交。回答問題不算核准。
+   SPEC 改過就回到 `revised-pending-approval`，要重新核准才能繼續實作；
    修訂要合併送審，不要每發現一個缺陷就中斷一次。
 2. **合併 PR**。合併前，SPEC 已經封存為 `shipped`。
 
@@ -51,7 +52,7 @@ Evidence-first 是一份合約。它要求 repo 在變更完成時帶著五個�
 | 3 IMPLEMENT | 每個行為：RED → GREEN → REFACTOR。測試先提交 | 測試與實作的 commit | gate 從 git 重建 RED 與 commit 順序 |
 | 4 VERIFY | 呼叫 `verification-gate` skill。`gate` 反覆修到全過，派 `evidence-squad` 的 after-implement cut 讀已通過 gate 的狀態，依 class 處置後再 `gate`，`evidence` 只跑一次，在最後一次修改之後 | `.scratch/<scope>/evidence.md`（workflow Phase 4 規定，CLOSE 前提交） | gate 任一層失敗即擋住 done。intent 標頭由 gate 從 SPEC 導出 |
 | 5 INDEPENDENT VERIFICATION | Tier 3 選項。派 `verifier` agent，只給四項輸入，不給對話 | findings 與處置，`.scratch/<scope>/verification.md` | `spec-archive` 拒絕 `final_verdict` 為 failed 或 blocked |
-| 6 CLOSE | 先派 `evidence-squad` 的 before-archive cut，class-1 或未修正的 description finding 擋住封存。再呼叫 `spec-archive` skill。`status` 改為 `shipped`，搬到 `specs/archive/<scope>/`，提交。這是分支最後一個 commit，在合併之前 | `specs/archive/<scope>/SPEC.md` | 工作樹不乾淨、SPEC 未核准、evidence 缺少或版本不符、判定 failed 或 blocked、Tier 2 以上 squad 紀錄缺少、未分類、class 1 未關閉或順序錯誤，一律拒絕 |
+| 6 CLOSE | 先派 `evidence-squad` 的 before-archive cut，class-1 或未修正的 description finding 擋住封存。再呼叫 `spec-archive` skill。`status` 改為 `shipped`，搬到 `specs/archive/<scope>/`，提交。這是分支最後一個 commit，在合併之前 | `specs/archive/<scope>/SPEC.md` | 工作樹不乾淨、SPEC 未核准、evidence 缺少或版本不符、判定 failed 或 blocked、Tier 2 以上 squad 紀錄缺少、未分類、class 1 未關閉或順序錯誤、目前版號沒有完整核准紀錄、整數版號的核准序列缺號，一律拒絕 |
 
 ```mermaid
 sequenceDiagram

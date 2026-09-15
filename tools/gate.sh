@@ -134,8 +134,9 @@ run_layer agent-doc-invariants "$ART/agent-doc-invariants.txt" \
     python3 tests/check_agent_doc_invariants.py
 
 # ------------------------------------------------------------ spec-archive
-# tests/run.sh 只載入 tests/cases/L*.sh，封存腳本的測試不在裡面；AGENTS.md 要求
-# 改動該腳本後要跑它，而「要求」如果沒有接進入口，就只是寫在文件裡的一句話。
+# tests/run.sh 只載入 tests/cases/L*.sh，封存腳本的測試不在裡面，所以這支 gate
+# 先前跑不到它。另一個 scope 的入口 tools/gate-agent-instructions.py 早就有這一層；
+# 這裡補上的是這份 manifest 自己的缺口。
 run_layer spec-archive-tests "$ART/spec-archive-tests.txt" \
     python3 tests/spec_archive_test.py
 
