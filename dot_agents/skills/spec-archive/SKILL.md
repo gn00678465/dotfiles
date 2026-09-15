@@ -50,8 +50,12 @@ touches only that copy. The script, fail closed:
    `after-implement`, `before-archive`) missing or uncommitted, a finding
    bullet without `class 1|2|3`, a class-1 finding without `status: fixed`,
    `after-spec` last committed after the approval commit, or
-   `after-implement` after the evidence report (rc 1); a `tier` or
-   `final_verdict` line that cannot be parsed (rc 2).
+   `after-implement` after the evidence report (rc 1); the spec's own
+   `## Approval` section carrying no structurally complete record for the
+   current `spec_version`, or — for an integer `vN` — missing any of
+   `v1`…`vN` (rc 1), which checks that the records are there and never that
+   they are genuine; a `tier` or `final_verdict` line that cannot be parsed,
+   or more than one Approval section (rc 2).
 2. **Flips `status` to `shipped`** — the spec's one final mutation; after
    this commit the file is immutable.
 3. **`git mv specs/<scope> specs/archive/<scope>`** and commits

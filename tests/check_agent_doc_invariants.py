@@ -221,6 +221,14 @@ def main() -> None:
     require(archiver, "archiver parses the verdict", "VERDICT_RE")
     require(archiver, "archiver checks the squad records", "SQUAD_CUTS")
 
+    # 13c. CLOSE also reads the spec's own Approval section (SPEC
+    #      spec-version-bump R1/R2). Same pairing as 13 and 13b: the skill is
+    #      what the agent running CLOSE reads, so a refusal the script makes
+    #      and the skill does not name is a refusal nobody was told about.
+    require(archiver_skill, "skill states the approval-record gate",
+            "no structurally complete record")
+    require(archiver, "archiver checks the approval records", "check_approval")
+
     # 14. SPEC global-agent-instructions S2: shortening the contract must not
     #     cost the properties it exists to guarantee. Each literal already
     #     holds today (this is regression armor, not a new behaviour) — proven
