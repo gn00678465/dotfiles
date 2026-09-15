@@ -2,6 +2,10 @@
 
 - `headline`: BLOCKED at Mutation（38/44；六個存活的 mutant 全部依賴本機不存在的
   `pwsh.exe`，base ref 與本輪逐一相同。後四層與 manifest 稽核 NOT REACHED）
+- `declared_downgrade`: 核准者於 2026-09-15 逐字核准「接受這個本機造成、改動前後
+  完全相同的失敗，記成一次宣告過的降級」，據此放行 CLOSE。**headline 不因此改變**：
+  gate 仍然是失敗的。核准涵蓋與不涵蓋的範圍逐條列在
+  `.scratch/spec-version-bump/verification.md`。
 - `command`: `evidence`
 - `contract`: applied（`~/.claude/CLAUDE.md` 的 evidence-first 契約 v0.8，未被本 repo 覆寫）
 - `scope`: spec-version-bump
@@ -160,10 +164,21 @@ worktree 內、同一個 namespace 下得 `# run 739, failed 0, skipped 16`。
   UNAVAILABLE。這一層的 38/44 因此不能解讀成「suite 對 Windows 腳本的防護力」，
   只能解讀成「在沒有 pwsh.exe 的主機上可測到的部分全部殺掉」。
 - **NOT REACHED**：supply-chain、pacman-ids、changed-lines、source-state-after、
-  manifest audit（`tools/gate.sh:218`，在所有 `run_layer` 之後）——
-  入口停在 mutation。四層另外單獨跑過都通過（supply-chain 通過、pacman 名稱全部
-  解析、changed-lines 列出 16 個檔案、source-state-after 與 before 相同），**但那
-  不是本輪同一次執行的數字，不得填進上表，也不得用來把 NOT REACHED 升級。**
+  manifest audit（`tools/gate.sh:218`，在所有 `run_layer` 之後）—— 入口停在 mutation。
+
+  降級核准之後，這四層在最終狀態 `deed057` 各自單獨跑了一次，結果如下。
+  **這是單獨執行，不是 gate 同一次的數字，上表因此維持 NOT REACHED，不得升級。**
+  記在這裡的理由是：其中 supply-chain 與 changed-lines 量的就是本次變更，留白比
+  留一個標明來源的數字更糟。
+
+  | 層 | 指令（在 `deed057` 的來源樹，未經 bwrap） | 結果 |
+  |---|---|---|
+  | supply-chain | `python3 tools/gate-supply-chain.py --base 9a2e879` | `gate-supply-chain: 通過`（rc 0） |
+  | pacman-ids | `sh tools/gate-pacman-ids.sh` | `all pacman package names resolve`（rc 0；本機是 omarchy，原生可解析） |
+  | changed-lines | `python3 tools/gate-changed-lines.py --base 9a2e879 --head deed057` | rc 0；1524 行新增，set3（可執行、無對應）327 行，扣掉 `.scratch/` 後 set2=618／set3=327 |
+  | source-state | `sh tools/gate-source-state.sh` | `commit=deed057 worktree=clean` |
+
+  manifest 稽核無法單獨跑：它稽核的是那一次執行的 `layers-ran`。
 
 ## Dismissed concerns
 
