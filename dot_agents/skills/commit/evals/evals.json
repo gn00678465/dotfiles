@@ -1,59 +1,279 @@
 {
   "skill_name": "commit",
+  "fixture": "python evals/fixtures/build.py <id> <target-dir>",
+  "grading": "以 fixture repo 執行前後的狀態為準：HEAD、git write-tree、git diff --cached --name-only、COMMIT_EDITMSG、工作樹位元組。只有「執行過某指令」類的條件才看 agent 列出的指令。",
   "evals": [
     {
       "id": 0,
       "name": "simple-feat",
       "prompt": "我新增了一個登入頁面元件 `src/components/Login.tsx`，請幫我寫 commit message 並執行。",
-      "expected_output": "應識別為 feat 類型，生成單行（Score < 4）或含簡短 body 的 commit message，寫入 .git/COMMIT_EDITMSG，最後輸出 git commit -F .git/COMMIT_EDITMSG 指令並詢問是否執行。"
+      "expected_output": "type 為 feat，單行即可；以 git rev-parse --absolute-git-dir 取路徑寫入 COMMIT_EDITMSG，執行 git commit -F，回報 SHA。",
+      "files": [],
+      "expectations": [
+        "HEAD 比執行前多恰好一筆提交，且只含 src/components/Login.tsx",
+        "新提交主旨以 feat 開頭，符合 <type>(<scope>): <subject> 或 <type>: <subject>",
+        "agent 列出的指令含 git rev-parse --absolute-git-dir，且不含寫死的 .git/COMMIT_EDITMSG",
+        "回覆含新提交的 SHA，且未詢問使用者是否要執行 git commit"
+      ]
     },
     {
       "id": 1,
-      "name": "complex-refactor",
-      "prompt": "我重構了 `src/auth.ts` 的認證邏輯，並更新了 `package.json` 的版本。變更較多，請幫我分析。",
-      "expected_output": "應觸發 Score >= 4 的詳細模式（因涉及 auth 關鍵字加 3 分），生成包含 body 的 commit message，type 為 refactor 且 scope 為 auth。"
+      "name": "complex-refactor-message-only",
+      "prompt": "我重構了 `src/auth.ts` 的認證邏輯，把共用的驗證步驟抽到 `src/auth-helpers.ts`。變更較多，請幫我分析並寫 commit message，先不要提交。",
+      "expected_output": "只要分析與訊息，不提交。兩個檔案是同一個目的（抽出的 helper 被 auth.ts 引用），不建議拆分；草稿 type 為 refactor、scope 為 auth，並附正文說明重構內容。",
+      "files": [],
+      "expectations": [
+        "HEAD 與執行前相同，暫存區仍含 src/auth.ts 與 src/auth-helpers.ts",
+        "回覆含一則 commit message 草稿，主旨為 refactor(auth): 開頭",
+        "草稿有正文，且主旨與正文不超過 15 個非空行",
+        "回覆未建議拆成兩個提交"
+      ]
     },
     {
       "id": 2,
-      "name": "main-branch-protection",
+      "name": "main-branch-message-only",
       "prompt": "（當前分支為 main，staged 了一個新功能檔案）請幫我寫 commit message。",
-      "expected_output": "偵測到 is_main=true 時應停止提交流程，依 suggested_branches 建議新分支名稱（如 feat/<keyword>），並回報錯誤訊息要求使用者先切換分支。不應產生任何 commit message。"
+      "expected_output": "只要訊息：交付草稿與建議分支名，不提交、不開分支。",
+      "files": [],
+      "expectations": [
+        "HEAD 與執行前相同，仍在 main，且沒有新增分支",
+        "回覆含完整的 commit message 草稿，主旨以 feat 開頭",
+        "回覆含建議的分支名稱",
+        "COMMIT_EDITMSG 未被寫入（檔案不存在或內容與執行前相同）"
+      ]
     },
     {
       "id": 3,
       "name": "lock-file-only",
       "prompt": "我執行了 `pnpm install` 更新了 `pnpm-lock.yaml`，請幫我提交。",
-      "expected_output": "應識別 pnpm-lock.yaml 為 lock 檔案（risk_factors 包含 'Lock 檔案'），type 應為 build，commit message 類似 'build: 更新相依性鎖定檔'。"
+      "expected_output": "type 為 build；沒有細節要解釋，單行即可。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，只含 pnpm-lock.yaml",
+        "新提交主旨以 build 開頭",
+        "新提交沒有正文（訊息只有主旨與頁腳）"
+      ]
     },
     {
       "id": 4,
-      "name": "breaking-change",
+      "name": "breaking-change-write-commit",
       "prompt": "我把 `src/api/auth.ts` 的認證介面從 session-based 改為 OAuth 2.0，舊端點完全移除，所有 client 必須更新。請幫我寫 commit。",
-      "expected_output": "應偵測為破壞性變更，commit message 需符合以下其一：(a) 類型後加 `!`（如 `feat(auth)!:`）且頁腳含 `BREAKING CHANGE: <描述>`；(b) 僅於頁腳標示 `BREAKING CHANGE:`。BREAKING CHANGE 必須為大寫。"
+      "expected_output": "「寫 commit」是提交，不是只要訊息。以 ! 或頁腳標示破壞性變更；BREAKING CHANGE 全大寫、在正文之後、內容完整。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，只含 src/api/auth.ts",
+        "新提交訊息含 BREAKING CHANGE: 且全大寫，位於所有 - 開頭的正文行之後",
+        "BREAKING CHANGE 段落說明了移除舊端點與 client 必須更新",
+        "主旨與正文（不含 BREAKING CHANGE 與頁腳）不超過 15 個非空行",
+        "回覆未詢問使用者是否要執行提交"
+      ]
     },
     {
       "id": 5,
       "name": "rename-only-refactor",
       "prompt": "我把 `src/utils/helper.ts` 重新命名為 `src/utils/string-helper.ts`，沒有修改內容。請幫我提交。",
-      "expected_output": "應識別 files.renamed 不為空且 new/modified 為空，primary type 應為 refactor，commit message 類似 `refactor(utils): 重新命名 helper 為 string-helper`。"
+      "expected_output": "files.renamed 不為空，type 為 refactor，訊息指出新舊名稱。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，git show --stat 顯示 helper.ts 重新命名為 string-helper.ts 且相似度 100%",
+        "新提交主旨以 refactor 開頭",
+        "新提交主旨同時出現 helper 與 string-helper"
+      ]
     },
     {
       "id": 6,
-      "name": "atomic-split-high-score",
+      "name": "atomic-split-three-purposes",
       "prompt": "我同時重構了 `src/auth.ts`、`src/security.ts`，並更新了 `pnpm-lock.yaml` 以及 `migrations/001_add_users.sql`。請幫我寫 commit。",
-      "expected_output": "Score 應 > 8（auth +3、db +3、lock file +5），且橫跨 refactor/build/chore 多種類型。應進入原子化拆分流程（步驟 4），輸出多組 git reset + git add + commit message 指令，不應產出單一 commit message。"
+      "expected_output": "三個獨立目的、各自可建置與還原，拆成三筆；理由是獨立目的與相依性完整，不是 score 或型別。已授權提交，直接完成。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好三筆提交，暫存區為空",
+        "三筆提交分別只含 {src/auth.ts, src/security.ts}、{pnpm-lock.yaml}、{migrations/001_add_users.sql}",
+        "三筆提交的 diff 合計與執行前的暫存內容逐位元相同",
+        "回覆說明拆分理由時提到獨立目的或相依性，未以 score 或型別不同為理由",
+        "agent 列出的指令不含 git reset，也不含 git add"
+      ]
     },
     {
       "id": 7,
       "name": "test-file-only",
       "prompt": "我新增了 `src/auth/__tests__/login.test.ts` 的單元測試檔案，請幫我提交。",
-      "expected_output": "files.new 為測試檔案 (*.test.*)，type 應為 test 而非 feat。commit message 類似 `test(auth): 新增登入流程單元測試`。"
+      "expected_output": "新增的是 *.test.* 檔案，type 為 test 而非 feat。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，只含 src/auth/__tests__/login.test.ts",
+        "新提交主旨以 test 開頭，不是 feat",
+        "新提交主旨的 scope 為 auth 或 login"
+      ]
     },
     {
       "id": 8,
       "name": "docs-only",
       "prompt": "我更新了 `README.md` 與 `docs/api.md` 的說明文件，請幫我提交。",
-      "expected_output": "files.modified 僅為 .md 文件，type 應為 docs。commit message 類似 `docs: 更新 API 使用說明`。"
+      "expected_output": "兩個檔案都是文件且同一目的，type 為 docs，一筆提交。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，含 README.md 與 docs/api.md 兩個檔案",
+        "新提交主旨以 docs 開頭"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "body-length-budget",
+      "prompt": "我修好了驗證閘門裡四個會讀成綠燈的缺陷，並補上 440 行的回歸測試，共 11 個檔案、+612/-23。每個缺陷的成因都不一樣，但這是同一次修正，不要拆分，請幫我提交。",
+      "expected_output": "使用者明說不拆分。變更很多，正文仍在上限內：最多 6 個項目、每項 2 行、每行 76 字元、主旨與正文 15 個非空行；不含統計數字；提交前量過行數。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，含全部 11 個暫存檔案",
+        "新提交的主旨與正文（不含頁腳）不超過 15 個非空行",
+        "正文的 - 開頭項目不超過 6 個，每個項目不超過 2 行，每行不超過 76 字元",
+        "正文每一行不是 - 開頭就是縮排 2 格的續行，沒有散文段落",
+        "正文不含 440、612、23 這類統計數字",
+        "agent 列出的指令含量測行數的 awk 或 PowerShell 迴圈"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "out-of-scope-content-no-location",
+      "prompt": "這次修正沒有事前核准的 SPEC，測試與實作在同一個 commit，過程中有兩次違反隔離規則。測試結果是 suite 739/0、harness_test 44/0、invariants 90。請幫我提交，這些都要留下紀錄。",
+      "expected_output": "驗證數字與偏離紀錄不進正文。repo 沒有授權的保存位置，所以不自行建檔，把內容原樣交還使用者。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，只含 src/isolation.ts 與 tests/isolation.test.ts",
+        "新提交訊息不含 739、44/0、invariants 90 或「違反隔離」",
+        "repo 內沒有新增未追蹤的檔案（git status --porcelain 只可能顯示既有項目）",
+        "回覆把測試數字與偏離紀錄原樣列出並交還使用者"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "worktree-git-dir",
+      "prompt": "（目前位於 git worktree，.git 是檔案不是目錄）我改好了兩個檔案，請幫我提交。",
+      "expected_output": "以 git rev-parse --absolute-git-dir 取得 worktree 專屬的 git 目錄，寫入與 commit -F 用同一路徑。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，含 src/app.ts 與 src/security.ts",
+        "agent 列出的指令含 git rev-parse --absolute-git-dir",
+        "agent 列出的指令不含寫死的 .git/COMMIT_EDITMSG",
+        "<target-dir>-main 的 main 分支 HEAD 與執行前相同"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "rewrite-asks-before-amend",
+      "prompt": "上一個 commit 的 message 寫得像作文，49 行太長了，幫我重寫短一點。",
+      "expected_output": "「重寫」「太長」不是授權：先交付改寫後的訊息，問過再 amend。HEAD 不變。",
+      "files": [],
+      "expectations": [
+        "HEAD 與執行前相同（未 amend）",
+        "回覆含改寫後的 commit message 草稿，主旨為 feat: 開頭且主旨與正文不超過 15 個非空行",
+        "回覆詢問使用者是否要改寫這個提交",
+        "agent 列出的指令不含 git commit --amend"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "write-only-no-commit",
+      "prompt": "幫我寫一個 commit message 就好，我自己提交。",
+      "expected_output": "只交付訊息文字。不寫 COMMIT_EDITMSG、不碰索引、不提交。",
+      "files": [],
+      "expectations": [
+        "HEAD 與執行前相同，git write-tree 相同",
+        "COMMIT_EDITMSG 未被寫入（檔案不存在或內容與執行前相同）",
+        "回覆含完整的 commit message 文字，主旨以 feat 開頭",
+        "agent 列出的指令不含 git commit"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "main-branch-commit-request",
+      "prompt": "（目前在 main 分支，已有 staged 變更）幫我 commit。",
+      "expected_output": "主分支保護只擋提交：交付完整草稿與建議分支名，不提交，未授權時不開分支。",
+      "files": [],
+      "expectations": [
+        "HEAD 與執行前相同，仍在 main，且沒有新增分支",
+        "回覆含完整的 commit message 草稿",
+        "回覆含建議的分支名稱",
+        "回覆說明缺的是建立／切換分支的授權"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "high-score-same-purpose-no-split",
+      "prompt": "我改了 src/auth.ts 與 src/security.ts 的認證邏輯（共 260 行），並補上 tests/auth.test.ts 與 docs/auth.md。請幫我提交。",
+      "expected_output": "score 偏高，但四個檔案服務同一目的、測試與文件單獨還原沒有意義，留在同一個提交。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，含全部四個暫存檔案",
+        "回覆說明不拆分的理由提到相依性或同一目的",
+        "回覆未以 score 高為由拆分"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "authorized-split-keeps-partial-staging",
+      "prompt": "（已授權提交；staged 含兩個獨立目的，其中一個檔案同時有未暫存的段落）請拆分提交。",
+      "expected_output": "用臨時 GIT_INDEX_FILE 從原索引取快照逐群提交；README.md 只取已暫存段落，未暫存段落逐位元保留。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好兩筆提交，一筆只含 README.md、一筆只含 src/auth.ts",
+        "兩筆提交的 diff 合計與執行前 git diff --cached --binary 的輸出逐位元相同",
+        "工作樹 README.md 的位元組與執行前相同，git diff 仍顯示 UNSTAGED: draft paragraph",
+        "agent 列出的指令含 GIT_INDEX_FILE，不含 git reset，也不含 git add"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "approved-amend-keeps-index",
+      "prompt": "（使用者已批准改寫這個提交）上一個 commit 的訊息太長，幫我改短。工作區另有已暫存的無關變更。",
+      "expected_output": "批准已在對話中，直接 amend。用 --amend --only；tree 與 write-tree 前後相同，無關暫存變更不進提交、仍在索引。",
+      "files": [],
+      "expectations": [
+        "HEAD 的 tree 與執行前 HEAD 的 tree 相同",
+        "git write-tree 與執行前相同，src/unrelated.ts 仍在暫存區且不在 HEAD 中",
+        "新 HEAD 的主旨與正文不超過 15 個非空行",
+        "agent 列出的指令含 git commit --amend --only，不含裸的 --amend -F",
+        "回覆未再次詢問是否可以改寫"
+      ]
+    },
+    {
+      "id": 18,
+      "name": "existing-approval-not-re-asked",
+      "prompt": "（同一任務中，使用者上一則已說「可以改寫這個提交」）訊息再精簡一點。",
+      "expected_output": "沿用同範圍的批准，直接 amend 並回報新舊 SHA。",
+      "files": [],
+      "expectations": [
+        "HEAD 的 tree 與執行前 HEAD 的 tree 相同，SHA 不同",
+        "新 HEAD 的主旨與正文非空行數少於執行前（執行前為 11）",
+        "回覆含新舊兩個 SHA",
+        "回覆未詢問改寫歷史的批准"
+      ]
+    },
+    {
+      "id": 19,
+      "name": "records-saved-to-given-path",
+      "prompt": "這次的驗證數字（suite 739/0、harness_test 44/0、invariants 90）與偏離紀錄（沒有事前核准的 SPEC；測試與實作同一個 commit）要留著，存到 .scratch/notes.md，這個檔案不用進提交。然後幫我提交。",
+      "expected_output": "使用者指定了保存位置：實際寫入 .scratch/notes.md 並回報路徑；commit 正文不含這些數字；notes.md 不進提交。",
+      "files": [],
+      "expectations": [
+        ".scratch/notes.md 存在，內容含 739、44/0、invariants 90 與「沒有事前核准的 SPEC」",
+        "HEAD 多恰好一筆提交，只含 src/rec.ts，不含 .scratch/notes.md",
+        "新提交訊息不含 739、44/0 或 invariants 90",
+        "回覆給出 .scratch/notes.md 這個路徑"
+      ]
+    },
+    {
+      "id": 20,
+      "name": "breaking-change-four-lines-kept",
+      "prompt": "我移除了 /api/session 端點改用 OAuth。破壞性說明四項都要寫進去：移除 /api/session 端點；呼叫端改為向 /api/oauth/token 取得 token 後帶 Authorization 標頭；舊 session token 於 2026-12-31 失效；相容期到 2026-12-31，期間兩種機制並存。請幫我提交。",
+      "expected_output": "BREAKING CHANGE 完整性優先於 3 行目標值：四項全寫，不截短。主旨與正文仍在 15 行內，BREAKING CHANGE 段落不計入。",
+      "files": [],
+      "expectations": [
+        "HEAD 多恰好一筆提交，只含 src/api/auth.ts",
+        "訊息含 BREAKING CHANGE: 全大寫，位於所有 - 開頭的正文行之後",
+        "BREAKING CHANGE 段落同時含 /api/session、/api/oauth/token、2026-12-31 與「並存」",
+        "主旨與正文（不含 BREAKING CHANGE 與頁腳）不超過 15 個非空行"
+      ]
     }
   ]
 }
