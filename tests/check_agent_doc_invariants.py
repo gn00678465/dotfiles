@@ -429,6 +429,14 @@ def main() -> None:
     # report that instead of improvising a `--root` rewrite.
     require(commit_skill, "root-commit target stops the reword block", "目標是根提交")
     require(commit_skill, "reword block states its git version floor", "git 2.38")
+
+    # 18h. Two eval runs read the same request differently: 「請幫我寫 commit」
+    #      committed in one and drafted in the other, and a "太長" rewrite of
+    #      an unpushed HEAD was amended in one and asked about in the other.
+    require(commit_skill, "「幫我寫 commit」 is a commit request", "「幫我寫 commit」 | 訊息並提交 | 是")
+    require(commit_skill, "rewrite of an unshared HEAD asks before amending", "問過就 amend")
+    forbid(commit_skill, "no direct amend without asking", "| 最新一筆、未分享 | 直接 amend |")
+    require(commit_skill, "no remote counts as unshared", "`git remote` 為空")
     forbid(commit_skill, "no unexecutable interactive-rebase instruction",
            "以互動式 rebase 只改那一筆的訊息")
     # Claude Code's PowerShell tool refused the whole reword block, reading
