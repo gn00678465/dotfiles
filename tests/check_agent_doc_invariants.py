@@ -437,6 +437,9 @@ def main() -> None:
     require(commit_skill, "rewrite of an unshared HEAD asks before amending", "問過就 amend")
     forbid(commit_skill, "no direct amend without asking", "| 最新一筆、未分享 | 直接 amend |")
     require(commit_skill, "no remote counts as unshared", "`git remote` 為空")
+    # Eval 09: the body repeated the "440 行" the user typed; size numbers
+    # describe the diff, and git show --stat already carries them.
+    require(commit_skill, "size statistics stay out of the body", "| 規模數字：行數、檔案數")
     forbid(commit_skill, "no unexecutable interactive-rebase instruction",
            "以互動式 rebase 只改那一筆的訊息")
     # Claude Code's PowerShell tool refused the whole reword block, reading
