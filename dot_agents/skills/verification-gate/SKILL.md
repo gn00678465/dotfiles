@@ -60,6 +60,21 @@ If the user does not specify a command, infer it: no entry point in the repo →
 `scaffold`; entry point exists and the user wants results → `gate`; the user
 wants a report, a handoff, or "prove it" → `evidence`.
 
+## Ordering relative to review
+
+Scheduled code review and the `evidence-squad` after-implement cut should
+finish before the final full gate. Review does not need the expensive layers
+(mutation, repeated-suite runs, coverage) to start; quick checks (build,
+affected tests, format/lint/types) are sufficient. During the fix cycle, run
+the project's own failing layer or affected checks directly — do not invoke
+`gate` for diagnosis, as it runs the full layer stack. After review
+converges, run `evidence` once to execute the full entry point and produce
+the report.
+
+Diagnostic runs of individual layers are not final-run numbers. They belong
+in Honest notes and may not appear in the Gate table. The final `evidence`
+still runs every applicable layer; all numbers come from that one run.
+
 ## Inputs
 
 Resolve these from a committed, approved spec when it already supplies them; otherwise resolve or ask for these before doing work:

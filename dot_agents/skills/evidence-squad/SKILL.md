@@ -25,7 +25,7 @@ orchestrator.
 | Cut | When | Question the squad answers | Where the findings go |
 |---|---|---|---|
 | **after spec** | Phase 2, a draft exists — `v0.x` before the first approval, the pending integer for a revision — before the durability preflight and the approval request | Does this draft cover the request's rules, the rules' input space, and the repo as it is? | Folded into the draft by the orchestrator. Anything that is a genuine decision rides the one approval request with a recommendation. |
-| **after implement** | Phase 4, `verification-gate gate` passes every layer, before `evidence` | Does the code do what the spec says, all of it, and nothing else? | Class 1 → fix under the current version and re-run `gate`; class 2 → Revisions decision under the workflow's Versioning rule, batched re-approval; class 3 → Honest notes. |
+| **after implement** | Phase 4, after quick checks pass (build, affected tests, format/lint/types), before the full gate and `evidence` | Does the code do what the spec says, all of it, and nothing else? | Class 1 → fix under the current version, run affected checks, re-check the finding; class 2 → Revisions decision under the workflow's Versioning rule, batched re-approval; class 3 → Honest notes. Run the full gate only after all review rounds converge. |
 | **before archive** | Phase 6, evidence written and any independent verification finalised, before `spec-archive` | Is the evidence true against git, and is closing this spec justified? | A class-1 finding or an uncorrected description finding blocks the close; otherwise `spec-archive` runs. |
 
 Tier 1 skips all three cuts; Tier 2 and Tier 3 run all three. `spec-archive`

@@ -10,8 +10,8 @@ file owns the front half of the loop; the skill owns the back half.
 ```
 SPEC → squad after-spec → SPEC REVIEW (human approves spec, not code)
      → per behavior: RED → GREEN → REFACTOR
-     → verification-gate: `gate` (iterate while fixing) → squad after-implement
-       → `evidence` (final, once)
+     → quick checks → squad after-implement + scheduled code review
+       → fix & affected checks → verification-gate: `evidence` (full gate, once)
      → Tier 3 option: independent verification (`verifier` agent)
      → squad before-archive → before merge: CLOSE (`spec-archive` skill)
 ```
@@ -253,20 +253,34 @@ the verifier's fresh context stays necessary.
 
 ## Phase 4 — VERIFY (hand off to `verification-gate`)
 
-When all spec behaviors are green, invoke the `verification-gate` skill.
-Order inside this phase: `gate` first, until every layer passes — the
-mechanical checks are cheap and deterministic, so the squad reads a state
-that already passed them and does not report what the gate would have
-caught; then the `evidence-squad` skill's **after-implement** cut (contract
-vs implementation, live evidence, input space at code level, diff hygiene)
-on that gated state; act on its findings by class and run `gate` again; then
-`evidence`, once, after the last edit — the squad never runs after
-`evidence`, or the report describes a state the squad then changed. Do not
-run the layers ad hoc and paste numbers — the skill owns the entry point,
-the layer stack, and the report.
+When all spec behaviors are green, confirm that build, affected tests, and
+format/lint/types pass — these are the quick checks. Then run the
+`evidence-squad` skill's **after-implement** cut (contract vs
+implementation, live evidence, input space at code level, diff hygiene) and
+any scheduled code review. The full gate — mutation, repeated-suite runs,
+coverage — is not a prerequisite for starting review; those layers may take
+tens of minutes. The squad and reviewers are read-only; the orchestrator
+acts on findings by class, runs affected checks on fixes, and re-checks
+whether each finding is resolved. Once all review rounds converge, invoke
+`verification-gate` `evidence` to run the full entry point once and produce
+the final report. The after-implement squad never runs after `evidence`, or
+the report describes a state the squad then changed.
 
-- Use `gate` iteratively while fixing failures; use `evidence` exactly once,
-  after the last code edit, to produce the final report.
+- During the fix cycle, run the project's own failing layer or affected
+  checks directly — do not invoke `verification-gate` `gate` for diagnosis,
+  as that command runs the full layer stack. Use `evidence` exactly once,
+  after the last code edit, to run the full entry point and produce the
+  final report. Partial diagnostic runs do not substitute for the final full
+  gate, and their numbers may not appear in the Gate table.
+- When the full gate fails, fix the failure, confirm the failing layer and
+  its dependents pass with the project's own commands, then rerun the full
+  entry point.
+- Phase 5 independent verification is preserved. If it discovers a defect
+  that changes code, tests, or gate machinery, the old evidence is void —
+  rerun the full entry point against the new state.
+- A later phase that changes a measurement input — including `.md` files
+  that tests read — voids the evidence for the same reason: it describes a
+  state that no longer exists. Do not exempt files by extension.
 - Hand it: the base ref, the change set, the tier from the SPEC, the
   committed SPEC path as the intent record, and **the SPEC's `<scope>` as the
   gate's `scope`** — never leave it to reconstruct intent from the
