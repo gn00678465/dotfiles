@@ -2,5 +2,6 @@
   "theme": "dark",
   "editorMode": "vim",
   "tui": { "nested": true, "n": 1 },
-  "autoMemoryEnabled": true
+  "autoMemoryEnabled": true,
+  "env": { "KEEP_ME": "1" }
 }

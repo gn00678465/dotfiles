@@ -1,6 +1,9 @@
 {
   "authDreamEnabled": false,
   "autoMemoryEnabled": false,
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "opus"
+  },
   "statusLine": {
     "command": "STATUSLINE_USAGE_STYLE=dots ~/.claude/cc-statusline/cc-statusline",
     "padding": 2,

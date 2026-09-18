@@ -2,6 +2,10 @@
   "authDreamEnabled": false,
   "autoMemoryEnabled": false,
   "editorMode": "vim",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "opus",
+    "KEEP_ME": "1"
+  },
   "statusLine": {
     "command": "STATUSLINE_USAGE_STYLE=dots ~/.claude/cc-statusline/cc-statusline",
     "padding": 2,

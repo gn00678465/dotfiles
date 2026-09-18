@@ -28,5 +28,6 @@
       "padding" 2) -}}
 {{- $cur = $cur | setValueAtPath "autoMemoryEnabled" false -}}
 {{- $cur = $cur | setValueAtPath "authDreamEnabled" false -}}
+{{- $cur = $cur | setValueAtPath "env.CLAUDE_CODE_SUBAGENT_MODEL" "opus" -}}
 
 {{ $cur | toPrettyJson }}
