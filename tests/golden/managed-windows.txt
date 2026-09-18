@@ -4,6 +4,8 @@
 .agents/skills/commit/SKILL.md
 .agents/skills/commit/evals
 .agents/skills/commit/evals/evals.json
+.agents/skills/commit/evals/fixtures
+.agents/skills/commit/evals/fixtures/build.py
 .agents/skills/commit/references
 .agents/skills/commit/references/conventional-commits-spec.md
 .agents/skills/commit/references/examples.md
