@@ -26,7 +26,9 @@ Both modes share the cycle below and the anti-gaming rules at the end.
 ## RED — prove each test can fail
 
 Write the test for one behavior. **Run it and watch it fail** before writing
-the implementation. A test you never saw fail proves nothing.
+the implementation. A test you never saw fail proves nothing. In spec-driven
+mode, each scenario row carries a pass condition and an evidence type — derive
+the test assertion from the pass condition.
 
 - If the module under test does not exist yet, create a stub that raises
   (e.g. `NotImplementedError`) so the test fails on behavior, not on import.

@@ -685,19 +685,9 @@ known limit the reader can price in.
 
 ## Anti-Gaming Rules (absolute)
 
-The gate only creates trust if it cannot be gamed. These are hard rules:
+The gate only creates trust if it cannot be gamed. Rules 1–4 (implementation
+discipline) live in `tdd/SKILL.md`. This skill owns the verification rules:
 
-1. **Never weaken a test to make it pass.** Don't broaden assertions, add skips,
-   raise tolerances, or delete a failing test. If a test seems wrong, that's an
-   intent conversation — surface it, don't bury it.
-2. **Never edit a test and the implementation in the same step to reach green.**
-   Change one, run, then the other. Simultaneous edits let you accidentally
-   redefine correctness to match your bug.
-3. **Never mock the unit under test** or mock so much that the test only
-   exercises the mocks. Mock boundaries (network, clock, filesystem), not logic.
-4. **Never chase the coverage number.** Coverage is a detector of untested code,
-   not a target. A test added only to touch lines, with no meaningful assertion,
-   is gaming — mutation testing exists precisely to catch this, including yours.
 5. **Never report a layer you didn't run.** An honest "skipped: no mutation tool
    in this environment, did manual mutation instead" preserves trust; an
    invented result destroys the entire scheme.

@@ -223,8 +223,11 @@ def main() -> None:
     require(evidence_t, "override value in contract field", "overridden by")
     require(evidence_t, "headline roll-up field", "`headline`")
 
-    # 3. Anti-gaming rules: same six on both sides of the split.
-    count_numbered_rules(skill, "## Anti-Gaming Rules", 6)
+    # 3. Anti-gaming rules: six total across three files.
+    #    tdd owns 1-4, gate owns 5-6, playbook carries all six.
+    tdd_skill = root / "dot_agents/skills/tdd/SKILL.md"
+    count_numbered_rules(tdd_skill, "## Anti-Gaming Rules", 4)
+    count_numbered_rules(skill, "## Anti-Gaming Rules", 2)
     count_numbered_rules(workflow, "## Anti-Gaming Rules", 6)
 
     # 4. Tier 3 domain list: one definition, all carriers.
