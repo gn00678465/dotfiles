@@ -1,5 +1,7 @@
 .agents
 .agents/skills
+.agents/skills/anti-slop
+.agents/skills/anti-slop/SKILL.md
 .agents/skills/commit
 .agents/skills/commit/SKILL.md
 .agents/skills/commit/evals
@@ -60,6 +62,7 @@
 .claude/agents/verifier.md
 .claude/settings.json
 .claude/skills
+.claude/skills/anti-slop
 .claude/skills/commit
 .claude/skills/evidence-squad
 .claude/skills/spec-archive
