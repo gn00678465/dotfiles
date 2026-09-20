@@ -69,6 +69,18 @@ The spec contains:
   preflight did not catch that class — run it over every open spec before
   asking the human again.
 
+### Writing guidelines
+
+Write for the human reviewer, not for the agent that runs the gate.
+
+- SPEC must not exceed 150 lines (Revisions and Approval exempt). Tier 1
+  must not exceed 50 lines. Over the limit means the design has not converged.
+- Template placeholders are prompts, not content. Replace them. Do not append.
+- Revisions is a changelog, not a narrative. One line per entry.
+- Do not repeat definitions the playbook already carries (version numbering,
+  status transitions, anti-gaming rules). The SPEC states the result, not the
+  mechanism.
+
 ## 2. SPEC REVIEW — explore, then sign
 
 Two stages, in this order: explore until nothing is silently assumed, then

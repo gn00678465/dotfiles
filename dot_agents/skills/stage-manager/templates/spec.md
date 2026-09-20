@@ -1,86 +1,47 @@
 # SPEC — <task name> (Tier <1|2|3>)
 
-- `spec_version`: <!-- an approval baseline, not an edit count. v0.1, v0.2,
-  ... while the frontier is still open and nobody has been asked to approve
-  anything; v1 is the first version put to the human. After that the next
-  integer is claimed once, when a revision to the approved contract opens,
-  and that pending version carries every later change until it is approved —
-  a rejection revises it in place rather than opening another. Claiming an
-  integer invalidates prior approval. At CLOSE `spec-archive` refuses a spec
-  whose current version has no approval record, and refuses an integer vN
-  whose Approval section is missing any of v1…vN -->
-- `status`: <!-- draft | approved | revised-pending-approval | shipped.
-  Every transition has an owner: `approved` is written by hand in the
-  approval commit, a revision that changes the approved contract opens the
-  next version and sets `revised-pending-approval` until re-approved, and
-  `shipped` is terminal — set by the spec-archive skill's
-  script at CLOSE, never by hand -->
-- `tier`: <!-- 1 trivial / 2 normal / 3 high stakes (money, auth, data loss,
-  concurrency, public API) — same definitions as the gate's Calibration; the
-  tier declared here is the tier the gate runs at -->
+- `spec_version`: v0.1
+- `status`: draft
+- `tier`: <!-- 1 trivial / 2 normal / 3 high stakes (money, auth, data loss, concurrency, public API) -->
+- `scope`: <feature-slug>
+- `base_ref`: <commit SHA>
 
 ## Scenarios
 
-Concrete inputs, concrete expected outputs, edge cases, error cases.
-"Handles bad input" is not a scenario; `divide(1, 0) raises
-ZeroDivisionError with message X` is. Each scenario maps 1:1 to at least one
-automated test named after it, so the evidence report's mapping is
-mechanical.
+具體輸入、具體預期輸出。「處理錯誤輸入」不是 scenario；`divide(1, 0) raises ZeroDivisionError` 才是。
 
-- <scenario name>: given <concrete input>, expect <concrete output>
+| scenario | 行為 | 通過條件 | 證據類型 |
+|---|---|---|---|
+| <name> | given <input>, does <action> | <assertion> | <test / real execution / manual> |
 
 ## Must NOT
 
-Negative constraints and invariants that must survive (existing tests,
-public API signatures, performance budgets if stated). A diff can never show
-what the code must not do; these become rows in the gate's stated-claim
-table.
+不得違反的約束。測試、API 簽章、效能預算。
 
 - Must NOT: <constraint>
 
 ## Failure model (Tier 3 only)
 
-The ways this specific change can hurt, each mapped to a check that can
-actually catch it. Delete this section at Tier 1–2.
-
-| Failure mode | Check that catches it |
+| 失效模式 | 對應檢查 |
 |---|---|
 | <e.g. race condition on X> | <e.g. stress test Y under -race> |
 
 ## Setup plan
 
-The spec is the authorization point — approving it authorizes everything
-listed here in one step.
-
 - Tools to install: <list | none>
-- Git isolation: <worktree | branch | none (Tier 1 only)>; checkpoint commit
-  cadence: <e.g. at spec approval and each GREEN/REFACTOR>
-- Files the gate will add, by path: <e.g. `tools/gate.sh`>
-- New dependencies, each with a one-line justification (prefer stdlib and
-  deps already present; an unjustified package is a spec defect):
-  <list | none>
+- Git isolation: <worktree | branch | none (Tier 1 only)>
+- Commit cadence: <e.g. RED then GREEN per behavior>
+- Gate files by path: <e.g. `tools/gate.sh`>
+- New dependencies (justify each): <list | none>
 
 ## Approval
 
-Append-only. One entry per approved version: the approving words verbatim,
-the date, and the `spec_version` they bind. An entry you cannot quote is an
-approval you do not have — an answer to a question is not one.
+逐字引文。不能引述的不算核准。
 
-<!-- One entry per approved version, in either shape this repo already uses:
-     - <date> — approves <spec_version> — "<verbatim approving words>"
-     or a `### <spec_version> — <date>` section carrying `approval: confirmed`,
-     `version bound`, `date` and the words as a blockquote. Delete this comment
-     and write the real entry; a placeholder is not a record, and CLOSE parses
-     for records. No human available: `approval: not obtained (autonomous
-     run)` — that is a declared downgrade, not an approval, and the spec stays
-     `draft`, so it does not archive. -->
+- <date> — approves <spec_version> — "<verbatim words>"
 
 ## Revisions
 
-Append-only. If implementation reveals the spec was wrong, revise visibly
-here — never silently drift. What the human turned down, and why, stays on
-record. Exploration rounds land here too: one entry per round, listing the
-decisions that round settled.
+改了什麼、為什麼改。不靜默偏移。
 
-- <date> — exploration round <n>: <decisions settled>
 - <date> — <what changed and why>

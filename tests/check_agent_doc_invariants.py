@@ -252,7 +252,7 @@ def main() -> None:
     require(archiver_skill, "skill points at script", "spec-archive.py")
     require(archiver, "forgotten-close detector", "--check")
     require(archiver, "terminal status flip", "shipped")
-    require(spec_t, "terminal status in template", "shipped")
+    require(workflow, "terminal status in playbook", "shipped")
 
     # 8. Review surface: SPEC REVIEW renders the spec for the human, and the
     #    review UI language is declared rather than inherited from the
@@ -281,7 +281,7 @@ def main() -> None:
     #     Phase 6 refused consent that had actually been given.
     require(workflow, "approval flips status", "flip `status`")
     require(workflow, "revision resets status", "revised-pending-approval")
-    require(spec_t, "status transition owners", "revised-pending-approval")
+    require(workflow, "status transition in playbook", "revised-pending-approval")
     require(archiver, "archiver gates on approved", '!= "approved"')
 
     # 11. Artifact root and `scope` are derived by two parties. The root is
