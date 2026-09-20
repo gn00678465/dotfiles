@@ -12,8 +12,8 @@ conflict — say so once; the evidence report then carries
 `contract: overridden by <path>`.
 
 Any workflow may produce the change — /tdd, spec-kitty, manual work; when none
-fits, follow the reference implementation at
-`{{ .chezmoi.homeDir }}/.agents/workflows/evidence-first.md`. The repo must
+fits, follow the `stage-manager` skill's `old-coder` playbook at
+`{{ .chezmoi.homeDir }}/.agents/skills/stage-manager/playbooks/old-coder.md`. The repo must
 carry these properties — verification reads them from git, never the
 conversation:
 

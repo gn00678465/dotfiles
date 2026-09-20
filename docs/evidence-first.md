@@ -1,7 +1,8 @@
 # Evidence-first：觸發方式與流程
 
-這份文件給人讀。agent 讀的是合約（`~/.claude/CLAUDE.md`）與參考實作
-（`~/.agents/workflows/evidence-first.md`）。兩者有衝突時，以那兩份為準。
+這份文件給人讀。agent 讀的是合約（`~/.claude/CLAUDE.md`）與 `stage-manager`
+skill 的 `old-coder` playbook
+（`~/.agents/skills/stage-manager/playbooks/old-coder.md`）。兩者有衝突時，以那兩份為準。
 
 ## 1. 這是什麼
 
@@ -27,7 +28,8 @@ Evidence-first 是一份合約。它要求 repo 在變更完成時帶著五個�
 專案的 `AGENTS.md` 或 `CLAUDE.md` 可以覆寫合約。覆寫不能沉默：agent 要說一次，evidence
 要記 `contract: overridden by <path>`。
 
-實作工具不限。`/tdd`、spec-kitty、手工都可以。沒有工具合用時，照參考實作走。
+實作工具不限。`/tdd`、spec-kitty、手工都可以。沒有工具合用時，照 `stage-manager`
+skill 的 `old-coder` playbook 走。
 
 ## 3. 人介入的兩個點
 
@@ -80,7 +82,7 @@ sequenceDiagram
 
 | 產物 | 路徑 | 說明 |
 |---|---|---|
-| SPEC | `specs/<scope>/SPEC.md` | 合約固定。範本在 `~/.agents/workflows/templates/spec.md` |
+| SPEC | `specs/<scope>/SPEC.md` | 合約固定。範本在 `~/.agents/skills/stage-manager/templates/spec.md` |
 | 封存後的 SPEC | `specs/archive/<scope>/SPEC.md` | 由 `spec-archive` 搬移，不可手動 |
 | Evidence | `.scratch/<scope>/evidence.md` | 本 repo 的慣例。放在 `specs/` 之外，因為封存會搬整個目錄；`spec-archive` 也接受 `.gate/<scope>/evidence.md`，但不得同時追蹤兩個路徑——兩邊都有已提交的檔案會判定為 ambiguous，CLOSE 直接拒絕 |
 | Verification | `.scratch/<scope>/verification.md` | Phase 5 的彙總判定，與 evidence 同目錄提交 |
@@ -98,7 +100,7 @@ sequenceDiagram
 | `spec-archive --check` 在預設分支上遇到 approved 的 SPEC，exit 1 | RED 要親眼看到 |
 | 各 scope 的 gate 入口任一層失敗即停，manifest 稽核確認每層都跑過 | 改實作不改測試 |
 | `gate-intent.sh` 從 SPEC 導出 intent 標頭 | evidence 只跑一次 |
-| `tests/check_agent_doc_invariants.py` 守住合約、workflow、skill 之間的承諾 | 未授權不動手 |
+| `tests/check_agent_doc_invariants.py` 守住合約、playbook、skill 之間的承諾 | 未授權不動手 |
 | `gate-agent-instructions.py` 的 `--base` 不可達即 exit 2，不執行任何層 | — |
 | `spec-archive` 與 `gate-intent.sh` 比對完整版號，`v0.1` 不再被截成 `v0` | 契約變動才開下一版，待審期間沿用 |
 | `spec-archive` 解析 Approval 一節，目前版號缺紀錄或整數序列缺號即拒絕。它擋的是缺紀錄，**不是假紀錄**：核准原話的真偽、紀錄何時加入、是否先核准 v3 才開 v4，都不驗 | 升版的時機是否正當 |
@@ -140,7 +142,8 @@ python3 tests/spec_archive_test.py
 | 來源 | 目標 |
 |---|---|
 | `.chezmoitemplates/evidence-first-contract.md`（經 `agent-instructions.md`） | `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` |
-| `dot_agents/workflows/evidence-first.md` | `~/.agents/workflows/evidence-first.md` |
+| `dot_agents/skills/stage-manager/` | `~/.agents/skills/stage-manager/`（router、playbook、templates） |
+| `dot_agents/skills/tdd/` | `~/.agents/skills/tdd/` |
 | `dot_agents/skills/verification-gate/` | `~/.agents/skills/verification-gate/` |
 | `dot_agents/skills/spec-archive/` | `~/.agents/skills/spec-archive/` |
 | `dot_agents/skills/evidence-squad/` | `~/.agents/skills/evidence-squad/` |

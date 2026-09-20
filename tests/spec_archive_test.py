@@ -27,7 +27,7 @@ ARCHIVER = Path(os.environ.get(
     ROOT / "dot_agents/skills/spec-archive/scripts/spec-archive.py",
 ))
 EVIDENCE_TEMPLATE = ROOT / "dot_agents/skills/verification-gate/assets/templates/evidence.md"
-SPEC_TEMPLATE = ROOT / "dot_agents/workflows/templates/spec.md"
+SPEC_TEMPLATE = ROOT / "dot_agents/skills/stage-manager/templates/spec.md"
 
 FIELD_LINE_RE = re.compile(r"^-\s*`([\w_]+)`:.*$", re.MULTILINE)
 

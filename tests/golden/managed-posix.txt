@@ -4,6 +4,8 @@
 .agents/skills/commit/SKILL.md
 .agents/skills/commit/evals
 .agents/skills/commit/evals/evals.json
+.agents/skills/commit/evals/fixtures
+.agents/skills/commit/evals/fixtures/build.py
 .agents/skills/commit/references
 .agents/skills/commit/references/conventional-commits-spec.md
 .agents/skills/commit/references/examples.md
@@ -18,6 +20,15 @@
 .agents/skills/spec-archive/agents/openai.yaml
 .agents/skills/spec-archive/scripts
 .agents/skills/spec-archive/scripts/spec-archive.py
+.agents/skills/stage-manager
+.agents/skills/stage-manager/SKILL.md
+.agents/skills/stage-manager/playbooks
+.agents/skills/stage-manager/playbooks/old-coder.md
+.agents/skills/stage-manager/templates
+.agents/skills/stage-manager/templates/spec.md
+.agents/skills/stage-manager/templates/verification.md
+.agents/skills/tdd
+.agents/skills/tdd/SKILL.md
 .agents/skills/verification-gate
 .agents/skills/verification-gate/NOTICE.md
 .agents/skills/verification-gate/SKILL.md
@@ -30,11 +41,6 @@
 .agents/skills/verification-gate/references/entry-point.md
 .agents/skills/verification-gate/references/layers.md
 .agents/skills/verification-gate/references/mutation.md
-.agents/workflows
-.agents/workflows/evidence-first.md
-.agents/workflows/templates
-.agents/workflows/templates/spec.md
-.agents/workflows/templates/verification.md
 .chezmoiscripts/05-wsl-user-runtime-dir.sh
 .chezmoiscripts/10-install-packages.sh
 .chezmoiscripts/20-install-homebrew.sh
@@ -57,6 +63,8 @@
 .claude/skills/commit
 .claude/skills/evidence-squad
 .claude/skills/spec-archive
+.claude/skills/stage-manager
+.claude/skills/tdd
 .claude/skills/verification-gate
 .codex
 .codex/AGENTS.md
