@@ -2,6 +2,8 @@
 .agents/skills
 .agents/skills/anti-slop
 .agents/skills/anti-slop/SKILL.md
+.agents/skills/anti-slop/evals
+.agents/skills/anti-slop/evals/evals.json
 .agents/skills/commit
 .agents/skills/commit/SKILL.md
 .agents/skills/commit/evals
