@@ -37,8 +37,8 @@ To stop managing a file while keeping its local copy, use
 ## Required checks
 
 Run `tests/check_agent_doc_invariants.py` after changes to the evidence-first
-contract, `dot_agents/workflows/`, or the `verification-gate`, `spec-archive`
-and `evidence-squad` skills. It checks shared status values, report fields, tier definitions, and
+contract, `dot_agents/skills/stage-manager/`, `dot_agents/skills/tdd/`, or the
+`verification-gate`, `spec-archive` and `evidence-squad` skills. It checks shared status values, report fields, tier definitions, and
 anti-gaming rules. Exit code 1 means an invariant failed. Exit code 2 means
 the check failed to run correctly.
 
