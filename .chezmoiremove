@@ -15,5 +15,3 @@
 .claude/skills/tdd
 .claude/agents/verifier.md
 .codex/agents/verifier.toml
-.claude/agents
-.codex/agents
