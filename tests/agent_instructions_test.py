@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Cross-platform render checks for the shared global-agent-instructions template.
 
-`.chezmoitemplates/agent-instructions.md` (plus the evidence-first contract it
-includes) is the single source for both `~/.claude/CLAUDE.md` and
-`~/.codex/AGENTS.md`. SPEC `global-agent-instructions` S1 requires: the two
-entry points render identically per platform, the contract appears exactly
-once, and the rendered word count stays at or under the stated budget so the
+`.chezmoitemplates/agent-instructions.md` is the single source for both
+`~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. The two entry points render
+identically per platform, the removed evidence-first contract does not come
+back, and the rendered word count stays at or under the stated budget so the
 persistent instructions stay readable.
 
 This is a home-grown check, so it carries its own negative control: it proves
@@ -96,10 +95,9 @@ def main() -> None:
                            f"over the {WORD_LIMIT}-word ceiling")
                 CHECKS += 1
 
-                marker_count = text.count(CONTRACT_MARKER)
-                if marker_count != 1:
-                    die(1, f"{ep} rendered under {fixture} carries the contract "
-                           f"{marker_count} times, expected exactly 1")
+                if CONTRACT_MARKER in text:
+                    die(1, f"{ep} rendered under {fixture} still carries the "
+                           "evidence-first contract, which this repo removed")
                 CHECKS += 1
 
             claude_text, codex_text = (rendered[ep] for ep in ENTRY_POINTS)

@@ -1,15 +1,10 @@
 #!/bin/sh
-# 驗證閘門的單一入口點。evidence report 裡的每一個數字都必須來自這支腳本的
-# 「一次」完整執行，而且是在最後一次修改程式碼之後跑的。
+# 驗證閘門的單一入口點：一次完整執行，在最後一次修改程式碼之後跑。
 #
-#   tools/gate.sh [--scope <scope>] [--base <ref>]
+#   tools/gate.sh --scope <scope> --base <ref>
 #
-# scope 是 SPEC 的目錄名（specs/<scope>/SPEC.md），也是產出目錄 .gate/<scope>/ 與
-# intent 層的依據。不給的話，specs/ 底下（archive 除外）剛好只有一份 SPEC 時就用它，
-# 否則硬錯誤：猜錯 scope 的 gate 會把報告歸到另一份 SPEC 底下。
-# 預設 base 是 SPEC 裡記的那一個。SPEC 在 CLOSE（spec-archive）之後會從
-#   specs/<scope>/SPEC.md 搬到 specs/archive/<scope>/SPEC.md
-# 所以兩個位置都要找。找不到就是硬錯誤，不是預設值 —— 讀不到基準的 gate 沒有意義。
+# scope 是產出目錄 .gate/<scope>/ 的名稱。base 是比較基準的 commit。
+# 兩者都必須明確給出，沒有預設值 —— 猜出來的基準讓每一層的數字失去意義。
 #
 # 契約：
 #   * fail closed —— set -e，沒有 `|| true`，沒有 `2>/dev/null`，第一層壞掉就停。
@@ -37,22 +32,8 @@ while [ $# -gt 0 ]; do
         *) echo "gate: unknown argument: $1" >&2; exit 2 ;;
     esac
 done
-if [ -z "$SCOPE" ]; then
-    _n=0
-    for _d in specs/*/SPEC.md; do
-        [ -f "$_d" ] || continue
-        _n=$((_n + 1)); SCOPE=$(basename "$(dirname "$_d")")
-    done
-    [ "$_n" -eq 1 ] || { echo "gate: specs/ 底下有 $_n 份 SPEC，請用 --scope 指定" >&2; exit 2; }
-fi
-if [ -z "$BASE" ]; then
-    for _spec in "specs/$SCOPE/SPEC.md" "specs/archive/$SCOPE/SPEC.md"; do
-        [ -f "$_spec" ] || continue
-        BASE=$(sed -n 's/^- `base_ref`: `\([0-9a-f]*\)`.*/\1/p' "$_spec" | head -1)
-        [ -n "$BASE" ] && break
-    done
-fi
-[ -n "$BASE" ] || { echo "gate: 給不出 base ref（scope $SCOPE）" >&2; exit 2; }
+[ -n "$SCOPE" ] || { echo "gate: 必須給 --scope" >&2; exit 2; }
+[ -n "$BASE" ] || { echo "gate: 必須給 --base（scope $SCOPE）" >&2; exit 2; }
 
 # 執行前就判定得出的設定錯誤，要在下面 rm -rf 之前擋下來：一個打錯的 --base 或
 # 少裝一個工具，代價不該是上一輪的證據被銷毀而這一輪什麼都沒量到。層跑到一半
@@ -93,10 +74,7 @@ MANIFEST_FILE="$ART/layers-manifest"
 cat > "$MANIFEST_FILE" <<'EOF'
 versions
 source-state-before
-intent
-agent-doc-invariants
 harness-selftest
-spec-archive-tests
 suite
 suite-health-repeat
 suite-health-shuffle
@@ -163,31 +141,12 @@ run_layer versions "$ART/versions.txt" versions
 run_layer source-state-before "$ART/source-state-before.txt" \
     sh tools/gate-source-state.sh
 
-# -------------------------------------------------------------------- intent
-# evidence 標頭的 intent 欄位從這裡的輸出逐字複製。手填的標頭會與 SPEC 脫節
-# （這份報告發生過：SPEC 到了 v7，標頭還寫 v6），而 spec-archive 在 CLOSE 會拿
-# 報告引用的 spec_version 與 SPEC 比對。
-run_layer intent "$ART/intent.txt" sh tools/gate-intent.sh "$SCOPE"
-
-# -------------------------------------------------------- agent doc invariants
-# main 的 #3 帶進來的，管的是 agent 文件之間的一致性，不屬於 Windows 移植的層。
-# 放進 gate 而不是靠人記得跑：「之後每次都要跑」如果只寫在對話裡，下一次就會漏。
-run_layer agent-doc-invariants "$ART/agent-doc-invariants.txt" \
-    python3 tests/check_agent_doc_invariants.py
-
 # ------------------------------------------------------------ harness selftest
 # 這一層驗的是下面每一層的計數方式：稽核器漏讀末行、產出在設定錯誤時就被刪掉、
 # 整層 SKIP 被算成綠燈、fixture 讀到主機的 ID_LIKE。四個都曾經只在綠燈裡出現。
 # 排在 suite 之前：suite 的數字要能讀，得先知道 runner 怎麼算。
 run_layer harness-selftest "$ART/harness-selftest.txt" \
     python3 tests/harness_test.py
-
-# ------------------------------------------------------------ spec-archive
-# tests/run.sh 只載入 tests/cases/L*.sh，封存腳本的測試不在裡面，所以這支 gate
-# 先前跑不到它。另一個 scope 的入口 tools/gate-agent-instructions.py 早就有這一層；
-# 這裡補上的是這份 manifest 自己的缺口。
-run_layer spec-archive-tests "$ART/spec-archive-tests.txt" \
-    python3 tests/spec_archive_test.py
 
 # ---------------------------------------------------------------- test suite
 run_layer suite "$ART/suite.tap" sh tests/run.sh

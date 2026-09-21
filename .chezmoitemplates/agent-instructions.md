@@ -17,4 +17,3 @@
 - Write in Traditional Chinese following ASD-STE100. Query zhtw-mcp, when installed, for an uncertain Taiwan term; otherwise use best judgement — never block, install, or claim an unrun check. Code, identifiers, API names, and required technical terms are exempt.
 - Remove all mannered prose.
 
-{{ template "evidence-first-contract.md" . }}

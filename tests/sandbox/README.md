@@ -1,7 +1,6 @@
 # L9：Windows Sandbox 的 end-to-end 執行
 
-這是唯一允許真的跑 `winget install` 的地方。主機不行
-（見 `specs/windows-support/SPEC.md` 的 Must NOT #1）。
+這是唯一允許真的跑 `winget install` 的地方。主機不行。
 
 探針有兩種模式。**本機模式**測的是還沒推上去的分支，需要事先對應資料夾；
 **遠端模式**一行指令就跑得完，但只能測已經推上 GitHub 的分支。

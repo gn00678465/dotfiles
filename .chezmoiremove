@@ -3,3 +3,17 @@
 .agents/workflows/templates/verification.md
 .agents/workflows/templates
 .agents/workflows
+.agents/skills/stage-manager
+.agents/skills/evidence-squad
+.agents/skills/verification-gate
+.agents/skills/spec-archive
+.agents/skills/tdd
+.claude/skills/stage-manager
+.claude/skills/evidence-squad
+.claude/skills/verification-gate
+.claude/skills/spec-archive
+.claude/skills/tdd
+.claude/agents/verifier.md
+.codex/agents/verifier.toml
+.claude/agents
+.codex/agents
