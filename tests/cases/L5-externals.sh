@@ -1,6 +1,6 @@
 # L5 — .chezmoiexternal.toml.tmpl 的分平台結果。
 #
-# 最要緊的是 SPEC M6：.oh-my-zsh 那個 external 帶 exact = true，意思是 chezmoi 會
+# 最要緊的是：.oh-my-zsh 那個 external 帶 exact = true，意思是 chezmoi 會
 # 刪掉 ~/.oh-my-zsh 裡不屬於那個 tarball 的東西。它在 Windows 上必須整段不輸出，
 # 否則就是在一個根本沒有 Oh My Zsh 的系統上執行一組刪除規則。
 
@@ -30,7 +30,7 @@ assert_not_contains "windows 上不得有任何 .oh-my-zsh external（exact=true
 
 # 每個 external 都要釘住內容。唯一的例外是 .oh-my-zsh 本體：ohmyzsh 不發 git tag，
 # 這個 repo 刻意用 refreshPeriod 追 master（原始碼裡就有這句註解）。其餘每一個
-# 條目都必須有 checksum.sha256，否則就是引入了未釘住的外部下載（Must NOT #5）。
+# 條目都必須有 checksum.sha256，否則就是引入了未釘住的外部下載。
 # 比對的是「64 個十六進位字元」而不是「這一行存在」：實測 chezmoi 對空字串的
 # checksum 是「不驗證就安裝」而不是「驗證失敗」，所以空值比錯值更危險，
 # 而只檢查有沒有那一行的寫法會直接放它過去。
@@ -57,7 +57,7 @@ assert_contains "Windows 的 cc-statusline 取 .exe" "$_win_ext" "cc-statusline.
 
 unset _os _posix_expected _windows_expected _missing _win_ext
 
-# Must NOT #5 不只適用於 .chezmoiexternal。安裝腳本裡任何抓「可執行程式碼」的
+# 「不得引入未釘住的外部下載」不只適用於 .chezmoiexternal。安裝腳本裡任何抓「可執行程式碼」的
 # 呼叫都算，而 PowerShell Gallery 的模組正是這種。獨立驗證指出原本的
 # Install-PSResource 沒有 -Version，等於在安裝腳本裡放一個浮動相依。
 _ps_install=$(render_file windows .chezmoiscripts/run_onchange_before_35-install-ps-modules.ps1.tmpl)

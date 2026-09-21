@@ -1,14 +1,14 @@
 # L1 — .chezmoitemplates/platform.toml 是平台判斷的唯一來源。
 # 這一層釘住它的輸出，以及「測試接縫在沒有 override 時會退回真實 OS」這個性質
-# （SPEC M8：接縫本身若失準，上面每一層的證據都是假的）。
+#。
 
 # 七欄：前五欄是 windows-support 時期就有的；distro 與 pkgManager 是
-# archlinux-support 加的（SPEC §2.1）。發行版判斷只在這個 partial 裡。
+# archlinux-support 加的。發行版判斷只在這個 partial 裡。
 _platform_fields='{{- $p := includeTemplate "platform.toml" . | fromToml -}}
 {{ $p.os }}|{{ $p.arch }}|{{ $p.isWindows }}|{{ $p.isPosix }}|{{ $p.brewPrefix }}|{{ $p.distro }}|{{ $p.pkgManager }}'
 
 # S2：既有平台。linux fixture 釘 distroOverride = "debian"：沒有它，這一欄會是
-# 渲染主機自己的 /etc/os-release（Windows 主機是空、Ubuntu 主機是 ubuntu，gate 第一次
+# 渲染主機自己的 /etc/os-release（Windows 主機是空、Ubuntu 主機是 ubuntu，第一次
 # 在 WSL 跑就抓到），測試結果不能隨主機而變。debian 走 apt，與 Arch 支援之前的
 # 行為等價。darwin/windows 兩欄皆空。
 assert_eq "linux/amd64 的平台事實" \
@@ -29,7 +29,7 @@ assert_eq "windows/amd64 的平台事實（沒有 brew prefix）" \
     'windows|amd64|true|false|||' \
     "$(render windows "$_platform_fields")"
 
-# S1：Arch。brewPrefix 必須是空字串（Arch 不裝 Homebrew，SPEC Must NOT #4），
+# S1：Arch。brewPrefix 必須是空字串（Arch 不裝 Homebrew），
 # 讓 `ne $p.brewPrefix ""` 成為「這個平台用 brew」的唯一訊號。
 assert_eq "arch（linux/amd64 + distroOverride=arch）的平台事實：pacman、沒有 brew prefix" \
     'linux|amd64|false|true||arch|pacman' \
@@ -76,7 +76,7 @@ unset _platform_fields _native_os _partial_os
 #
 # 實測後果（獨立驗證在真實 Windows 主機上做過）：在 .chezmoi.toml.tmpl 的 [data]
 # 底下加一行 osOverride = "linux"，Windows 上的 10-install-packages 會渲染成
-# 1091 個非空位元組 → chezmoi 拿 .sh 去 exec → apply 中止（M1、Must NOT #4），
+# 1091 個非空位元組 → chezmoi 拿 .sh 去 exec → apply 中止，
 # 且 managed 會多出 .zshrc、少掉 AppData/（M7）。
 _cfg_src=$(cat "$REPO/.chezmoi.toml.tmpl")
 assert_not_contains "生產用的 .chezmoi.toml.tmpl 原始碼沒有 osOverride" "$_cfg_src" "osOverride"

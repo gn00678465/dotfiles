@@ -181,6 +181,5 @@ chezmoi apply --refresh-externals   # 強制重抓 external
 
 ## Agent 工作流程
 
-這個 repo 也裝 agent 的全域指令與 evidence-first 合約（`~/.claude/CLAUDE.md`、
-`~/.codex/AGENTS.md`、`~/.agents/`）。合約何時觸發、六個 Phase 各做什麼、哪些步驟由腳本
-擋住，見 [docs/evidence-first.md](docs/evidence-first.md)。
+這個 repo 也裝 agent 的全域指令（`~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md`）與共用的
+skill（`~/.agents/skills/`）。

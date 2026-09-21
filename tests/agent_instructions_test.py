@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """Cross-platform render checks for the shared global-agent-instructions template.
 
-`.chezmoitemplates/agent-instructions.md` (plus the evidence-first contract it
-includes) is the single source for both `~/.claude/CLAUDE.md` and
-`~/.codex/AGENTS.md`. SPEC `global-agent-instructions` S1 requires: the two
-entry points render identically per platform, the contract appears exactly
-once, and the rendered word count stays at or under the stated budget so the
-persistent instructions stay readable.
+`.chezmoitemplates/agent-instructions.md` is the single source for both
+`~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. The two entry points render
+identically per platform, and the rendered word count stays at or under the
+stated budget so the persistent instructions stay readable.
 
 This is a home-grown check, so it carries its own negative control: it proves
 its word-counting function actually flags an over-budget input before trusting
@@ -30,7 +28,6 @@ from pathlib import Path
 WORD_LIMIT = 600
 FIXTURES = ("os-linux.toml", "os-darwin-amd64.toml", "os-windows.toml")
 ENTRY_POINTS = ("dot_claude/CLAUDE.md.tmpl", "dot_codex/AGENTS.md.tmpl")
-CONTRACT_MARKER = "<!-- evidence-first:contract -->"
 
 CHECKS = 0
 
@@ -94,12 +91,6 @@ def main() -> None:
                 if n > WORD_LIMIT:
                     die(1, f"{ep} rendered under {fixture} is {n} words, "
                            f"over the {WORD_LIMIT}-word ceiling")
-                CHECKS += 1
-
-                marker_count = text.count(CONTRACT_MARKER)
-                if marker_count != 1:
-                    die(1, f"{ep} rendered under {fixture} carries the contract "
-                           f"{marker_count} times, expected exactly 1")
                 CHECKS += 1
 
             claude_text, codex_text = (rendered[ep] for ep in ENTRY_POINTS)

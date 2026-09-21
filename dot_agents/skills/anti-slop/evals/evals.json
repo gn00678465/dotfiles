@@ -1,0 +1,23 @@
+{
+  "skill_name": "anti-slop",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use the anti-slop skill to clean up this text:\n\n---\nIt is important to note that this comprehensive refactoring endeavor serves as a pivotal enhancement to the overall architecture. The intricate landscape of the codebase has been streamlined to foster a more robust and vibrant development experience. Furthermore, we leveraged cutting-edge patterns to ensure the system stands as a testament to modern engineering practices.\n\nFirst, I'll analyze the current state of the codebase, then identify the key areas for improvement, and finally propose a series of targeted refactoring steps.\n\nExperts believe that modular architecture is the future of software development. Not just a structural improvement, but a fundamental paradigm shift that could potentially transform how teams collaborate.\n\nIn order to achieve this, due to the fact that the existing code was tightly coupled, we needed to carefully decouple the components. The future looks bright for this project.\n---",
+      "expected_output": "All English AI vocabulary removed (delve, pivotal, intricate, landscape, streamline, foster, robust, vibrant, leverage, furthermore). Process narration deleted. Vague attribution deleted. Filler phrases shortened. Hedging stacks cut. The result should be 2-3 short declarative sentences about what the refactoring actually did.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "使用 anti-slop skill 清理以下繁體中文文字：\n\n---\n值得注意的是，我們透過修改設定檔來調整系統的行為，並且在沒有安裝相關套件的情況下，進行了一系列的測試與驗證工作。\n\n根據你的要求，這裡避免使用 CLI 工具。建議可以考慮使用 Google Drive 來進行檔案的分享。需要特別說明的是，使用者的帳號的設定的頁面已經被更新了。\n\n首先我會分析目前的狀態，然後找出根因，接著提出修正方案。這個設計非常優雅！這樣就完成了基本的設定。\n\n以上就是需要修改的三個地方。測試、lint、型別檢查等都已通過。\n---",
+      "expected_output": "「值得注意的是」deleted. 「透過X來Y」flattened. 「在X的情況下」shortened. 「進行」replaced with verb. 「根據你的要求」deleted. 「建議可以考慮使用」cut to imperative. 「需要特別說明的是」deleted. 「的」chain broken. Passive「被更新了」made active. Process narration deleted. Value judgment without evidence deleted. Closing summary deleted. Post-list summary deleted. Trailing「等」removed if list is complete. Sentences within 30/40 char limits.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Use the anti-slop skill to clean up this document that was produced through iterative prompting:\n\n---\n# Setup Guide\n\nAs requested, this guide walks you through setting up the development environment. Based on your instruction to keep things simple, we will not use Docker or Kubernetes.\n\nUnlike the previous version which used a Makefile, this version uses npm scripts. This was changed to accommodate your preference for JavaScript-based tooling.\n\nThe setup process is straightforward and should take about 10 minutes:\n\n1. Install Node.js (as mentioned in our earlier discussion)\n2. Run `npm install` to install all the comprehensive dependencies\n3. Configure the environment variables (this section was added because you mentioned you always forget this step)\n\nThis guide does not cover deployment, CI/CD, or advanced configuration. The user wanted a beginner-friendly guide, so we kept the scope limited.\n\nI hope this helps! Let me know if you need any clarification on any of these steps. Great question about the environment variables by the way!\n---",
+      "expected_output": "All conversation-residue removed: 'As requested', 'Based on your instruction', 'Unlike the previous version', 'This was changed to', 'as mentioned in our earlier discussion', 'this section was added because', 'The user wanted'. Constraints become design (don't say what's excluded, just describe what's included). Chatbot filler deleted ('I hope this helps', 'Let me know if', 'Great question'). 'comprehensive' deleted. The result should read as a standalone setup guide that never hints at the conversation that produced it.",
+      "files": []
+    }
+  ]
+}

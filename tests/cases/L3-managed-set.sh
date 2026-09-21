@@ -1,6 +1,6 @@
 # L3 — 每個平台上 chezmoi 到底會管哪些 target（不含 external，external 是 L5）。
 #
-# 這一層擋的是 SPEC M7：.chezmoiignore 寫反 → Windows 上落下 .zshrc、
+# 這一層擋的是：.chezmoiignore 寫反 → Windows 上落下 .zshrc、
 # 或 POSIX 上落下 AppData\。整份清單用 golden 比對，順便擋住「新增檔案卻忘了
 # 給它平台守衛」以及「repo-only 的檔案漏掉、被裝進 $HOME」。
 
@@ -37,15 +37,11 @@ for _os in $ALL_OSES; do
     _m=$(_managed "$_os")
     assert_not_contains "$_os 不得把 tests/ 裝進 \$HOME" "$_m" "tests"
     assert_not_contains "$_os 不得把 docs/ 裝進 \$HOME" "$_m" "docs"
-    assert_not_contains "$_os 不得把 .scratch/ 裝進 \$HOME" "$_m" ".scratch"
-    # .scratch 開頭是點，chezmoi 本來就會跳過；specs/ 不是，只有 .chezmoiignore 擋得住。
-    assert_not_contains "$_os 不得把 specs/ 裝進 \$HOME" "$_m" "specs"
-    assert_not_contains "$_os 不得把 tools/ 裝進 \$HOME" "$_m" "tools"
 done
 
 unset _os _t _win _lin _m
 
-# ---------- .gitattributes：強制 LF checkout（SPEC v5 M14，使用者選 (c)）----------
+# ---------- .gitattributes：強制 LF checkout----------
 # Git for Windows 預設 core.autocrlf=true，全新 Windows 會把來源樹 checkout 成 CRLF，
 # 算繪結果就把 \r 帶進受管的設定檔（L9 第二次執行實際抓到）。這是 repo 端的性質，
 # 不能靠使用者的 git 設定。

@@ -64,17 +64,17 @@ done
 _arch_pair windows windows-arm64 ".config/powershell/profile.ps1" "profile.ps1"
 _arch_pair linux linux-arm64 ".chezmoiscripts/50-neovim.sh" "50-neovim.sh"
 
-# ---------- B2. Arch 家族等價（SPEC arch-family-support S7）----------
+# ---------- B2. Arch 家族等價----------
 # omarchy（ID=omarchy + ID_LIKE=arch）與 arch（ID=arch）在 platform.toml 之後必須
-# 完全一樣：受管的 zsh 檔案與 50-neovim 都不得再分辨兩者（Must NOT #6）。
+# 完全一樣：受管的 zsh 檔案與 50-neovim 都不得再分辨兩者。
 for _t in .zshrc .zprofile .chezmoiscripts/50-neovim.sh; do
     _arch_pair arch omarchy "$_t" "$_t（arch 家族）"
 done
 unset _t
 
-# ---------- C0. brew 平台的 50-neovim golden（SPEC arch-family-support S6）----------
+# ---------- C0. brew 平台的 50-neovim golden----------
 # 50-neovim 的模板改成兩段（mise 段只在 brew 平台、starter 段共用）之後，Debian 與
-# macOS 的渲染必須逐位元組不變（Must NOT #2）。三份 golden 都是改動前（base
+# macOS 的渲染必須逐位元組不變。三份 golden 都是改動前（base
 # 4e6f13c）的渲染：linux、darwin-arm64（/opt/homebrew）、darwin-amd64（/usr/local）。
 # linux-arm64 由上面 B 段的跨 arch 等價涵蓋。
 for _os in linux darwin-arm64 darwin-amd64; do
@@ -119,7 +119,7 @@ assert_eq "golden/render/windows 的檔案集合" \
 
 unset _s _t _name _GOLDEN_RENDER
 
-# ---------- C2. Arch 專屬產物的 golden 快照（SPEC archlinux-support S14）----------
+# ---------- C2. Arch 專屬產物的 golden 快照----------
 # Arch 的 .zshrc/.zprofile 是唯一與 linux 不同的受管檔案：brew shellenv 換成
 # omarchy 的 env-bootstrap。與 C 同一種強度：變更偵測器，不是正確性 oracle；
 # 「在 omarchy 上真的找得到 omarchy-*」由 L9 證明。
@@ -138,7 +138,7 @@ for _pair in ".zshrc|zshrc" ".zprofile|zprofile"; do
     assert_not_contains "arch / $_t 不載入 bash 專用的 default/bash/rc（M7）" "$_c" 'default/bash/rc'
     assert_contains "arch / $_t 讀 /etc/omarchy.conf（dev 模式的 OMARCHY_PATH）" "$_c" '/etc/omarchy.conf'
 done
-# 50-neovim 的 Arch 渲染（SPEC arch-family-support S5）：同一種強度的變更偵測器。
+# 50-neovim 的 Arch 渲染：同一種強度的變更偵測器。
 # 執行期行為（跳過 vs. 備份 + clone）由 L7 的 S8/S9 證明，真實機器由 L9 證明。
 if [ ! -f "$_GOLDEN_ARCH/50-neovim.sh" ]; then
     _fail "golden 存在：arch/50-neovim.sh" "$_GOLDEN_ARCH/50-neovim.sh 不存在"
@@ -174,10 +174,10 @@ assert_contains "init.ps1 的 symlink 警告有指出開發人員模式" "$_init
 # sandbox 探針是 M12 與 symlink 權限唯一的量測工具；它悄悄少掉一項檢查，
 # 我們會拿到一份看起來通過、實際上沒問過那個問題的結果。
 _probe=$(cat "$REPO/tests/sandbox/_probe.ps1")
-assert_contains "sandbox 探針會問 M12（treesitter parser 編不編得出來）" "$_probe" "SPEC M12"
+assert_contains "sandbox 探針會問 M12（treesitter parser 編不編得出來）" "$_probe" "nvim-treesitter builds a parser"
 assert_contains "sandbox 探針會檢查 symlink" "$_probe" "claude skills symlinks"
 assert_contains "sandbox 探針會檢查 zsh 專屬檔案沒有落地" "$_probe" "zsh-only files did NOT land"
-# 「每個工具都要被檢查到」這條義務在 SPEC v6 換了形狀：不再逐一問「在不在 PATH 上」
+# 「每個工具都要被檢查到」這條義務後來換了形狀：不再逐一問「在不在 PATH 上」
 # （那組檢查修不好，已移除），改成問「套件裝了沒」。清單的完整性由下面那條
 # 「探針的套件清單與 30-install-winget-packages 完全相同」守住，比原本寫死十個名字強：
 # 產品加了套件而探針漏掉，那一條會紅。
@@ -194,7 +194,7 @@ assert_contains "結尾把 results.tsv 全文印到主控台（Sandbox 關掉就
 # 會照樣寫去 C:\out，而那個目錄在遠端模式下根本不存在。
 assert_not_contains "探針裡沒有寫死的 C:\out 輸出路徑" "$_probe" "'C:\out\\"
 
-# 以下四條全部來自 L9 的第一次真實執行（見 evidence「L9 第一次執行」）。
+# 以下四條全部來自 L9 的第一次真實執行。
 #
 # 最重的一條是 Get-Content：探針的 $ErrorActionPreference 是 'Continue'，所以
 # 檔案不存在時 Get-Content 是**非終止**錯誤，變數拿到 $null；而 PowerShell 的
@@ -211,7 +211,7 @@ assert_contains "結尾要印出 treesitter.log（遠端模式關掉就沒了）
 assert_contains "主控台編碼統一成 UTF-8（winget 的輸出是 UTF-8，5.1 預設用 ANSI 代碼頁解）" \
     "$_probe" '[Console]::OutputEncoding'
 
-# SPEC v5 第 1、2 項：L9 執行期間必須是可觀察的，PATH 判定必須讀 registry。
+# L9 執行期間必須是可觀察的，PATH 判定必須讀 registry。
 # 兩者都來自遠端模式的實際操作 —— 前者讓操作者分不出「還在跑」與「卡死」，
 # 後者讓十個裝好的工具全部被誤報成 not found。
 assert_contains "子程序輸出邊收邊印，不是整段收完才印" "$_probe" 'Invoke-Streamed'
@@ -232,12 +232,12 @@ assert_contains "PATH 重建本身是一條可以 FAIL 的檢查（靜靜失敗�
 # 移除之後這條義務隨之消失。取而代之的是套件檢查失敗時要帶 winget 的輸出尾段。
 assert_contains "套件檢查失敗時要帶 winget 的輸出尾段" "$_probe" 'winget list -> $LASTEXITCODE'
 
-# SPEC v6：十條 tool on PATH 檢查已移除 —— 修了三輪都沒修好、根因未找到，而一條
+# 十條 tool on PATH 檢查已移除 —— 修了三輪都沒修好、根因未找到，而一條
 # 已知會紅的檢查會讓人學會忽略 FAIL。整段子程序查找機制一併移除。
-assert_not_contains "子程序查找機制已移除（SPEC v6）" "$_probe" 'Invoke-ToolLookup'
+assert_not_contains "子程序查找機制已移除" "$_probe" 'Invoke-ToolLookup'
 # 針對「那組 Check 不存在」，不是「這個詞不准出現」——註解裡解釋為什麼移除是合理的，
 # 而且比默默刪掉有用。
-assert_not_contains "tool on PATH 那組檢查已移除（SPEC v6）" "$_probe" 'Check "tool on PATH'
+assert_not_contains "tool on PATH 那組檢查已移除" "$_probe" 'Check "tool on PATH'
 
 # 換上來的是「套件裝了沒」：用產品腳本自己的判斷指令，不依賴 PATH。
 assert_contains "改用 winget list --exact --id 確認套件已安裝" "$_probe" 'winget list --exact --id'
@@ -261,7 +261,7 @@ assert_eq "探針不再靠寫死的 ProgramFiles 目錄清單判定 PATH" "0" "$
 # 四個都存活整套 458 個測試（其中兩個連 supply-chain 都過，因為它的正則會匹配到
 # 註解裡的內容）。子字串斷言只抓得到「刪除」，抓不到「停用、改序、覆寫」。
 #
-# 這兩個檔案不是模板，git 本來就追得到；但 gate 是靠測試而不是靠人看 diff。
+# 這兩個檔案不是模板，git 本來就追得到；但把關靠的是測試，不是靠人看 diff。
 # 逐位元組比對是「golden pin」原本的意思。
 for _pair in "init.ps1|$REPO/init.ps1" "_probe.ps1|$REPO/tests/sandbox/_probe.ps1" \
              "_probe.sh|$REPO/tests/sandbox/_probe.sh"; do
@@ -311,7 +311,7 @@ _script_brew=$(render_file linux .chezmoiscripts/run_onchange_before_30-install-
 assert_not_blank "Linux 探針讀得到 brew 清單" "$_probe_brew"
 assert_eq "Linux 探針的 brew 清單與 30-install-brew-packages 完全相同" "$_script_brew" "$_probe_brew"
 
-# Arch（SPEC archlinux-support S18）：探針的兩份 pacman 清單也要等於腳本的清單。
+# Arch：探針的兩份 pacman 清單也要等於腳本的清單。
 _probe_pac=$(sed -n "s/^pacman_packages='\(.*\)'$/\1/p" "$REPO/tests/sandbox/_probe.sh" | tr ' ' '\n' | LC_ALL=C sort)
 _script_pac=$(render_file arch .chezmoiscripts/run_onchange_before_10-install-packages.sh.tmpl \
     | sed -n 's/^for pkg in \(.*\); do$/\1/p' | tr ' ' '\n' | LC_ALL=C sort)
@@ -327,7 +327,7 @@ assert_contains "探針在 Arch 上檢查 ~/.config/nvim 沒有被搬進 .bak（
 assert_contains "探針在 Arch 上檢查沒有 /home/linuxbrew（M3）" "$_probe_sh" 'no Homebrew on Arch'
 assert_contains "探針在 Arch 上用真實 chezmoi 驗證 osRelease 接縫（M4）" "$_probe_sh" 'osRelease.id'
 assert_contains "探針在 Arch 上檢查登入 zsh 有 OMARCHY_PATH（M6）" "$_probe_sh" 'OMARCHY_PATH'
-assert_contains "探針在 Arch 上不移除 pacman 的 neovim（Must NOT #8）" "$_probe_sh" "skip 'a removed neovim is reinstalled by the next apply'"
+assert_contains "探針在 Arch 上不移除 pacman 的 neovim" "$_probe_sh" "skip 'a removed neovim is reinstalled by the next apply'"
 # arch-family-support S10/S11：探針要能在正式 omarchy（ID=omarchy）與純 Arch 上跑。
 # 家族判斷看 ID_LIKE；omarchy 專屬檢查只在 omarchy 上跑，訊號與 50-neovim 同一個
 # （pacman -Q omarchy-nvim，M6），純 Arch 改問 starter marker。
@@ -337,12 +337,9 @@ assert_contains "探針在純 Arch 上改問 starter marker" "$_probe_sh" 'nvim 
 assert_contains "探針的 M4 接縫檢查接受 distro=omarchy" "$_probe_sh" 'omarchy|pacman|'
 unset _probe_sh _probe_apt _script_apt _probe_brew _script_brew _probe_pac _script_pac _probe_pac_tools _script_pac_tools
 
-# 測試層自己也會被刪掉。gate 的 manifest 稽核管的是 **gate 的層**，不是測試層；
-# 而 tests/run.sh 在指定的層檔案不存在時是 exit 0（`1..0`）。L1/L2/L3/L5/L6/L7/L11
-# 被刪掉會讓對應的 mutant 變成 SURVIVED 而讓 mutation 層變紅，但 **L4 與 L8 沒有任何
-# mutant 指向它們** —— 獨立驗證實測：把這兩個檔案刪掉，整個 gate 照樣全綠。
-# L8 是 SPEC 對 M8 唯一指名的程序（接縫與真實 Windows 行為是否一致），而這份報告
-# 每一條 Windows 與 macOS 的主張都是經由那個接縫推導出來的。
+# 測試層自己也會被刪掉：tests/run.sh 在指定的層檔案不存在時是 exit 0（`1..0`），
+# 所以少了一層不會讓任何東西變紅。L8 是唯一驗證「接縫與真實 Windows 行為一致」
+# 的層，每一條 Windows 與 macOS 的主張都經由那個接縫推導出來。
 assert_eq "測試層的檔案集合" \
     "$(printf '%s\n' L1-platform.sh L11-render-golden.sh \
         L2-script-render-matrix.sh L3-managed-set.sh L4-syntax.sh L5-externals.sh \

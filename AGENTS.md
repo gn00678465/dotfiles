@@ -36,23 +36,14 @@ To stop managing a file while keeping its local copy, use
 
 ## Required checks
 
-Run `tests/check_agent_doc_invariants.py` after changes to the evidence-first
-contract, `dot_agents/workflows/`, or the `verification-gate`, `spec-archive`
-and `evidence-squad` skills. It checks shared status values, report fields, tier definitions, and
-anti-gaming rules. Exit code 1 means an invariant failed. Exit code 2 means
-the check failed to run correctly.
-
-Run `tests/spec_archive_test.py` after changes to the spec-archive script.
-It checks cases that the script must reject.
+Run `tests/agent_instructions_test.py` after changes to
+`.chezmoitemplates/agent-instructions.md`. It checks that `~/.claude/CLAUDE.md`
+and `~/.codex/AGENTS.md` render identically and stay within the word budget.
 
 Run `tests/harness_test.py` after changes to `tests/run.sh`, `tests/lib.sh`,
-`tests/fixtures/os-*.toml`, or a `tools/gate*` script. It is the regression
-suite for the verification harness itself: the manifest audit reads a record
-file's last line and rejects duplicates; `gate.sh` validates the base ref, the
-scope and the tools before it deletes the previous run's artifacts, and its
-`versions` layer fails when a tool cannot report a version; the runner counts
-measured assertions rather than `# SKIP` ones; and every Linux fixture pins
-`distroLikeOverride`. Each case is paired with a mutant of the script under
+or `tests/fixtures/os-*.toml`. It is the regression suite for the test
+harness itself: the runner counts measured assertions rather than `# SKIP`
+ones, and every Linux fixture pins `distroLikeOverride`. Each case is paired with a mutant of the script under
 test that must go green without the fix. Exit code 1 means an assertion
 failed. Exit code 2 means the check could not run.
 
@@ -136,7 +127,6 @@ Keep the POSIX and Windows scripts consistent:
   script with a message naming both causes, the empty keyring of a fresh image,
   and the README section that holds the commands. L2 asserts that the rendered
   script never contains `pacman -Sy`, so keep the exact commands out of it.
-  `tools/gate-pacman-ids.sh` resolves every name with `pacman -Si`.
 - `30-install-winget-packages`: Do not add `Microsoft.PowerShell` or `Git.Git`.
   They belong in `init.ps1`: chezmoi needs git to clone and pwsh 7 to run scripts.
 - `35-install-ps-modules`: Install Windows PowerShell Gallery modules that
@@ -235,9 +225,7 @@ Known inputs that produce invalid TOML include:
 - An inline `tui = { ... }` table.
 - A quoted `"status_line" =` key.
 
-This list is not exhaustive. `KNOWN_LIMITATION` in `tools/gate-properties.py`
-checks only byte identity with the original output for these cases.
-It does not establish correct TOML handling.
+This list is not exhaustive.
 
 Preserve these outputs in unrelated tasks. A user request to fix a listed
 defect authorizes the corresponding behavior change. Update its tests and
@@ -247,8 +235,7 @@ still apply.
 ## Tests
 
 For routine changes, run affected tests and the required checks above.
-Run the full gate when the evidence-first contract applies or the user
-requests full verification. Report checks that could not run.
+Report checks that could not run.
 
 `tests/run.sh` needs POSIX sh and chezmoi. Select layers with, for example,
 `tests/run.sh L3 L6`.
@@ -297,46 +284,18 @@ L9 tests installation in a disposable environment. See
   the runtime directory fix. Both Linux probes also test a second apply,
   `chezmoi git`, and neovim removal and reinstallation.
 
-`tools/gate.sh --scope <scope>` runs the suite, repeated and shuffled suite
-runs, property cases, hand-written mutants, external, winget, and pacman
-package name resolution, changed-line coverage, and source-state checks
-before and after execution. The scope names `specs/<scope>/SPEC.md` and the
-`.gate/<scope>/` output directory. It can be omitted only when `specs/` holds
-one SPEC outside `archive/`.
-
-`gate-intent.sh` derives `intent_status` and `intent_source` from the committed
-SPEC. Copy these headers verbatim into the evidence report.
-`spec-archive` rejects a report that does not quote the SPEC's `spec_version`.
-
-Run every layer through `run_layer` to preserve its exit code instead of
-`tee`'s. `gate-manifest-audit.sh` fails if a declared layer did not run.
-Gate artifacts go in `.gate/<scope>/`, which git ignores. `gate.sh` deletes
-them only after the base ref, the scope and the required tools check out, so a
-run refused on a configuration error keeps the last good run's evidence.
-
 `tests/run.sh` reports measured assertions separately from skipped ones. A
 layer whose assertions are all `# SKIP` measured nothing and cannot go red
-here; the runner names it in a `# skip-only 層` line that `gate.sh` repeats in
-its closing summary, and the evidence report records it as
-`UNAVAILABLE (cannot run in this environment)`. Only L4, L7 and L8 may be
+here; the runner names it in a `# skip-only 層` line. Only L4, L7 and L8 may be
 skip-only — they have the declared WSL-interop precondition in the table
 above. Any other layer that contributes nothing but skips is a failure: it
 was disabled, not blocked by the environment.
 
-## Evidence-first artifacts
-
-Store specs at `specs/<scope>/SPEC.md`. The CLOSE step reads this fixed path.
-Commit the final evidence report at `.scratch/<scope>/evidence.md`.
-Keep it outside `specs/` because `spec-archive` moves the entire spec directory.
-Squad records go to `.scratch/<scope>/squad/<cut>.md` and the Phase 5 verdict
-to `.scratch/<scope>/verification.md`; `spec-archive` reads both from git.
-The `windows-support` report is the worked example of specification,
-verification, evidence, and archive steps.
+## Skill names
 
 Do not name a skill under `dot_agents/skills/` `adversarial-squad`, any
 other name in spec-kitty's bundled skill registry, or a name that starts
 with `spec-kitty-`. The spec-kitty CLI syncs `~/.claude/skills` and
 `~/.agents/skills` after every CLI upgrade: it deletes and replaces
 directories with registry names, including symlinks and their targets, and
-deletes unknown `spec-kitty-*` directories. The squad skill is named
-`evidence-squad` for this reason.
+deletes unknown `spec-kitty-*` directories.

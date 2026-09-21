@@ -1,6 +1,6 @@
 #!/bin/sh
 # L9 (Arch family over ssh): run tests/sandbox/_probe.sh on a machine reachable
-# by ssh -- the ISO-installed omarchy VM (SPEC arch-family-support S11).
+# by ssh -- the ISO-installed omarchy VM.
 #
 #   tests/sandbox/ssh.sh <user@host>                  # local mode: HEAD of this repo
 #   tests/sandbox/ssh.sh <user@host> --branch <name>  # remote mode: init.sh from GitHub
@@ -9,7 +9,7 @@
 # tree goes in through a pipe (tar | ssh tar), the probe runs, and /out comes
 # back through a pipe. The launcher never touches $HOME on the target and
 # never runs pacman; the probe's `chezmoi init --apply` is the only system
-# change (Must NOT #7). Preconditions on the target: an Arch-family
+# change. Preconditions on the target: an Arch-family
 # /etc/os-release, key authentication (every call is BatchMode), and either
 # root or passwordless sudo for <user> -- the install scripts run pacman
 # without a tty, and so does this launcher when it creates /src and /out.

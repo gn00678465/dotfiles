@@ -5,7 +5,7 @@
 # 這三條的傷害都是使用者資料，而且都不是靠讀模板渲染結果能看出來的。
 #
 # 一切都在重導向的環境裡跑：假的 HOME / LOCALAPPDATA / TEMP / ProgramFiles，
-# 加上 mise 與 git 的 stub。SPEC Must NOT #1 禁止碰真實主機。
+# 加上 mise 與 git 的 stub。這一層不得碰真實主機。
 
 # 時間戳只到秒，所以「.bak 與 .bak.<秒> 同時已存在」這個形狀是有可能的，而它會走到
 # 一條 accepted risk 的路徑：mv/Move-Item 把來源搬「進」那份既有備份裡。要觸發它得在
@@ -16,7 +16,7 @@
 # 命名的形狀」不會無聲通過 —— 資料仍然沒有被刪，只是位置被埋深了一層。
 # 撞名視窗要蓋過腳本從啟動到 mv 的整段時間。原本只種 0–6 秒，Windows 那一半經
 # WSL interop 啟動 pwsh.exe 常常超過 6 秒，於是同一個 suite 連跑兩次時第二次撞不到
-# （archlinux-support 的 gate 在 suite-health-repeat 層實際抓到：753 條裡這兩條變紅）。
+# （連跑兩次 suite 時實際抓到：753 條裡這兩條變紅）。
 # 種到 30 秒只是讓撞名一定發生，斷言本身不變。
 _seed_stamp_collisions() { # base-path
     _i=0
@@ -150,7 +150,7 @@ assert_eq "POSIX: 跑到的是 stub 的 mise 而不是真實的 mise（隔離生
 
 fi   # _HAVE_NS
 
-# ================= A2. Arch 家族的 50-neovim（SPEC arch-family-support S8/S9）=================
+# ================= A2. Arch 家族的 50-neovim=================
 # 同一支模板在 pacman 平台渲染成另一條路：沒有 brew shellenv、沒有 mise，改在執行期
 # 以 `pacman -Q omarchy-nvim` 決定要不要 clone starter（D2）。這裡用 stub 的 pacman
 # 兩種回答各跑一次。腳本不會呼叫 brew，所以不需要 A 段的 mount namespace。
@@ -186,7 +186,7 @@ elif [ ! -s "$_ar/50-neovim.sh" ]; then
     _fail "Arch 50-neovim 在 arch 上渲染成非空（S5）" "渲染結果是空的，沒有東西可以執行"
 else
 
-# S8：omarchy（pacman 回報 omarchy-nvim 已裝）——什麼都不動（Must NOT #3、M3）。
+# S8：omarchy（pacman 回報 omarchy-nvim 已裝）——什麼都不動。
 _h="$_ar/home-omarchy"
 _seed_nvim "$_h/.config/nvim" "$_h/.local/share/nvim" "$_h/.local/state/nvim" "$_h/.cache/nvim"
 printf 'OMARCHY-INIT\n' > "$_h/.config/nvim/init.lua"
@@ -201,7 +201,7 @@ done
 assert_eq "omarchy: init.lua 仍是 omarchy 的（沒有 clone starter）" "OMARCHY-INIT" "$(cat "$_h/.config/nvim/init.lua" 2>&1)"
 assert_eq "omarchy: 沒有寫 marker" "absent" \
     "$([ -e "$_h/.config/nvim/.chezmoi-lazyvim-starter" ] && echo present || echo absent)"
-assert_eq "omarchy: 沒有呼叫 mise（Must NOT #8）" "absent" "$([ -e "$_ar/mise-calls.log" ] && echo present || echo absent)"
+assert_eq "omarchy: 沒有呼叫 mise" "absent" "$([ -e "$_ar/mise-calls.log" ] && echo present || echo absent)"
 
 # S9：純 Arch（pacman 回報未裝）——與 Debian 相同的備份 + clone + marker，且重跑不再搬。
 _h="$_ar/home-arch"
@@ -223,7 +223,7 @@ else _fail "純 Arch 50-neovim 第二次執行成功" "$_out"; fi
 assert_eq "純 Arch: 重跑不會動使用者自己的設定（M4）" "MY-OWN-EDIT" "$(cat "$_h/.config/nvim/init.lua" 2>&1)"
 assert_eq "純 Arch: 重跑不會多生一份備份（M4）" "1" \
     "$(ls -d "$_h"/.config/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
-assert_eq "純 Arch: 沒有呼叫 mise（Must NOT #8）" "absent" "$([ -e "$_ar/mise-calls.log" ] && echo present || echo absent)"
+assert_eq "純 Arch: 沒有呼叫 mise" "absent" "$([ -e "$_ar/mise-calls.log" ] && echo present || echo absent)"
 
 fi
 unset _ar _h _d
@@ -245,7 +245,7 @@ else
     rm -rf "$_bw"; mkdir -p "$_bw/local" "$_bw/temp" "$_bw/pf" "$_bw/stub"
     # 跟 POSIX 那半一樣留下記號。隔離目前是靠 %LOCALAPPDATA%/%ProgramFiles% 被
     # 重導向而成立；沒有這個正面控制的話，哪天重導向失效，Windows 這半會安靜地
-    # 開始驅動主機上的真工具 —— 而那正是 Must NOT #1 守的那條線。
+    # 開始驅動主機上的真工具 —— 而這一層正是不得碰真實主機。
     printf '@echo off\r\necho %%* >> "%s\\mise-calls.log"\r\nexit /b 0\r\n' "$_bn" > "$_bw/stub/mise.cmd"
     printf '@echo off\r\nif "%%1"=="clone" (\r\n  mkdir "%%~5" 2>nul\r\n  mkdir "%%~5\\.git" 2>nul\r\n  echo starter> "%%~5\\init.lua"\r\n)\r\nexit /b 0\r\n' > "$_bw/stub/git.cmd"
     render_file windows .chezmoiscripts/run_before_50-neovim.ps1.tmpl > "$_bw/50-neovim.ps1"
@@ -305,11 +305,11 @@ PSEOF
         "$(ls -d "$_bw"/local/nvim.bak* 2>/dev/null | wc -l | tr -d ' ')"
 
     # 第四次：與 POSIX 那半對稱地釘住撞名時的 accepted risk 行為。兩邊的備份命名
-    # 形狀必須一致，否則同一份 SPEC 在兩個平台上代表不同的事。
+    # 形狀必須一致，否則同一條規則在兩個平台上代表不同的事。
     rm -f "$_bw/local/nvim/.chezmoi-lazyvim-starter"
     printf 'GEN4\n' > "$_bw/local/nvim/gen-marker.txt"
     # 撞名不靠牆上的時鐘：pwsh.exe 經 WSL interop 啟動的時間不可預測（6 秒的視窗
-    # 在 gate 的 suite-health-repeat 撞不到，30 秒的視窗在使用者同時跑 L9 時也撞不到）。
+    # 在連跑兩次 suite 時撞不到，30 秒的視窗在使用者同時跑 L9 時也撞不到）。
     # 改成在 wrapper 裡用同名 function 蓋掉 Get-Date（function 優先於 cmdlet，子 scope
     # 看得到），腳本算出的時間戳固定為 20000101000000，測試只種這一個目錄。
     mkdir -p "$_bw/local/nvim.bak.20000101000000"

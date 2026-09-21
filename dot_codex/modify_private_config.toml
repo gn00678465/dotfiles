@@ -40,7 +40,7 @@
 {{- $lines := list -}}
 {{- /* 條件看 $content 而不是 $body：只有一個換行的檔案（$body 變成空字串）
        在 awk 眼裡是「一行空行」（NR=1），不是空檔（NR=0），兩者的輸出不同。
-       這個差別是 tools/gate-properties.py 的 P2 抓出來的。 */ -}}
+       這個差別是 property-based 測試抓出來的。 */ -}}
 {{- if ne $content "" -}}{{- $lines = splitList "\n" $body -}}{{- end -}}
 
 {{- /* 走訪時在結尾追加一個哨兵，讓「離開 [tui] 區塊」的收尾邏輯只需要寫一次

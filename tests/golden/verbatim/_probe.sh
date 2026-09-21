@@ -82,7 +82,7 @@ echo "probe: $(uname -srm); $(cat /etc/debian_version 2>/dev/null || echo 'not d
 # keys off $arch. Within the family, $omarchy separates omarchy (its own
 # LazyVim config from omarchy-nvim, left untouched) from plain Arch (the
 # starter is cloned). It is the same signal 50-neovim uses at run time, so the
-# probe and the script cannot disagree (SPEC arch-family-support M6).
+# probe and the script cannot disagree.
 distro=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID:-}")
 distro_like=$(. /etc/os-release 2>/dev/null && printf '%s' "${ID_LIKE:-}")
 arch=0
@@ -184,14 +184,14 @@ fi
 update_probe_path
 
 if [ $arch = 1 ]; then
-    # Must NOT #4 / M3: the brew scripts render empty on Arch, so nothing may
+    # The brew scripts render empty on Arch, so nothing may
     # have created the linuxbrew prefix.
     c_no_brew() {
         [ ! -e /home/linuxbrew ] || { echo '/home/linuxbrew exists'; return 1; }
         case "$path_report" in *linuxbrew*) echo "$path_report"; return 1 ;; esac
         echo "$path_report"
     }
-    check 'no Homebrew on Arch (Must NOT #4)' c_no_brew
+    check 'no Homebrew on Arch' c_no_brew
 else
     c_path() { echo "$path_report"; case "$path_report" in *linuxbrew*) ;; *) echo 'brew prefix not found'; return 1 ;; esac; }
     check 'PATH rebuilt from ~/.local/bin, brew prefix, mise shims' c_path
@@ -274,7 +274,7 @@ if [ $omarchy = 1 ]; then
     # LazyVim config must still be exactly where useradd put it -- no .bak, no
     # starter marker, omarchy's own plugins intact -- with our override layered
     # on top. Plain Arch takes the else branch: the starter is cloned there
-    # like on Debian (SPEC arch-family-support S10).
+    # like on Debian.
     c_nvim_omarchy() {
         _cfg="$HOME/.config/nvim"
         [ -z "$(ls -d "$HOME"/.config/nvim.bak* "$HOME"/.local/share/nvim.bak* 2>/dev/null)" ] \
@@ -339,7 +339,7 @@ if [ $arch = 1 ]; then
     # answer the os-arch fixture gives L1/L2.
     # ID=arch (WSL omarchy, plain Arch) and ID=omarchy (ISO omarchy, via
     # ID_LIKE=arch) must both end at pacman with an empty brewPrefix; distro
-    # keeps the raw id (SPEC arch-family-support S11).
+    # keeps the raw id.
     c_seam() {
         _out=$(printf '%s' '{{ .chezmoi.osRelease.id }}|{{- $p := includeTemplate "platform.toml" . | fromToml -}}{{ $p.distro }}|{{ $p.pkgManager }}|{{ $p.brewPrefix }}' \
             | chezmoi execute-template 2>&1) || { echo "execute-template failed: $_out"; return 1; }
@@ -396,7 +396,7 @@ fi
 pin=$(sed -n 's/^neovim = "\([^"]*\)".*/\1/p' "$repo/.chezmoitemplates/versions.toml" 2>/dev/null)
 if [ $arch = 1 ]; then
     # Arch: neovim and tree-sitter-cli are pacman packages; the mise pin in
-    # versions.toml does not apply (rolling release, SPEC §7).
+    # versions.toml does not apply (rolling release).
     c_nvim_pacman() {
         # nvim's own exit status, not head's.
         _all=$(nvim --version 2>&1) || { echo "nvim --version failed: $_all"; return 1; }
@@ -524,8 +524,8 @@ fi
 echo
 if [ $arch = 1 ]; then
     # On Arch neovim is a pacman package and the probe never removes packages
-    # (SPEC Must NOT #8): the machine is the user's, not a throwaway rootfs.
-    skip 'a removed neovim is reinstalled by the next apply' 'Arch: neovim is a pacman package; the probe does not remove packages (Must NOT #8)'
+    #: the machine is the user's, not a throwaway rootfs.
+    skip 'a removed neovim is reinstalled by the next apply' 'Arch: neovim is a pacman package; the probe does not remove packages'
 else
     echo 'probe: removing neovim from mise and applying again'
     c_reinstall() {
