@@ -290,7 +290,7 @@ if ($remote) {
 }
 
 # ---------------------------------------------------------------- packages
-# What replaced the ten "tool on PATH" checks (SPEC v6). Those were red in four
+# What replaced the ten "tool on PATH" checks. Those were red in four
 # consecutive real runs, three fix attempts did not hold, and the root cause was
 # never found -- and a check known to be red teaches people to ignore FAIL, which
 # would cost the whole results table its meaning.
@@ -301,7 +301,7 @@ if ($remote) {
 # does not depend on PATH at all.
 #
 # What this does NOT establish: that the tools are on a new terminal's PATH.
-# Nothing here does any more -- see the named limitation in SPEC 7. What is still
+# Nothing here does any more. What is still
 # covered automatically is the M12 check below, which cannot pass unless nvim,
 # tree-sitter and gcc actually run.
 #
@@ -415,9 +415,9 @@ Check 'claude skills symlinks' {
 # on Windows with zig as the C compiler? This is the only place it can be
 # answered. Bounded, and a failure here is a finding, not a crash.
 Write-Host ''
-Write-Host 'probe: running nvim Lazy! sync + TSInstall lua (SPEC M12)'
+Write-Host 'probe: running nvim Lazy! sync + TSInstall lua'
 Write-Host 'probe: this usually takes 5-15 minutes and is capped at 15; progress is reported every 30s'
-Check 'nvim-treesitter builds a parser (SPEC M12)' {
+Check 'nvim-treesitter builds a parser' {
     $job = Start-Job -ScriptBlock {
         & nvim --headless '+Lazy! sync' '+qa' 2>&1 | Out-String
         & nvim --headless '+TSInstall! lua' '+qa' 2>&1 | Out-String

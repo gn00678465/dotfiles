@@ -1,6 +1,6 @@
 # L2 — 腳本渲染矩陣。
 #
-# 這一層存在的唯一理由是 SPEC F2/F3 這兩個實測事實：
+# 這一層存在的唯一理由是這兩個實測事實：
 #   F2 渲染後為空的腳本會被 chezmoi 靜默跳過（Linux 與 Windows 兩端皆然）
 #   F3 非空的 .sh 在 Windows 上會硬失敗並中斷整個 apply
 #       （fork/exec: %1 is not a valid Win32 application）
@@ -13,7 +13,7 @@ _expect() {
     case $1 in
         # 只在 isWSL = true 時非空；平台矩陣的 fixture 全是 isWSL = false，所以這裡
         # 是空清單，WSL 那一種渲染在下面用 native-wsl fixture 單獨釘。
-        # arch 與 omarchy（SPEC archlinux-support S5、arch-family-support S4）：brew 相關的
+        # arch 與 omarchy：brew 相關的
         # 兩支（20、30-brew）在 Arch 家族上必須是空的 —— 不裝 Homebrew，neovim 與工具全由
         # pacman 來。50-neovim 在 Arch 家族上**非空**（arch-family-support S5、D2）：它在
         # 執行期以 pacman -Q omarchy-nvim 決定要不要 clone LazyVim starter，純 Arch 沒有
@@ -186,9 +186,9 @@ assert_contains "winget 清單裝的是 tree-sitter.tree-sitter-cli" \
     "$(render_file windows .chezmoiscripts/run_onchange_before_30-install-winget-packages.ps1.tmpl)" \
     "'tree-sitter.tree-sitter-cli'"
 
-# ---------- Arch（SPEC archlinux-support S7–S10）----------
+# ---------- Arch----------
 # S7：10-install-packages 依 pkgManager 分支。Arch 上沒有 dpkg/apt，Debian 上沒有
-# pacman；兩邊都只能出現自己的那一組。安裝只用 -S --needed --noconfirm（Must NOT #5：
+# pacman；兩邊都只能出現自己的那一組。安裝只用 -S --needed --noconfirm（
 # 不 -Sy、不 -Syu、不 -R）。
 _ten_arch=$(render_file arch .chezmoiscripts/run_onchange_before_10-install-packages.sh.tmpl)
 _ten_linux=$(render_file linux .chezmoiscripts/run_onchange_before_10-install-packages.sh.tmpl)
@@ -223,7 +223,7 @@ assert_not_contains "30-install-pacman-packages 沒有 pacman -R" "$_pac" 'pacma
 assert_not_contains "30-install-pacman-packages 沒有 --overwrite" "$_pac" '--overwrite'
 unset _brew _brew_list _pac _pac_list
 
-# S9：Arch 家族上任何渲染結果都不得出現 brew（Must NOT #4；arch-family-support S4）。
+# S9：Arch 家族上任何渲染結果都不得出現 brew。
 for _os in arch omarchy; do
     for _f in "$REPO"/.chezmoiscripts/*.sh.tmpl; do
         _s=$(basename "$_f")
@@ -239,9 +239,9 @@ for _os in arch omarchy; do
 done
 unset _os _f _s _t _c
 
-# ---------- Arch 家族（SPEC arch-family-support S4、S5）----------
+# ---------- Arch 家族----------
 # S4：omarchy 的每一支腳本渲染結果必須與 arch 逐位元組相同。ID_LIKE 只是讓
-# platform.toml 走到同一個 pkgManager，之後不該有任何地方再分辨兩者（Must NOT #6）。
+# platform.toml 走到同一個 pkgManager，之後不該有任何地方再分辨兩者。
 for _f in "$REPO"/.chezmoiscripts/*.sh.tmpl; do
     _s=$(basename "$_f")
     render_file arch ".chezmoiscripts/$_s" > "$TMP/l2-arch-$_s" 2>&1
@@ -250,17 +250,17 @@ for _f in "$REPO"/.chezmoiscripts/*.sh.tmpl; do
 done
 unset _f _s
 
-# Must NOT #6（arch-family-support）：模板原始碼裡不得有任何以 omarchy 分支的 template action。
+# 模板原始碼裡不得有任何以 omarchy 分支的 template action。
 # 上面「omarchy 與 arch 逐位元組相同」只證明輸出相同，證不了原始碼沒有一個剛好輸出相同的分支；
 # 這裡直接看原始碼：所有 .chezmoiscripts 模板與 zsh 檔案的 `{{ ... }}` 內不得出現 omarchy。
 for _f in "$REPO"/.chezmoiscripts/*.tmpl "$REPO"/dot_zshrc.tmpl "$REPO"/dot_zprofile.tmpl "$REPO"/.chezmoitemplates/platform.toml; do
     _s=$(basename "$_f")
     _hits=$(grep -n '{{[^}]*omarchy[^}]*}}' "$_f" || true)
-    assert_eq "原始碼 $_s 的 template action 裡沒有 omarchy 分支（Must NOT #6）" "" "$_hits"
+    assert_eq "原始碼 $_s 的 template action 裡沒有 omarchy 分支" "" "$_hits"
 done
 unset _f _s _hits
 
-# S5：50-neovim 在 Arch 家族上執行，但走的是另一條路：neovim 來自 pacman（Must NOT #8：
+# S5：50-neovim 在 Arch 家族上執行，但走的是另一條路：neovim 來自 pacman（
 # 沒有 mise 釘版本），LazyVim starter 只在沒有 omarchy-nvim 時才 clone（D2）。
 _nv_arch=$(render_file arch .chezmoiscripts/run_before_50-neovim.sh.tmpl)
 assert_contains "50-neovim 在 arch 上以 pacman -Q omarchy-nvim 決定是否跳過" "$_nv_arch" 'pacman -Q omarchy-nvim'
@@ -285,7 +285,7 @@ unset _lfs_arch _lfs_linux
 # L9 在 omarchy 實跑抓到的：Arch 的 /usr/sbin 是 /usr/bin 的 symlink，而 PATH 讓
 # `command -v zsh` 回 /usr/sbin/zsh，/etc/shells 只列 /usr/bin/zsh 與 /bin/zsh，於是
 # 腳本判定「不在 /etc/shells」、印出把 /usr/sbin/zsh 加進去的錯誤建議，登入 shell
-# 永遠不會改（D3 沒有達成）。這段只在 pacman 平台渲染，Debian 的輸出不變（Must NOT #1）。
+# 永遠不會改（D3 沒有達成）。這段只在 pacman 平台渲染，Debian 的輸出不變。
 _ds_arch=$(render_file arch .chezmoiscripts/run_after_default-shell.sh.tmpl)
 _ds_linux=$(render_file linux .chezmoiscripts/run_after_default-shell.sh.tmpl)
 assert_contains "default-shell 在 arch 上用 readlink -f 把 zsh 對回 /etc/shells 的條目" "$_ds_arch" 'readlink -f'
@@ -319,7 +319,7 @@ for _os in linux linux-arm64 darwin-arm64 darwin-amd64; do
 done
 unset _cfg_win _os
 
-# ---------- M12 的處置（SPEC v5，使用者選 (a)）----------
+# ---------- M12 的處置----------
 # zig 進 winget 清單的唯一理由是「當 nvim-treesitter 的 C compiler」。實測推翻：
 # nvim-treesitter main 回報 C compiler ❌，而 zig version 在同一個終端機是 0.16.0
 # ——zig 裝好了也找得到，是它的需求檢查不認 zig。所以換成 WinLibs 的 gcc。

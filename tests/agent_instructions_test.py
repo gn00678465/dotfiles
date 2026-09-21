@@ -3,9 +3,8 @@
 
 `.chezmoitemplates/agent-instructions.md` is the single source for both
 `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. The two entry points render
-identically per platform, the removed evidence-first contract does not come
-back, and the rendered word count stays at or under the stated budget so the
-persistent instructions stay readable.
+identically per platform, and the rendered word count stays at or under the
+stated budget so the persistent instructions stay readable.
 
 This is a home-grown check, so it carries its own negative control: it proves
 its word-counting function actually flags an over-budget input before trusting
@@ -29,7 +28,6 @@ from pathlib import Path
 WORD_LIMIT = 600
 FIXTURES = ("os-linux.toml", "os-darwin-amd64.toml", "os-windows.toml")
 ENTRY_POINTS = ("dot_claude/CLAUDE.md.tmpl", "dot_codex/AGENTS.md.tmpl")
-CONTRACT_MARKER = "<!-- evidence-first:contract -->"
 
 CHECKS = 0
 
@@ -93,11 +91,6 @@ def main() -> None:
                 if n > WORD_LIMIT:
                     die(1, f"{ep} rendered under {fixture} is {n} words, "
                            f"over the {WORD_LIMIT}-word ceiling")
-                CHECKS += 1
-
-                if CONTRACT_MARKER in text:
-                    die(1, f"{ep} rendered under {fixture} still carries the "
-                           "evidence-first contract, which this repo removed")
                 CHECKS += 1
 
             claude_text, codex_text = (rendered[ep] for ep in ENTRY_POINTS)

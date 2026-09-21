@@ -1,6 +1,6 @@
 # L3 — 每個平台上 chezmoi 到底會管哪些 target（不含 external，external 是 L5）。
 #
-# 這一層擋的是 SPEC M7：.chezmoiignore 寫反 → Windows 上落下 .zshrc、
+# 這一層擋的是：.chezmoiignore 寫反 → Windows 上落下 .zshrc、
 # 或 POSIX 上落下 AppData\。整份清單用 golden 比對，順便擋住「新增檔案卻忘了
 # 給它平台守衛」以及「repo-only 的檔案漏掉、被裝進 $HOME」。
 
@@ -41,7 +41,7 @@ done
 
 unset _os _t _win _lin _m
 
-# ---------- .gitattributes：強制 LF checkout（SPEC v5 M14，使用者選 (c)）----------
+# ---------- .gitattributes：強制 LF checkout----------
 # Git for Windows 預設 core.autocrlf=true，全新 Windows 會把來源樹 checkout 成 CRLF，
 # 算繪結果就把 \r 帶進受管的設定檔（L9 第二次執行實際抓到）。這是 repo 端的性質，
 # 不能靠使用者的 git 設定。

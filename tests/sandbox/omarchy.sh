@@ -7,18 +7,17 @@
 #   tests/sandbox/omarchy.sh --distro arch --syu   # fresh official image: pacman -Syu first
 #
 # Unlike wsl.sh this is NOT a throwaway distro by default. It was written for
-# the omarchy install the user keeps for verification (SPEC archlinux-support
-# §6), so the launcher does as little as possible to it: copy the source tree
+# the omarchy install the user keeps for verification, so the launcher does as little as possible to it: copy the source tree
 # and the probe in, run the probe, copy /out back. It never touches $HOME; the
-# probe's `chezmoi init --apply` is the only system change (Must NOT #8).
+# probe's `chezmoi init --apply` is the only system change.
 # Precondition: the distro's default user is root, or has passwordless sudo
 # (omarchy's WSL image does), because the install scripts run pacman with no tty.
 #
 # The official Arch WSL image (`wsl --install archlinux`) is root-only and ships
 # with no pacman sync database, so 10-install-packages stops there by design
-# (SPEC arch-family-support F6/F7, D3). `--syu` runs `pacman -Syu --noconfirm`
+#. `--syu` runs `pacman -Syu --noconfirm`
 # as root once before the probe. That is the launcher's system change, not
-# the dotfiles' (Must NOT #5), and it is only for a distro you will rebuild.
+# the dotfiles', and it is only for a distro you will rebuild.
 #
 # No DrvFs mounts: the tree goes in through a pipe (git archive | tar) and the
 # results come back the same way, so this runs from Git Bash on the host and

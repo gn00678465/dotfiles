@@ -1,7 +1,7 @@
 # L4 — 語法檢查。渲染後真的會被執行的腳本，至少要能被對應的直譯器解析。
 #
 # 這一層抓的是「模板拼出來的東西根本不是合法程式」這種錯 —— 那在 POSIX 上是
-# apply 中途失敗，在 Windows 上是 chezmoi 直接把 apply 中斷（SPEC F3 同一類後果）。
+# apply 中途失敗，在 Windows 上是 chezmoi 直接把 apply 中斷。
 
 _PWSH=$(command -v pwsh.exe 2>/dev/null || command -v pwsh 2>/dev/null || true)
 _ZSH=$(command -v zsh 2>/dev/null || true)

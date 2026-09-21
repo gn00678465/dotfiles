@@ -116,7 +116,7 @@ remote 可拉）。
 出廠的設定且沒有被搬進 `.bak`、登入 zsh 有 `OMARCHY_PATH` 與 `omarchy-version`、
 `~/.config/git/config` 等於 `chezmoi cat`、`git lfs env` 有 filter），並用真實的 chezmoi
 驗證 `platform.toml` 在 Arch 上算出 `distro=arch`、`pkgManager=pacman`、`brewPrefix` 空
-（測試用的 `distroOverride` 接縫只是替身，SPEC M4）。「刪掉 neovim 再裝回」在 Arch 上是
+（測試用的 `distroOverride` 接縫只是替身）。「刪掉 neovim 再裝回」在 Arch 上是
 SKIP：neovim 是 pacman 套件，探針不移除套件。
 
 啟動器是 `omarchy.sh`，對象**不是**用完即丟的環境，而是你留著做驗證、之後會重建的
@@ -159,7 +159,7 @@ shell 展開 `$ID`、`$@`（所以指令改走 stdin），以及 Git Bash 會把
 改問「`~/.config/nvim` 是 LazyVim starter 且有 marker」。
 
 `--syu` 是啟動器的系統變更，不是 dotfiles 的：`.chezmoiscripts/` 仍然不做 `-Sy`、
-`-Syu`（Must NOT #5）。不加旗標時，啟動器在同步資料庫為空的 distro 上會停下並提示。
+`-Syu`。不加旗標時，啟動器在同步資料庫為空的 distro 上會停下並提示。
 
 **omarchy VM 的 sudo 前置**：安裝腳本用 `sudo -v` 預熱憑證快取，而 `sudo -v` 只要使用者
 有任何一條沒帶 `NOPASSWD` 的規則就會問密碼。omarchy 出廠的 `/etc/sudoers.d/50-asdcontrol`

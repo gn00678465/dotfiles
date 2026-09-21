@@ -10,7 +10,7 @@
   osOverride / archOverride 是刻意留的測試接縫，只有這個檔案認得它們。正式環境的
   chezmoi config 沒有這兩個 key，所以永遠退回 .chezmoi.os / .chezmoi.arch。
   存在的理由：這個 repo 沒有 macOS 實機，也不允許在 Windows 主機上真的 apply
-  （SPEC Must NOT #1），三個平台的渲染證據只能在單一台機器上取得。
+，三個平台的渲染證據只能在單一台機器上取得。
   接縫本身由 tests/cases/L1 與 L8 驗證：L1 證明沒有 override 時會退回真實值，
   L8 證明 osOverride=windows 的渲染結果與 Windows 主機上真跑一次逐字相同。
 */ -}}

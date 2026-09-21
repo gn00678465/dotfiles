@@ -84,7 +84,7 @@ assert_bytes_eq() { # name expected-file actual-file
     fi
 }
 
-# 「渲染成空」是本 repo 唯一的跨平台隔離手段（見 SPEC F2/F3），所以它有專屬斷言：
+# 「渲染成空」是本 repo 唯一的跨平台隔離手段，所以它有專屬斷言：
 # 只有空白的內容才算空，一個非空白字元就會讓 chezmoi 真的去執行這支腳本。
 assert_blank() { # name actual
     stripped=$(printf '%s' "$2" | tr -d ' \t\n\r')
@@ -155,7 +155,7 @@ render_file() { # os path-relative-to-repo
 # 對應它自己那一個 —— 少渲染一個組合，就等於那個 asset 的 checksum 從來沒有被任何
 # 檢查看過。win32-arm64 與 linux-arm64-musl 原本就是這樣漏掉的。
 # omarchy 是第八個：正式版 omarchy 的 ID=omarchy 只靠 ID_LIKE 走到 pacman，它必須
-# 在每一層與 arch 得到相同的結果（SPEC arch-family-support S4/S7）。
+# 在每一層與 arch 得到相同的結果。
 ALL_OSES='linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64 windows windows-arm64'
 POSIX_OSES='linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64'
 WINDOWS_OSES='windows windows-arm64'

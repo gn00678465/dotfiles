@@ -1,4 +1,4 @@
-# L6 — 檔案層的 golden，重點在 Tier 3 的資料保全（SPEC M4/M5）。
+# L6 — 檔案層的 golden，重點在 Tier 3 的資料保全。
 #
 # 做法：把種子檔塞進一個乾淨的暫存 destination，跑真正的
 # `chezmoi apply --exclude=scripts,externals`（不執行腳本、不下載 external），

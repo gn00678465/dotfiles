@@ -2,11 +2,11 @@
 #
 # 上面每一層（L1-L6）的 Windows 證據都是在 Linux 上用 osOverride 模擬出來的。
 # 如果那個接縫跟真實的 .chezmoi.os == "windows" 有任何出入，那些綠燈全部是假的
-# （SPEC M8）。這一層把兩邊逐位元組比對，讓那個假設變成被驗證過的事實。
+#。這一層把兩邊逐位元組比對，讓那個假設變成被驗證過的事實。
 #
 # Windows 端的 chezmoi 以 UNC 路徑（\\wsl.localhost\...）直接讀這個 repo 當 source，
 # 用的是不帶 osOverride 的 native.toml，destination 是 Windows 自己的 TEMP。
-# 全程唯讀真實的 $HOME（SPEC Must NOT #1）。
+# 全程唯讀真實的 $HOME。
 
 _PWSH=$(command -v pwsh.exe 2>/dev/null || true)
 _UNC=""
