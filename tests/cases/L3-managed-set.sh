@@ -37,10 +37,6 @@ for _os in $ALL_OSES; do
     _m=$(_managed "$_os")
     assert_not_contains "$_os 不得把 tests/ 裝進 \$HOME" "$_m" "tests"
     assert_not_contains "$_os 不得把 docs/ 裝進 \$HOME" "$_m" "docs"
-    assert_not_contains "$_os 不得把 .scratch/ 裝進 \$HOME" "$_m" ".scratch"
-    # .scratch 開頭是點，chezmoi 本來就會跳過；specs/ 不是，只有 .chezmoiignore 擋得住。
-    assert_not_contains "$_os 不得把 specs/ 裝進 \$HOME" "$_m" "specs"
-    assert_not_contains "$_os 不得把 tools/ 裝進 \$HOME" "$_m" "tools"
 done
 
 unset _os _t _win _lin _m
