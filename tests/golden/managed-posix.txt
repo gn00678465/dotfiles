@@ -16,6 +16,10 @@
 .agents/skills/commit/references/terminology.md
 .agents/skills/commit/scripts
 .agents/skills/commit/scripts/analyze_git.py
+.agents/skills/recall
+.agents/skills/recall/SKILL.md
+.agents/skills/recall/scripts
+.agents/skills/recall/scripts/recall_sessions.py
 .chezmoiscripts/05-wsl-user-runtime-dir.sh
 .chezmoiscripts/10-install-packages.sh
 .chezmoiscripts/20-install-homebrew.sh
@@ -35,6 +39,7 @@
 .claude/skills
 .claude/skills/anti-slop
 .claude/skills/commit
+.claude/skills/recall
 .codex
 .codex/AGENTS.md
 .codex/config.toml

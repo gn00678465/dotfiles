@@ -1,0 +1,2 @@
+{"timestamp": "2026-09-20T03:30:00.000Z", "type": "session_meta", "payload": {"id": "019a0000-0000-7000-8000-000000000005", "cwd": "__PROJ__", "originator": "codex_cli_rs", "cli_version": "0.50.0", "thread_source": "subagent", "source": {"subagent": "explorer"}}}
+{"timestamp": "2026-09-20T03:30:01.000Z", "type": "event_msg", "payload": {"type": "user_message", "message": "子代理：列出 workflow 檔"}}

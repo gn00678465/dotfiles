@@ -47,6 +47,13 @@ ones, and every Linux fixture pins `distroLikeOverride`. Each case is paired wit
 test that must go green without the fix. Exit code 1 means an assertion
 failed. Exit code 2 means the check could not run.
 
+Run `tests/recall_sessions_test.py` after changes to
+`dot_agents/skills/recall/scripts/recall_sessions.py` or
+`tests/fixtures/recall/`. It builds Claude, Codex, and Cursor home directories
+from the hand-written fixtures and checks injected-text filtering, assistant
+turn deduplication by `message.id`, subagent skipping, project and mtime
+scoping, and both output formats. Same exit codes as above.
+
 ## Platform selection
 
 Use `.chezmoitemplates/platform.toml` as the only source of OS and
