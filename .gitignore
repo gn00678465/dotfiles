@@ -13,3 +13,6 @@ CLAUDE.local.md
 # python bytecode (tools/*.py are run in place)
 __pycache__/
 *.pyc
+
+# claude plugin eval 的預設結果目錄；正式跑時用 --output-dir 導到別處
+dot_agents/skills/*/evals/results/

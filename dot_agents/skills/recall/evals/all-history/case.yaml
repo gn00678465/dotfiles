@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: all-history
+description: 使用者要全部歷史。skill 不能把「全部」縮成預設的 7 天，要用 --days 0 把 30 天前的 session 也找出來。
+tags: [scope]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Skill]
