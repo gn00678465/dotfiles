@@ -248,6 +248,17 @@ def main() -> None:
         data = run(script, homes, "--project", str(proj), "--limit", "1")
         check(len(data["sessions"]) == 1, "--limit 1 should keep one session")
 
+        # ---- 直接給 session id：前綴比對，且時間視窗自動放開
+        data = run(script, homes, "--project", str(proj), "--session", "cccccccc")
+        check([s["id"][:8] for s in data["sessions"]] == ["cccccccc"] and data["scope"]["days"] == 0,
+              f"--session must match by prefix and lift the day window, got {data['scope']} "
+              f"{[s['id'] for s in data['sessions']]}")
+        data = run(script, homes, "--project", str(proj), "--session", "cccccccc", "--days", "7")
+        check(data["sessions"] == [], "an explicit --days still applies together with --session")
+        data = run(script, homes, "--all", "--source", "codex", "--session", "019a0000")
+        check(len(data["sessions"]) == 1 and data["sessions"][0]["source"] == "codex",
+              "--session works for codex ids")
+
         # ---- 頭尾截斷
         data = run(script, homes, "--project", str(proj), "--source", "claude", "--max-messages", "3")
         msgs = data["sessions"][0]["user_messages"]

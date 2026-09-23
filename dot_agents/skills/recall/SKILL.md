@@ -16,10 +16,11 @@ current-state brief. All data is read locally. Nothing is uploaded.
 
 ## Process
 
-1. **Lock the scope.** Settle three things before you run anything.
+1. **Lock the scope.** Settle these before you run anything.
    - Window: default is the last 7 days. When the user says "all", pass `--days 0`. Never shrink "all" to the last N days silently.
    - Project: default is the current git root. Use `--project <path>` or `--all` only when the user says so.
    - Topic: when the user names one, add `--grep <keyword>`. The flag repeats.
+   - Session id: when the user gives one, pass `--session <id>`. A prefix is enough. The time window is then lifted unless `--days` is given.
    - State the scope back to the user in one sentence.
 2. **Run the script.** It is `scripts/recall_sessions.py` in this skill's directory. It uses only the Python 3 standard library.
 
@@ -58,6 +59,7 @@ When no session matches, say so and report the scope you searched.
 | `--all` | No project filter |
 | `--days N` | Only sessions whose file mtime is within the last N days. `0` means no limit. Default 7 |
 | `--grep <text>` | Keyword filter, repeatable, case-insensitive. Any match keeps the session |
+| `--session <id>` | Only sessions whose id starts with this value, repeatable. Sets the default window to `0` |
 | `--format markdown\|json` | Output format. Default `markdown` |
 | `--include-subagents` | Include subagent sessions |
 | `--limit N` | Maximum number of sessions to print |
@@ -83,7 +85,7 @@ When no session matches, say so and report the scope you searched.
 | Source | Path | Status |
 | --- | --- | --- |
 | Claude Code | `~/.claude/projects/<slug>/<sessionId>.jsonl` | Verified locally (2.1.278) |
-| Codex | `$CODEX_HOME/sessions/**/rollout-*.jsonl`, `archived_sessions/` | Implemented from the Codex record format, not verified locally |
+| Codex | `$CODEX_HOME/sessions/**/rollout-*.jsonl`, `archived_sessions/` | Verified on a second machine with a real session, selected by source and session id |
 | Cursor | `~/.cursor/projects/<slug>/agent-transcripts/<uuid>/<uuid>.jsonl` | Path rule only. Fields not verified |
 
 When a Cursor record does not match the expected format, the script does not crash.

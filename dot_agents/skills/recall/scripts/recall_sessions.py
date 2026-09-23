@@ -531,6 +531,12 @@ def collect_cursor(opts, projects, cutoff) -> list:
 # ---------------------------------------------------------------- 輸出
 
 
+def matches_session_ids(session: dict, prefixes) -> bool:
+    if not prefixes:
+        return True
+    return any(session["id"].startswith(p) for p in prefixes)
+
+
 def matches_keywords(session: dict, keywords) -> bool:
     if not keywords:
         return True
@@ -583,10 +589,12 @@ def parse_args(argv=None):
     scope.add_argument("--project", action="append", default=[],
                        help="專案路徑，可重複；預設是目前 git 根目錄或 cwd")
     scope.add_argument("--all", action="store_true", help="不限專案")
-    p.add_argument("--days", type=int, default=7,
-                   help="只看檔案 mtime 在最近 N 天內的 session；0 表示不限 (預設 7)")
+    p.add_argument("--days", type=int, default=None,
+                   help="只看檔案 mtime 在最近 N 天內的 session；0 表示不限 (預設 7；給了 --session 時預設 0)")
     p.add_argument("--grep", action="append", default=[],
                    help="關鍵字過濾，可重複，不分大小寫；任一命中即保留")
+    p.add_argument("--session", action="append", default=[],
+                   help="只看 id 以此開頭的 session，可重複；使用者直接給 session id 時用")
     p.add_argument("--format", choices=("markdown", "json"), default="markdown")
     p.add_argument("--include-subagents", action="store_true", help="包含子代理 session")
     p.add_argument("--limit", type=int, default=0, help="最多輸出幾個 session，0 表示不限")
@@ -601,6 +609,9 @@ def parse_args(argv=None):
 
 def main(argv=None) -> int:
     opts = parse_args(argv)
+    if opts.days is None:
+        # 使用者直接給 session id 時，時間視窗只會擋掉他要的東西。
+        opts.days = 0 if opts.session else 7
     if opts.days < 0:
         die(2, "--days 不能是負數")
 
@@ -616,7 +627,8 @@ def main(argv=None) -> int:
         found.extend(collectors[name](opts, projects, cutoff))
 
     found.sort(key=lambda item: item[0], reverse=True)
-    sessions = [s for _, s in found if matches_keywords(s, opts.grep)]
+    sessions = [s for _, s in found
+                if matches_session_ids(s, opts.session) and matches_keywords(s, opts.grep)]
     if opts.limit > 0:
         sessions = sessions[: opts.limit]
 
@@ -626,6 +638,7 @@ def main(argv=None) -> int:
                 "sources": list(wanted),
                 "projects": None if projects is None else [str(p) for p in projects],
                 "days": opts.days,
+                "sessions": opts.session,
                 "keywords": opts.grep,
             },
             "sessions": sessions,
