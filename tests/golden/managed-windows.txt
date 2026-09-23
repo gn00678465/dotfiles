@@ -24,6 +24,7 @@
 .agents/skills/recall/evals/all-history/graders
 .agents/skills/recall/evals/all-history/graders/days-zero.md
 .agents/skills/recall/evals/all-history/graders/skill-fired.md
+.agents/skills/recall/evals/all-history/graders/stale-id-cited.md
 .agents/skills/recall/evals/all-history/graders/stale-session-found.md
 .agents/skills/recall/evals/all-history/prompt.md
 .agents/skills/recall/evals/all-history/scaffold.sh
