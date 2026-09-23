@@ -47,6 +47,22 @@ ones, and every Linux fixture pins `distroLikeOverride`. Each case is paired wit
 test that must go green without the fix. Exit code 1 means an assertion
 failed. Exit code 2 means the check could not run.
 
+Run `tests/recall_sessions_test.py` after changes to
+`dot_agents/skills/recall/scripts/recall_sessions.py` or
+`tests/fixtures/recall/`. It builds Claude, Codex, and Cursor home directories
+from the hand-written fixtures and checks injected-text filtering, assistant
+turn deduplication by `message.id`, subagent skipping, project and mtime
+scoping, and both output formats. Same exit codes as above.
+
+`dot_agents/skills/recall/evals/` holds `claude plugin eval` cases for the
+recall skill. They cost API calls, so they are not a required check. Run them
+from the skill directory after changing `SKILL.md` or the script's output:
+`claude plugin eval . --scaffold --allow-tools Bash --no-publish --output-dir <dir>`.
+`--scaffold` is required: each case builds its fixture home directory in the
+agent's temporary cwd from `evals/fixtures/`, and the case directory is only
+reachable through `$0` inside `scaffold.sh`. `allowed_tools` cannot list Bash,
+so the operator grant on the command line is what lets the agent run the script.
+
 ## Platform selection
 
 Use `.chezmoitemplates/platform.toml` as the only source of OS and
