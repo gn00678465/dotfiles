@@ -78,6 +78,7 @@ When no session matches, say so and report the scope you searched.
 - A slash-command segment that contains `<command-name>` becomes one user message, for example `/herdr <args>`.
   `<command-args>` is what the user typed. When args are empty, only the command name is kept.
 - `<bash-input>` and `<pasted_content>` are the user's own input. They are kept.
+- A message the user queued while Claude was working, and that Claude absorbed into the running turn, is stored only as an `attachment` record with `type: "queued_command"` and `commandMode: "prompt"`. It is kept as a user message.
 - In Claude Code, one assistant response is split over several rows that share `message.id`. Turn counts are deduplicated by it.
 
 ## Source status
