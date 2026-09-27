@@ -151,9 +151,7 @@ render_file() { # os path-relative-to-repo
     cm "$1" execute-template < "$REPO/$2"
 }
 
-# 六個組合，不是四個。cc-statusline 有六個 release asset，而每個平台的渲染只會吐出
-# 對應它自己那一個 —— 少渲染一個組合，就等於那個 asset 的 checksum 從來沒有被任何
-# 檢查看過。win32-arm64 與 linux-arm64-musl 原本就是這樣漏掉的。
+# 六個組合，不是四個：每個平台的兩個 arch 都要渲染，L11 才能證明腳本不依賴 arch。
 # omarchy 是第八個：正式版 omarchy 的 ID=omarchy 只靠 ID_LIKE 走到 pacman，它必須
 # 在每一層與 arch 得到相同的結果。
 ALL_OSES='linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64 windows windows-arm64'

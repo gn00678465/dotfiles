@@ -15,3 +15,7 @@ lazyvimMarker = ".chezmoi-lazyvim-starter"
 # 每一個下載一樣要釘住版本。PSGallery 沒有提供 checksum，
 # 釘版本是它能給的最強保證。升級：改這裡，並在 CHANGELOG 說明。
 psfzf = "2.7.12"
+# cc-statusline（Claude Code 的 statusLine），由 55-cc-statusline 以 mise 的
+# github backend 安裝，不帶 v 前綴。mise 的預設 minimum_release_age 是 24h：
+# 發布未滿一天的版本可能會被略過。
+ccStatusline = "2.2.0"

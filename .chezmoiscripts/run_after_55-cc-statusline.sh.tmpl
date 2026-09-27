@@ -1,0 +1,47 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $v := includeTemplate "versions.toml" . | fromToml -}}
+{{ if $p.isPosix -}}
+#!/bin/zsh
+# cc-statusline (Claude Code statusLine) through mise, copied to the fixed path
+# that dot_claude/modify_settings.json writes into statusLine.command.
+# A copy, not a link into mise: `mise where` is versioned, `mise upgrade`
+# deletes the old version directory, and the Windows twin has no stable alias
+# (mise writes `latest` there as a plain file). Both platforms copy.
+# `run_` so a removed binary comes back on the next apply; the cmp check makes
+# an unchanged run a no-op.
+set -euo pipefail
+{{ if ne $p.brewPrefix "" }}
+eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
+{{- end }}
+
+if ! command -v mise &>/dev/null; then
+  echo "chezmoi: mise not found, skipping cc-statusline" >&2
+  exit 0
+fi
+
+# `yes` is a mise setting, not a flag on `use`; chezmoi runs this unattended.
+export MISE_YES=1
+tool='github:gn00678465/StatusLine@{{ $v.ccStatusline }}'
+mise use --global "$tool"
+
+src="$(mise where "$tool")/cc-statusline"
+dest_dir="$HOME/.claude/cc-statusline"
+dest="$dest_dir/cc-statusline"
+
+if [[ ! -f $src ]]; then
+  echo "chezmoi: $src not found after mise install" >&2
+  exit 1
+fi
+if cmp -s "$src" "$dest"; then
+  exit 0
+fi
+
+# Claude Code runs this binary every second. Writing into a running executable
+# fails with ETXTBSY; a rename in the same directory replaces it atomically.
+mkdir -p "$dest_dir"
+tmp="$dest.tmp.$$"
+trap 'rm -f "$tmp"' EXIT
+cp "$src" "$tmp"
+chmod 755 "$tmp"
+mv -f "$tmp" "$dest"
+{{ end -}}

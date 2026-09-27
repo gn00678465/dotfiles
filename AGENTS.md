@@ -80,7 +80,8 @@ environment without explicit user approval. Template rendering, tests in
 redirected environments, and Windows Sandbox tests are permitted.
 
 Use `.chezmoitemplates/versions.toml` for values shared by POSIX and Windows
-scripts: the neovim version, LazyVim starter URL, and marker filename.
+scripts: the neovim version, LazyVim starter URL, marker filename, and
+cc-statusline version.
 
 ## Install scripts (`.chezmoiscripts/`)
 
@@ -164,6 +165,15 @@ Keep the POSIX and Windows scripts consistent:
   `run_onchange_` would require clearing both `scriptState` and `entryState`
   to repeat an unchanged script. Do not use `exact`; unmanaged files remain
   available for the user to edit.
+- `55-cc-statusline`: Install cc-statusline through mise's `github:` backend
+  at the version in `versions.toml`. Then copy the binary to
+  `~/.claude/cc-statusline/`, the path that `dot_claude/modify_settings.json`
+  writes into `statusLine.command`. Do not point `statusLine.command` into
+  the mise directory: `mise where` contains the version, `mise upgrade`
+  deletes old version directories, and on Windows mise writes `latest` as a
+  plain file. Claude Code runs the binary every second, and a running binary
+  cannot be overwritten. Replace it through a rename in the same directory.
+  Keep `run_after_` on both platforms, so a removed binary is restored.
 - `60-pwsh-profile`: Resolve `$PROFILE.CurrentUserAllHosts` at run time and
   write a one-line loader there. Documents can be redirected to OneDrive;
   the target cannot be computed by a chezmoi path template. Keep the logic

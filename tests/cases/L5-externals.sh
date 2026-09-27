@@ -8,7 +8,6 @@
 _sections() { render_file "$1" .chezmoiexternal.toml.tmpl | sed -n 's/^\["\(.*\)"\]$/\1/p' | LC_ALL=C sort; }
 
 _posix_expected=$(printf '%s\n' \
-    '.claude/cc-statusline/cc-statusline' \
     '.oh-my-zsh' \
     '.oh-my-zsh/custom/plugins/fzf-tab' \
     '.oh-my-zsh/custom/plugins/zsh-autosuggestions' \
@@ -16,7 +15,6 @@ _posix_expected=$(printf '%s\n' \
     '.oh-my-zsh/custom/themes/powerlevel10k' | LC_ALL=C sort)
 
 _windows_expected=$(printf '%s\n' \
-    '.claude/cc-statusline/cc-statusline.exe' \
     '.config/oh-my-posh/powerlevel10k_rainbow.omp.json' | LC_ALL=C sort)
 
 for _os in $POSIX_OSES; do
@@ -46,14 +44,18 @@ for _os in $ALL_OSES; do
     assert_eq "$_os 的每個 external（.oh-my-zsh 本體除外）都有 checksum" "" "$_missing"
 done
 
-# 逐字釘住 Windows 兩個新 external 的 sha256。這兩個值是我從官方 .sha256 檔抓下來、
+# 逐字釘住 Windows external 的 sha256。這個值是從官方 .sha256 檔抓下來、
 # 又把檔案下載回來自己算過一次比對相符的；寫死在這裡，日後 bump 版本時會被迫重算。
 _win_ext=$(render_file windows .chezmoiexternal.toml.tmpl)
-assert_contains "cc-statusline win32-x64 的 sha256" "$_win_ext" \
-    "d55e2baee3dd6378ee7256574b5104737cfcffbe15228c9a3f50ee32f2ee8bd6"
 assert_contains "oh-my-posh powerlevel10k_rainbow 主題的 sha256" "$_win_ext" \
     "d55074433400c2a532ab883986f4e2ebd2b35d9f5d61f355f27eeb1243a78713"
-assert_contains "Windows 的 cc-statusline 取 .exe" "$_win_ext" "cc-statusline.exe"
+
+# cc-statusline 改由 55-cc-statusline 以 mise 安裝。external 若留著，chezmoi 會
+# 用舊版本蓋掉腳本複製的 binary。
+for _os in $ALL_OSES; do
+    assert_not_contains "$_os 的 external 沒有 cc-statusline" \
+        "$(render_file "$_os" .chezmoiexternal.toml.tmpl)" "cc-statusline"
+done
 
 unset _os _posix_expected _windows_expected _missing _win_ext
 
@@ -67,27 +69,6 @@ _unpinned=$(printf '%s\n' "$_ps_install" | grep 'Install-PSResource' \
     | grep -v '^[[:space:]]*#' | grep -v -- '-Version' || true)
 assert_eq "沒有任何 Install-PSResource 少了 -Version" "" "$_unpinned"
 unset _ps_install _unpinned
-
-# 哪個平台拿哪一個 asset —— 這個「對應關係」原本沒有被任何東西釘住。
-# supply-chain 那一層天生看不到它：sum 是**按 asset 名稱**查的，所以把
-# darwin 的 arm64/x64 對調之後，URL 與 pin 仍然一致、也仍然雜湊相符，
-# 全套與 supply-chain 都會過。實際後果是 Intel Mac 拿到 arm64 的執行檔
-# （"Bad CPU type in executable"）。
-_expected_asset() {
-    case $1 in
-        linux)         echo 'cc-statusline-linux-x64-musl.tar.gz' ;;
-        linux-arm64)   echo 'cc-statusline-linux-arm64-musl.tar.gz' ;;
-        darwin-amd64)  echo 'cc-statusline-darwin-x64.tar.gz' ;;
-        darwin-arm64)  echo 'cc-statusline-darwin-arm64.tar.gz' ;;
-        windows)       echo 'cc-statusline-win32-x64.zip' ;;
-        windows-arm64) echo 'cc-statusline-win32-arm64.zip' ;;
-    esac
-}
-for _os in $ALL_OSES; do
-    _ext=$(render_file "$_os" .chezmoiexternal.toml.tmpl)
-    assert_contains "$_os 取的是 $(_expected_asset "$_os")" "$_ext" "$(_expected_asset "$_os")"
-done
-unset _os _ext
 
 # ---- powerlevel10k 的 .zwc（exact = true 底下的執行期產物） --------------------
 # p10k 只要自己的目錄可寫，載入時就把九支腳本 zcompile 成同名 .zwc，沒有開關
