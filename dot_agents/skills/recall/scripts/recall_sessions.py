@@ -283,6 +283,12 @@ def parse_claude_session(path: Path, opts) -> dict:
                 session["id"] += "/" + obj["agentId"]
 
         message = obj.get("message")
+        attachment = obj.get("attachment")
+        if (rtype == "attachment" and isinstance(attachment, dict)
+                and attachment.get("type") == "queued_command" and attachment.get("commandMode") == "prompt"):
+            # 使用者在 Claude 工作時打的訊息若插進當前回合，只寫成這筆 attachment，
+            # 沒有對應的 user 記錄。
+            rtype, message = "user", {"content": attachment.get("prompt")}
         if rtype not in ("user", "assistant") or not isinstance(message, dict):
             continue
 

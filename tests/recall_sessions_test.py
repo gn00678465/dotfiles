@@ -180,8 +180,9 @@ def main() -> None:
             "先確認測試會過",
             "<bash-input>git status</bash-input>",
             '<pasted_content id="ab12">貼上的需求：改 keymap</pasted_content>',
+            "lazy-lock.json 先不要提交",
         ], f"user messages after filtering are wrong: {texts}")
-        check(s["stats"]["user_turns"] == 7, f"user_turns mismatch: {s['stats']['user_turns']}")
+        check(s["stats"]["user_turns"] == 8, f"user_turns mismatch: {s['stats']['user_turns']}")
         check(s["last_assistant_text"] == "blink 已換好，lazy-lock.json 也更新了。",
               f"last assistant text wrong: {s['last_assistant_text']!r}")
         check(s["started_at"].startswith("2026-09-20T01:00:00") and s["ended_at"].startswith("2026-09-20T01:05:01"),
@@ -262,8 +263,8 @@ def main() -> None:
         # ---- 頭尾截斷
         data = run(script, homes, "--project", str(proj), "--source", "claude", "--max-messages", "3")
         msgs = data["sessions"][0]["user_messages"]
-        check(len(msgs) == 4 and msgs[2].get("omitted") == 4 and msgs[0]["text"].startswith("請把")
-              and msgs[-1]["text"].startswith("<pasted_content"),
+        check(len(msgs) == 4 and msgs[2].get("omitted") == 5 and msgs[0]["text"].startswith("請把")
+              and msgs[-1]["text"] == "lazy-lock.json 先不要提交",
               f"head/tail trimming wrong: {[m['text'][:12] for m in msgs]}")
 
         # ---- Markdown 輸出
