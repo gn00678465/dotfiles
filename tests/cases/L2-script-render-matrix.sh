@@ -29,6 +29,8 @@ _expect() {
         run_onchange_after_40-git-lfs.ps1.tmpl)               echo 'windows windows-arm64' ;;
         run_before_50-neovim.sh.tmpl)                echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
         run_before_50-neovim.ps1.tmpl)               echo 'windows windows-arm64' ;;
+        run_after_55-cc-statusline.sh.tmpl)                   echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
+        run_after_55-cc-statusline.ps1.tmpl)                  echo 'windows windows-arm64' ;;
         run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows windows-arm64' ;;
         run_after_default-shell.sh.tmpl)                      echo 'linux linux-arm64 arch omarchy' ;;
         *) echo '__UNKNOWN__' ;;
@@ -47,6 +49,8 @@ for _s in run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl \
           run_onchange_after_40-git-lfs.ps1.tmpl \
           run_before_50-neovim.sh.tmpl \
           run_before_50-neovim.ps1.tmpl \
+          run_after_55-cc-statusline.sh.tmpl \
+          run_after_55-cc-statusline.ps1.tmpl \
           run_after_60-pwsh-profile.ps1.tmpl \
           run_after_default-shell.sh.tmpl; do
     if [ -f "$REPO/.chezmoiscripts/$_s" ]; then
@@ -135,6 +139,25 @@ for _s in run_before_50-neovim.sh.tmpl run_before_50-neovim.ps1.tmpl; do
 done
 unset _s
 
+# 55-cc-statusline：兩個平台必須從 versions.toml 取同一個版本，並且複製到
+# modify_settings.json 寫進 statusLine.command 的路徑。
+_cc_posix=$(render_file linux .chezmoiscripts/run_after_55-cc-statusline.sh.tmpl)
+_cc_win=$(render_file windows .chezmoiscripts/run_after_55-cc-statusline.ps1.tmpl)
+_cc_pin_posix=$(printf '%s\n' "$_cc_posix" | sed -n 's/.*StatusLine@\([0-9][0-9.]*\).*/\1/p' | head -1)
+_cc_pin_win=$(printf '%s\n' "$_cc_win" | sed -n 's/.*StatusLine@\([0-9][0-9.]*\).*/\1/p' | head -1)
+assert_not_blank "POSIX 55-cc-statusline 有釘住的版本" "$_cc_pin_posix"
+assert_eq "兩個平台的 55-cc-statusline 釘同一個版本" "$_cc_pin_posix" "$_cc_pin_win"
+assert_contains "POSIX 55-cc-statusline 複製到 ~/.claude/cc-statusline/cc-statusline" \
+    "$_cc_posix" 'dest_dir="$HOME/.claude/cc-statusline"'
+assert_contains "Windows 55-cc-statusline 複製到 ~/.claude/cc-statusline/cc-statusline.exe" \
+    "$_cc_win" "\$destDir = Join-Path \$HOME '.claude\\cc-statusline'"
+# run_ 而不是 run_onchange_：理由與 50-neovim 相同，刪掉的 binary 下一次 apply 會裝回來。
+for _s in run_after_55-cc-statusline.sh.tmpl run_after_55-cc-statusline.ps1.tmpl; do
+    if [ -f "$REPO/.chezmoiscripts/$_s" ]; then _pass "55-cc-statusline 是 run_ 不是 run_onchange_：$_s"
+    else _fail "55-cc-statusline 是 run_ 不是 run_onchange_：$_s" "找不到 $_s"; fi
+done
+unset _s _cc_posix _cc_win _cc_pin_posix _cc_pin_win
+
 # 60-pwsh-profile 必須挑 CurrentUserAllHosts（profile.ps1）而不是
 # CurrentUserCurrentHost（Microsoft.PowerShell_profile.ps1）：Windows Terminal、
 # VS Code 的整合終端機、裸 pwsh.exe 是三個不同的 host，只有 AllHosts 三者都載入。
@@ -152,7 +175,8 @@ unset _pwsh_profile
 # 整個 neovim/LazyVim 安裝就靜靜地沒發生。實測過那個分歧。
 for _s in run_onchange_before_30-install-winget-packages.ps1.tmpl \
           run_onchange_after_40-git-lfs.ps1.tmpl \
-          run_before_50-neovim.ps1.tmpl; do
+          run_before_50-neovim.ps1.tmpl \
+          run_after_55-cc-statusline.ps1.tmpl; do
     _c=$(render_file windows ".chezmoiscripts/$_s")
     assert_contains "$_s 有套用 windows-path partial" "$_c" 'Microsoft\WinGet\Links'
     assert_contains "$_s 的 PATH 補強有含 mise shims" "$_c" 'mise\shims'

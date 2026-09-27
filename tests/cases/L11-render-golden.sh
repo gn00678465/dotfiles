@@ -58,11 +58,12 @@ _arch_pair() { # os-a os-b path label
     assert_bytes_eq "$4：$1 與 $2 的渲染相同（腳本不該依賴 arch）" "$TMP/arch-a" "$TMP/arch-b"
 }
 for _s in 30-install-winget-packages.ps1 35-install-ps-modules.ps1 \
-          40-git-lfs.ps1 50-neovim.ps1 60-pwsh-profile.ps1; do
+          40-git-lfs.ps1 50-neovim.ps1 55-cc-statusline.ps1 60-pwsh-profile.ps1; do
     _arch_pair windows windows-arm64 ".chezmoiscripts/$_s" "$_s"
 done
 _arch_pair windows windows-arm64 ".config/powershell/profile.ps1" "profile.ps1"
 _arch_pair linux linux-arm64 ".chezmoiscripts/50-neovim.sh" "50-neovim.sh"
+_arch_pair linux linux-arm64 ".chezmoiscripts/55-cc-statusline.sh" "55-cc-statusline.sh"
 
 # ---------- B2. Arch 家族等價----------
 # omarchy（ID=omarchy + ID_LIKE=arch）與 arch（ID=arch）在 platform.toml 之後必須
@@ -100,6 +101,7 @@ for _t in .chezmoiscripts/30-install-winget-packages.ps1 \
           .chezmoiscripts/35-install-ps-modules.ps1 \
           .chezmoiscripts/40-git-lfs.ps1 \
           .chezmoiscripts/50-neovim.ps1 \
+          .chezmoiscripts/55-cc-statusline.ps1 \
           .chezmoiscripts/60-pwsh-profile.ps1 \
           .config/powershell/profile.ps1; do
     _name=$(basename "$_t")
@@ -114,7 +116,7 @@ done
 
 # golden 檔案不可以多也不可以少 —— 否則刪掉一支 Windows 腳本連同它的 golden 就沒人發現。
 assert_eq "golden/render/windows 的檔案集合" \
-    "$(printf '30-install-winget-packages.ps1\n35-install-ps-modules.ps1\n40-git-lfs.ps1\n50-neovim.ps1\n60-pwsh-profile.ps1\nprofile.ps1\n')" \
+    "$(printf '30-install-winget-packages.ps1\n35-install-ps-modules.ps1\n40-git-lfs.ps1\n50-neovim.ps1\n55-cc-statusline.ps1\n60-pwsh-profile.ps1\nprofile.ps1\n')" \
     "$(ls "$_GOLDEN_RENDER" 2>/dev/null | LC_ALL=C sort)"
 
 unset _s _t _name _GOLDEN_RENDER

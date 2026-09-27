@@ -9,8 +9,8 @@
 {{-   $cur = fromJson .chezmoi.stdin -}}
 {{- end -}}
 
-{{- /* cc-statusline 由 .chezmoiexternal.toml.tmpl 裝到 ~/.claude/cc-statusline/。
-       Windows 上那個 external 取的是 .zip，裡面是 cc-statusline.exe，所以檔名不同。
+{{- /* cc-statusline 由 .chezmoiscripts 的 55-cc-statusline 以 mise 安裝，再複製到
+       ~/.claude/cc-statusline/。Windows 上的檔名是 cc-statusline.exe。
 
        Windows 版刻意不帶 STATUSLINE_USAGE_STYLE=dots 前綴：那是 POSIX shell 的
        「環境變數前綴 + 命令」語法，cmd 與 PowerShell 都不吃。上游 README 對

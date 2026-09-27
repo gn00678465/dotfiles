@@ -457,3 +457,188 @@ else
     skip "沒有 systemd 時 05-wsl-user-runtime-dir 安靜退出" "需要 user namespace 才能蓋掉 /run/systemd"
 fi
 unset _d _out _log
+
+# ================= E. 55-cc-statusline =================
+# mise 用 stub：`use` 只記錄，`where` 回答一個測試目錄，裡面放假的 binary。
+# 重點是「Claude Code 正在執行目標 binary 時仍能替換」：先用控制組證明直接寫入
+# 會失敗，再看腳本能不能換掉它。
+_e="$TMP/l7e"
+rm -rf "$_e"; mkdir -p "$_e/stub" "$_e/mise-dir" "$_e/empty" "$_e/nomise"
+_cc_tool="github:gn00678465/StatusLine@$(sed -n 's/^ccStatusline = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")"
+cat > "$_e/stub/mise" <<'STUB'
+#!/bin/sh
+echo "$@" >> "$STUB_LOG"
+[ "$1" = "where" ] && echo "$STUB_MISE_DIR"
+exit 0
+STUB
+chmod +x "$_e/stub/mise"
+# 用 arch 的渲染：它與 linux 只差 brew shellenv 那一行，而那一行會把真實 brew 的
+# mise 放到 stub 前面（見 A 段）。複製與替換的部分兩者相同。
+render_file arch .chezmoiscripts/run_after_55-cc-statusline.sh.tmpl > "$_e/55.sh"
+
+_run_e() { # home mise-dir
+    HOME="$1" STUB_LOG="$_e/mise-calls.log" STUB_MISE_DIR="$2" PATH="$_e/stub:$PATH" \
+        zsh "$_e/55.sh" 2>&1
+}
+_ebin="$_e/home/.claude/cc-statusline/cc-statusline"
+
+if ! command -v zsh >/dev/null 2>&1; then
+    skip "POSIX 55-cc-statusline 的行為" "找不到 zsh"
+else
+
+printf 'V1\n' > "$_e/mise-dir/cc-statusline"
+if _out=$(_run_e "$_e/home" "$_e/mise-dir"); then _pass "POSIX 55-cc-statusline 第一次執行成功"
+else _fail "POSIX 55-cc-statusline 第一次執行成功" "$_out"; fi
+assert_eq "POSIX 55-cc-statusline: 目標內容是 mise 裝的那一份" "V1" "$(cat "$_ebin" 2>&1)"
+assert_eq "POSIX 55-cc-statusline: 目標可執行" "yes" "$([ -x "$_ebin" ] && echo yes || echo no)"
+assert_eq "POSIX 55-cc-statusline: 目錄裡沒有留下暫存檔" "cc-statusline" \
+    "$(ls -A "$(dirname "$_ebin")" 2>&1)"
+assert_contains "POSIX 55-cc-statusline: mise use --global 釘 versions.toml 的版本" \
+    "$(cat "$_e/mise-calls.log" 2>&1)" "use --global $_cc_tool"
+
+# 內容相同時不替換：inode 不變。
+_ino=$(ls -i "$_ebin" | awk '{print $1}')
+if _out=$(_run_e "$_e/home" "$_e/mise-dir"); then _pass "POSIX 55-cc-statusline 第二次執行成功"
+else _fail "POSIX 55-cc-statusline 第二次執行成功" "$_out"; fi
+assert_eq "POSIX 55-cc-statusline: 內容相同時不替換" "$_ino" "$(ls -i "$_ebin" | awk '{print $1}')"
+
+# 目標正在執行：換上一份 zsh，讓它阻塞在 fifo 上。不用 sleep：coreutils 的
+# 多功能 binary 依 argv[0] 分派，改名後不會執行。
+cp "$(command -v zsh)" "$_ebin"
+chmod 755 "$_ebin"
+mkfifo "$_e/fifo"
+"$_ebin" -fc "read x < '$_e/fifo'" &
+_epid=$!
+_i=0
+while [ "$(readlink "/proc/$_epid/exe" 2>/dev/null)" != "$_ebin" ] && [ "$_i" -lt 50 ]; do
+    sleep 0.1; _i=$((_i + 1))
+done
+printf 'V2\n' > "$_e/mise-dir/cc-statusline"
+if [ "$(readlink "/proc/$_epid/exe" 2>/dev/null)" != "$_ebin" ]; then
+    _fail "POSIX 55-cc-statusline: 替換測試的目標行程在執行" "$(readlink "/proc/$_epid/exe" 2>&1)"
+elif cp "$_e/mise-dir/cc-statusline" "$_ebin" 2>/dev/null; then
+    skip "POSIX 55-cc-statusline 替換執行中的 binary" "控制組：直接寫入沒有 ETXTBSY，這個檔案系統測不到"
+else
+    _pass "控制組：直接寫入執行中的 binary 會失敗（ETXTBSY）"
+    if _out=$(_run_e "$_e/home" "$_e/mise-dir"); then _pass "POSIX 55-cc-statusline 在目標執行中時成功"
+    else _fail "POSIX 55-cc-statusline 在目標執行中時成功" "$_out"; fi
+    assert_eq "POSIX 55-cc-statusline: 執行中的目標被換成新版" "V2" "$(cat "$_ebin" 2>&1)"
+fi
+kill "$_epid" 2>/dev/null || true
+wait "$_epid" 2>/dev/null || true
+
+# mise where 的目錄裡沒有 binary：要失敗，不能留下空的目標。
+if _out=$(_run_e "$_e/home-empty" "$_e/empty"); then
+    _fail "POSIX 55-cc-statusline: mise 目錄沒有 binary 時以非零結束" "$_out"
+else _pass "POSIX 55-cc-statusline: mise 目錄沒有 binary 時以非零結束"; fi
+assert_eq "POSIX 55-cc-statusline: mise 目錄沒有 binary 時不建立目標" "absent" \
+    "$([ -e "$_e/home-empty/.claude/cc-statusline/cc-statusline" ] && echo present || echo absent)"
+
+# 沒有 mise：跳過（exit 0），不中止整個 apply。
+if _out=$(HOME="$_e/home-nomise" PATH="$_e/nomise" "$(command -v zsh)" "$_e/55.sh" 2>&1); then
+    _pass "POSIX 55-cc-statusline: mise 不存在時退出碼是 0"
+else _fail "POSIX 55-cc-statusline: mise 不存在時退出碼是 0" "$_out"; fi
+assert_eq "POSIX 55-cc-statusline: mise 不存在時什麼都不建立" "absent" \
+    "$([ -e "$_e/home-nomise" ] && echo present || echo absent)"
+
+fi
+
+# ---- Windows ----
+_PWSH=$(command -v pwsh.exe 2>/dev/null || true)
+_WT=""
+if [ -n "$_PWSH" ]; then
+    _WT=$("$_PWSH" -NoProfile -NonInteractive -Command '$env:TEMP' 2>/dev/null | tr -d '\r')
+    _WU=$(wslpath -u "$_WT" 2>/dev/null || echo "")
+    [ -n "$_WU" ] || _PWSH=""
+fi
+
+if [ -z "$_PWSH" ]; then
+    skip "Windows 55-cc-statusline 的行為" "找不到可用的 pwsh.exe"
+else
+    _id="l7e-$$"
+    _ew="$_WU/$_id"; _en="$_WT\\$_id"
+    rm -rf "$_ew"; mkdir -p "$_ew/local" "$_ew/pf" "$_ew/stub" "$_ew/mise-dir" "$_ew/nomise"
+    printf '@echo off\r\necho %%* >> "%s\\mise-calls.log"\r\nif "%%1"=="where" echo %s\\mise-dir\r\nexit /b 0\r\n' \
+        "$_en" "$_en" > "$_ew/stub/mise.cmd"
+    render_file windows .chezmoiscripts/run_after_55-cc-statusline.ps1.tmpl > "$_ew/55.ps1"
+    # $HOME 在 pwsh 啟動時由 USERPROFILE 決定，所以腳本要在設好環境的子 pwsh 裡跑。
+    # 參數：USERPROFILE、放在 PATH 最前面的 stub 目錄；-OnlyStub 時 PATH 只剩 stub，
+    # 主機 PATH 上真的 mise 就不會被找到。
+    cat > "$_ew/run.ps1" <<PSEOF
+param([string] \$UserProfile, [string] \$Stub, [switch] \$OnlyStub)
+\$pwsh = (Get-Command pwsh).Source
+\$env:LOCALAPPDATA = '$_en\\local'
+\$env:ProgramFiles = '$_en\\pf'
+\$env:USERPROFILE = \$UserProfile
+\$env:PATH = \$OnlyStub ? \$Stub : (\$Stub + ';' + \$env:PATH)
+& \$pwsh -NoLogo -NoProfile -File '$_en\\55.ps1'
+exit \$LASTEXITCODE
+PSEOF
+    _edir="$_ew/home/.claude/cc-statusline"
+
+    printf 'V1\n' > "$_ew/mise-dir/cc-statusline.exe"
+    if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_en\\run.ps1" "$_en\\home" "$_en\\stub" 2>&1); then
+        _pass "Windows 55-cc-statusline 第一次執行成功"
+    else _fail "Windows 55-cc-statusline 第一次執行成功" "$(printf '%s' "$_out" | tr -d '\r')"; fi
+    assert_eq "Windows 55-cc-statusline: 目標內容是 mise 裝的那一份" "V1" \
+        "$(cat "$_edir/cc-statusline.exe" 2>&1)"
+    assert_eq "Windows 55-cc-statusline: 目錄裡沒有留下暫存檔" "cc-statusline.exe" \
+        "$(ls -A "$_edir" 2>&1)"
+    assert_contains "Windows 55-cc-statusline: mise use --global 釘 versions.toml 的版本" \
+        "$(tr -d '\r' < "$_ew/mise-calls.log" 2>&1)" "use --global $_cc_tool"
+
+    # 內容相同時不替換：Copy-Item 保留來源的修改時間，所以看有沒有換下來的 .old-*。
+    if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_en\\run.ps1" "$_en\\home" "$_en\\stub" 2>&1); then
+        _pass "Windows 55-cc-statusline 第二次執行成功"
+    else _fail "Windows 55-cc-statusline 第二次執行成功" "$(printf '%s' "$_out" | tr -d '\r')"; fi
+    assert_eq "Windows 55-cc-statusline: 內容相同時不替換" "cc-statusline.exe" "$(ls -A "$_edir" 2>&1)"
+
+    # 目標正在執行：換上一份 PING.EXE 讓它跑著，同一個 wrapper 裡先做控制組再跑腳本。
+    printf 'V2\n' > "$_ew/mise-dir/cc-statusline.exe"
+    cat > "$_ew/run-busy.ps1" <<PSEOF
+\$exe = '$_en\\home\\.claude\\cc-statusline\\cc-statusline.exe'
+Copy-Item "\$env:SystemRoot\\System32\\PING.EXE" \$exe -Force
+\$p = Start-Process -FilePath \$exe -ArgumentList '-n','30','127.0.0.1' -WindowStyle Hidden -PassThru
+Start-Sleep -Milliseconds 500
+'STARTED=' + (-not \$p.HasExited)
+try { Copy-Item '$_en\\mise-dir\\cc-statusline.exe' \$exe -Force -ErrorAction Stop; 'CONTROL=written' }
+catch { 'CONTROL=busy' }
+& '$_en\\run.ps1' '$_en\\home' '$_en\\stub'
+'EXITCODE=' + \$LASTEXITCODE
+'RUNNING=' + (-not \$p.HasExited)
+Stop-Process \$p -ErrorAction SilentlyContinue
+\$p.WaitForExit()
+PSEOF
+    _out=$("$_PWSH" -NoLogo -NoProfile -File "$_en\\run-busy.ps1" 2>&1 | tr -d '\r')
+    if [ "$(printf '%s\n' "$_out" | sed -n 's/^STARTED=//p')" != True ]; then
+        _fail "Windows 55-cc-statusline: 替換測試的目標行程在執行" "$_out"
+    elif [ "$(printf '%s\n' "$_out" | sed -n 's/^CONTROL=//p')" != busy ]; then
+        skip "Windows 55-cc-statusline 替換執行中的 exe" "控制組：直接寫入執行中的 exe 沒有失敗（$_out）"
+    else
+        _pass "控制組：直接寫入執行中的 exe 會失敗"
+        assert_eq "Windows 55-cc-statusline: 替換時目標仍在執行" "True" \
+            "$(printf '%s\n' "$_out" | sed -n 's/^RUNNING=//p')"
+        assert_eq "Windows 55-cc-statusline 在目標執行中時成功" "0" \
+            "$(printf '%s\n' "$_out" | sed -n 's/^EXITCODE=//p')"
+        assert_eq "Windows 55-cc-statusline: 執行中的目標被換成新版" "V2" \
+            "$(cat "$_edir/cc-statusline.exe" 2>&1)"
+        assert_eq "Windows 55-cc-statusline: 換下來的舊檔改名為 .old-*" "1" \
+            "$(ls -d "$_edir"/cc-statusline.exe.old-* 2>/dev/null | wc -l | tr -d ' ')"
+        # 舊檔的行程已結束，下一次執行要把它刪掉。
+        if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_en\\run.ps1" "$_en\\home" "$_en\\stub" 2>&1); then
+            _pass "Windows 55-cc-statusline 替換後再執行成功"
+        else _fail "Windows 55-cc-statusline 替換後再執行成功" "$(printf '%s' "$_out" | tr -d '\r')"; fi
+        assert_eq "Windows 55-cc-statusline: 下一次執行刪掉 .old-*" "cc-statusline.exe" "$(ls -A "$_edir" 2>&1)"
+    fi
+
+    # 沒有 mise：跳過（exit 0），不中止整個 apply。
+    if _out=$("$_PWSH" -NoLogo -NoProfile -File "$_en\\run.ps1" "$_en\\home-nomise" "$_en\\nomise" -OnlyStub 2>&1); then
+        _pass "Windows 55-cc-statusline: mise 不存在時退出碼是 0"
+    else _fail "Windows 55-cc-statusline: mise 不存在時退出碼是 0" "$(printf '%s' "$_out" | tr -d '\r')"; fi
+    # 只看 .claude：子 pwsh 自己會在 USERPROFILE 底下寫 AppData\Local\Microsoft\PowerShell。
+    assert_eq "Windows 55-cc-statusline: mise 不存在時不建立 ~/.claude" "absent" \
+        "$([ -e "$_ew/home-nomise/.claude" ] && echo present || echo absent)"
+
+    rm -rf "$_ew"
+fi
+unset _e _ebin _epid _ino _i _out _cc_tool _PWSH _WT _WU _id _ew _en _edir

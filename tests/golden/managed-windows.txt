@@ -64,6 +64,8 @@
 .chezmoiscripts/40-git-lfs.sh
 .chezmoiscripts/50-neovim.ps1
 .chezmoiscripts/50-neovim.sh
+.chezmoiscripts/55-cc-statusline.ps1
+.chezmoiscripts/55-cc-statusline.sh
 .chezmoiscripts/60-pwsh-profile.ps1
 .chezmoiscripts/default-shell.sh
 .claude
