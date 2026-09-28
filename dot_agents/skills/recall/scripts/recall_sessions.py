@@ -138,7 +138,8 @@ def text_blocks(content) -> list:
                 out.append(block)
             elif isinstance(block, dict):
                 btype = block.get("type")
-                if btype in (None, "text", "input_text", "output_text"):
+                # "Text" 是 Codex 0.157.1 AgentMessage 的寫法。
+                if btype in (None, "text", "Text", "input_text", "output_text"):
                     text = block.get("text")
                     if isinstance(text, str):
                         out.append(text)
@@ -388,7 +389,16 @@ def parse_codex_session(path: Path, opts) -> dict:
 
         ptype = payload.get("type")
         if ltype == "event_msg":
-            text = payload.get("message")
+            # 0.157.1 起改寫 item_completed，item.type 為 UserMessage／AgentMessage；
+            # 舊版的 user_message／agent_message 留作 fallback，一份 rollout 只會有其中一種。
+            if ptype == "item_completed":
+                item = payload.get("item")
+                if not isinstance(item, dict):
+                    continue
+                ptype = {"UserMessage": "user_message", "AgentMessage": "agent_message"}.get(item.get("type"))
+                text = "\n".join(t for t in text_blocks(item.get("content")) if t.strip())
+            else:
+                text = payload.get("message")
             if not isinstance(text, str) or not text.strip():
                 continue
             if ptype == "user_message":
