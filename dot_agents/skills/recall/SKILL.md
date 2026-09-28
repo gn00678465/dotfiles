@@ -86,7 +86,7 @@ When no session matches, say so and report the scope you searched.
 | Source | Path | Status |
 | --- | --- | --- |
 | Claude Code | `~/.claude/projects/<slug>/<sessionId>.jsonl` | Verified locally (2.1.278) |
-| Codex | `$CODEX_HOME/sessions/**/rollout-*.jsonl`, `archived_sessions/` | Verified on a second machine with a real session, selected by source and session id |
+| Codex | `$CODEX_HOME/sessions/**/rollout-*.jsonl`, `archived_sessions/` | 0.157.1 `item_completed` records verified locally; older `user_message` / `agent_message` records verified on a second machine |
 | Cursor | `~/.cursor/projects/<slug>/agent-transcripts/<uuid>/<uuid>.jsonl` | Path rule only. Fields not verified |
 
 When a Cursor record does not match the expected format, the script does not crash.

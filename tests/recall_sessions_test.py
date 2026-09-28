@@ -10,6 +10,8 @@
 - 子代理檔與 isSidechain 記錄預設跳過，加 --include-subagents 才出現。
 - 專案過濾、mtime 天數視窗、關鍵字過濾、Markdown 與 JSON 輸出。
 - Codex 的 session_meta、user_message、local_shell_call 與子代理判定。
+- Codex 0.157.1 的 item_completed 格式：UserMessage 與 AgentMessage 取代
+  user_message 與 agent_message，注入的 AGENTS.md 不算使用者訊息。
 - Cursor 未知格式不當機，並回報實際欄位。
 
 fixture 裡的 __PROJ__ / __OTHER__ 在複製時代換成暫存專案路徑，目錄名用腳本
@@ -147,6 +149,8 @@ def main() -> None:
 
         cx = homes["codex"] / "sessions" / "2026" / "09" / "20"
         place(fixtures / "codex-main.jsonl", cx / "rollout-2026-09-20T03-00-00-main.jsonl", subst)
+        place(fixtures / "codex-item-completed.jsonl",
+              homes["codex"] / "sessions" / "2026" / "09" / "21" / "rollout-2026-09-21T04-00-00-item.jsonl", subst)
         place(fixtures / "codex-subagent.jsonl",
               homes["codex"] / "archived_sessions" / "rollout-2026-09-20T03-30-00-sub.jsonl", subst)
 
@@ -189,16 +193,26 @@ def main() -> None:
               f"time span wrong: {s['started_at']} → {s['ended_at']}")
         check(s["is_subagent"] is False, "main session flagged as subagent")
 
-        codex = srcs["codex"]
-        check([c["id"] for c in codex] == ["019a0000-0000-7000-8000-000000000004"],
-              f"codex should list only the non-subagent session, got {[c['id'] for c in codex]}")
-        c = codex[0]
+        codex = {c["id"]: c for c in srcs["codex"]}
+        item_id = "01a00000-0000-7000-8000-000000000005"
+        check(sorted(codex) == ["019a0000-0000-7000-8000-000000000004", item_id],
+              f"codex should list only the non-subagent sessions, got {sorted(codex)}")
+        c = codex["019a0000-0000-7000-8000-000000000004"]
         check(c["cwd"] == str(proj), f"codex cwd wrong: {c['cwd']!r}")
         check([m["text"] for m in c["user_messages"]] == ["幫我把 CI 的 lint 步驟改成 ruff"],
               f"codex user messages wrong: {[m['text'] for m in c['user_messages']]}")
         check(c["stats"]["tool_calls"] == 2, f"codex tool_calls wrong: {c['stats']['tool_calls']}")
         check(c["last_assistant_text"] == "ci.yml 已改成 ruff check。",
               f"codex last assistant text wrong: {c['last_assistant_text']!r}")
+
+        c = codex[item_id]
+        check([m["text"] for m in c["user_messages"]] == ["$recall 幫我把 zsh 的 fzf 綁定改成 ctrl-t", "順便加上 alt-c"],
+              f"codex 0.157.1 user messages wrong: {[m['text'] for m in c['user_messages']]}")
+        check(c["stats"]["user_turns"] == 2 and c["stats"]["assistant_turns"] == 3,
+              f"codex 0.157.1 turn counts wrong: {c['stats']}")
+        check(c["stats"]["tool_calls"] == 1, f"codex 0.157.1 tool_calls wrong: {c['stats']['tool_calls']}")
+        check(c["last_assistant_text"] == "alt-c 也加好了。",
+              f"codex 0.157.1 last assistant text wrong: {c['last_assistant_text']!r}")
 
         cursor = {u["id"]: u for u in srcs["cursor"]}
         unknown = cursor["11111111-aaaa-4bbb-8ccc-000000000001"]
@@ -225,7 +239,7 @@ def main() -> None:
               "inline isSidechain row must appear only with --include-subagents")
 
         data = run(script, homes, "--project", str(proj), "--include-subagents", "--source", "codex")
-        check(len(data["sessions"]) == 2, "codex --include-subagents should list both sessions")
+        check(len(data["sessions"]) == 3, "codex --include-subagents should list all three sessions")
 
         # ---- 天數視窗與 --all
         data = run(script, homes, "--project", str(proj), "--days", "0", "--source", "claude")
