@@ -43,3 +43,8 @@ alias pbpaste='powershell.exe -NoProfile -Command Get-Clipboard'
 {{ end -}}
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# Per-machine settings live outside chezmoi so apply/update never overwrite them.
+# Keep it last so it can override anything above; the `||` form keeps the exit
+# status 0 when the file is absent, otherwise p10k shows the first prompt as failed.
+[[ ! -f ~/.zshrc.local ]] || source ~/.zshrc.local

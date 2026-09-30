@@ -177,6 +177,16 @@ chezmoi cd                   # 進 source dir；git checkout <branch> 後 exit �
 chezmoi apply --refresh-externals   # 強制重抓 external
 ```
 
+### 本機專屬的 zsh 設定
+
+chezmoi 完整管理 `~/.zshrc`。`chezmoi apply` 與 `chezmoi update` 會覆寫直接寫在
+`~/.zshrc` 裡的內容。只有一台電腦需要的設定，請寫在 `~/.zshrc.local`。chezmoi 不管理這個檔案。
+
+- `~/.zshrc` 最後才載入這個檔案，所以它可以覆寫 alias、環境變數與 `POWERLEVEL9K_*` 設定。
+- 它不能修改 `plugins=()` 或 `ZSH_THEME`。Oh My Zsh 在載入這個檔案之前就已讀取這兩個值。
+- 不要在這個檔案裡輸出文字。啟動時有輸出，p10k 會顯示 console output 警告。
+- 檔案不存在時不會產生錯誤。
+
 ---
 
 ## Agent 工作流程
