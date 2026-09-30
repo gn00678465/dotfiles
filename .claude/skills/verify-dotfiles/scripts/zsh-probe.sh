@@ -16,7 +16,7 @@
 set -eu
 
 REPO=$(CDPATH= cd -- "$(dirname -- "$0")/../../../.." && pwd)
-GATE="$REPO/.gate/verify-zsh"
+GATE="$REPO/.gate/verify-dotfiles"
 MINPATH=/usr/local/bin:/usr/bin:/bin
 
 die() { printf 'zsh-probe: %s\n' "$*" >&2; exit 2; }
@@ -37,7 +37,7 @@ cmd_up() {
     [ -d "$HOME/.oh-my-zsh" ] || die "no ~/.oh-my-zsh to copy; apply the externals first"
     mkdir -p "$GATE"
     RUN=$(mktemp -d "$GATE/$(date +%Y%m%d-%H%M%S)-XXXX")
-    H=$(mktemp -d "${TMPDIR:-/tmp}/verify-zsh-home.XXXXXX")
+    H=$(mktemp -d "${TMPDIR:-/tmp}/verify-dotfiles-home.XXXXXX")
     printf '%s\n' "$H" > "$RUN/home-path"; mkdir -p "$H/.cache" "$RUN/evidence"
     for f in .zshrc .zprofile .p10k.zsh; do render_into "$f" "$H/$f"; done
     cp -a "$HOME/.oh-my-zsh" "$H/.oh-my-zsh"
@@ -173,7 +173,7 @@ cmd_check() {
 
 cmd_down() {
     run_dir "$@"
-    case $H in "${TMPDIR:-/tmp}"/verify-zsh-home.*) rm -rf "$H" ;; *) die "refusing to delete $H" ;; esac
+    case $H in "${TMPDIR:-/tmp}"/verify-dotfiles-home.*) rm -rf "$H" ;; *) die "refusing to delete $H" ;; esac
     rm -f "$RUN/home-path"
     printf 'removed %s; evidence kept in %s\n' "$H" "$EV"
 }

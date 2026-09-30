@@ -1,5 +1,5 @@
 ---
-name: verify-zsh
+name: verify-dotfiles
 description: >-
   Verify the zsh startup files this chezmoi repo manages (.zshrc, .zprofile,
   .p10k.zsh) by starting real zsh sessions against the current source in a
@@ -11,7 +11,7 @@ description: >-
   parses these files.
 ---
 
-# Verify zsh startup
+# Verify dotfiles
 
 `tests/run.sh` proves the templates render and parse. It never starts a shell.
 This skill starts one. The user of these files is a person opening a terminal,
@@ -27,7 +27,7 @@ The helper is `scripts/zsh-probe.sh` in this skill's directory. Below it is
 `script` (util-linux) on PATH.
 
 ```sh
-P=.claude/skills/verify-zsh/scripts/zsh-probe.sh   # from the repo root
+P=.claude/skills/verify-dotfiles/scripts/zsh-probe.sh   # from the repo root
 ```
 
 ## Launch
@@ -39,8 +39,8 @@ RUN=$($P up)
 `up` renders `~/.zshrc`, `~/.zprofile`, and `~/.p10k.zsh` from this checkout
 with `chezmoi -S <repo> cat`, so it uses the host's real chezmoi config data
 (`isWSL` and the rest). It copies `~/.oh-my-zsh` and `~/.cache/gitstatus` into a
-new HOME under `${TMPDIR:-/tmp}/verify-zsh-home.*`, and prints the run
-directory `.gate/verify-zsh/<stamp>-<id>/`. Nothing listens and nothing stays
+new HOME under `${TMPDIR:-/tmp}/verify-dotfiles-home.*`, and prints the run
+directory `.gate/verify-dotfiles/<stamp>-<id>/`. Nothing listens and nothing stays
 running, so "ready" means `up` exited 0.
 
 Each run has its own HOME, so runs can go in parallel. The real HOME is never

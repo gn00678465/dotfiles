@@ -6,7 +6,7 @@ the matching feature file as the recipe.
 
 ## Baseline preconditions
 
-- Run from the repo root with `P=.claude/skills/verify-zsh/scripts/zsh-probe.sh`.
+- Run from the repo root with `P=.claude/skills/verify-dotfiles/scripts/zsh-probe.sh`.
 - `RUN=$($P up)` created the run from the current source.
 - `$P doctor "$RUN"` prints no `STALE` or `FAIL` line.
 - `~/.zshrc.local` in the run's HOME is `absent` unless a recipe says otherwise.
