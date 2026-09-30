@@ -4,9 +4,8 @@
 # ~/.local/bin is NOT on the default login PATH, so prepend it before probing.
 export PATH="$HOME/.local/bin:$PATH"
 
-# mise is installed by brew, so brew has to come first. `typeset -U path` keeps
-# the entries unique when .zshrc runs shellenv again for interactive shells.
-typeset -U path
+# On brew platforms mise lives under the brew prefix, so this block has to
+# come before the mise probe below.
 {{ if ne $p.brewPrefix "" -}}
 eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
 {{ else if eq $p.pkgManager "pacman" -}}
@@ -20,3 +19,9 @@ eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
 if (( $+commands[mise] )); then
   eval "$(mise activate zsh --shims)"
 fi
+
+# /etc/profile and every line above assign the PATH string, and `typeset -U`
+# drops duplicates only when the path array is assigned. The first copy wins,
+# as in command lookup, so no command resolves differently.
+typeset -U path
+path=($path)
