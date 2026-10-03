@@ -317,6 +317,22 @@ skip-only — they have the declared WSL-interop precondition in the table
 above. Any other layer that contributes nothing but skips is a failure: it
 was disabled, not blocked by the environment.
 
+## Research skill and subagent
+
+`dot_agents/skills/research/` is the skill for Claude Code and Codex. Codex
+reads `~/.agents/skills/` directly; Claude Code reads it through
+`dot_claude/skills/symlink_research`.
+
+Keep the `researcher` instructions in `.chezmoitemplates/research-protocol.md`.
+`dot_claude/agents/researcher.md.tmpl` and `dot_codex/agents/researcher.toml.tmpl`
+both include it. The TOML file wraps it in a `'''` literal string, so the
+protocol must not contain `'''`.
+
+Do not add `Agent` to the `tools` line of the Claude agent. Its absence is
+what stops the nested research runs of the upstream skill
+(mattpocock/skills issue #530). Codex has no per-agent tool list; there the
+protocol's "do not spawn agents" line is the only guard.
+
 ## Skill names
 
 Do not name a skill under `dot_agents/skills/` `adversarial-squad`, any
