@@ -193,3 +193,8 @@ chezmoi 完整管理 `~/.zshrc`。`chezmoi apply` 與 `chezmoi update` 會覆寫
 
 這個 repo 也裝 agent 的全域指令（`~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md`）與共用的
 skill（`~/.agents/skills/`）。
+
+`research` skill 把查資料的工作交給 `researcher` subagent。Claude Code 的 subagent 定義在
+`~/.claude/agents/researcher.md`，Codex 的在 `~/.codex/agents/researcher.toml`；兩份的指令
+都來自 `.chezmoitemplates/research-protocol.md`。Codex 從 `~/.agents/skills/` 讀取同一份
+skill，以 `$research` 叫用。
