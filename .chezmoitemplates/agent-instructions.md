@@ -2,6 +2,10 @@
 
 {{- /* 唯一來源。~/.claude/CLAUDE.md 與 ~/.codex/AGENTS.md 都由這個模板產生，改這裡。 */}}
 
+## Intent
+
+- Before starting a task, restate in your own words what you think my goal is and what problem I am trying to solve.
+
 ## Engineering
 
 - Implement against observed callers, runtime behavior, and contracts. Fix the owning source and direct dependents; restructure when the architecture conflicts with the fix.
