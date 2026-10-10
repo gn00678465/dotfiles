@@ -159,3 +159,19 @@ Scan prose for AI tells, rewrite them, self-audit. Five groups of rules.
 
 33. **Mixed-language rule.** English for: terms, commands, file paths, API
     names, identifiers. Traditional Chinese for everything else.
+
+34. **Taiwan terms.** Use Taiwan usage. For an uncertain term, query
+    zhtw-mcp when it is installed. Otherwise use best judgement. Never block
+    on it, install it, or claim a check that did not run.
+
+35. **One name per thing.** Do not vary the term for the same object or
+    step.
+    - Before: 「改設定檔。存檔後，重新載入組態檔。」
+    - After: 「改設定檔。存檔後，重新載入設定檔。」
+
+36. **Condition before instruction.**
+    - Before: 「重新啟動服務，如果設定有改動。」
+    - After: 「設定有改動時，重新啟動服務。」
+
+37. **One topic per paragraph.** Six sentences at most. Over the limit:
+    split.
