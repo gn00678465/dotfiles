@@ -187,6 +187,39 @@ chezmoi 完整管理 `~/.zshrc`。`chezmoi apply` 與 `chezmoi update` 會覆寫
 - 不要在這個檔案裡輸出文字。啟動時有輸出，p10k 會顯示 console output 警告。
 - 檔案不存在時不會產生錯誤。
 
+### mise 管理的 CLI
+
+`run_after_56-apm-go` 以 mise 安裝 [apm-go](https://github.com/gn00678465/apm-go)，在全域的
+`~/.config/mise/config.toml` 寫入：
+
+```toml
+[tools]
+"github:gn00678465/apm-go" = { version = "0.4", prerelease = true }
+
+[settings]
+minimum_release_age_excludes = ["github:gn00678465/apm-go"]
+```
+
+0.4 目前只有 prerelease，所以要 `prerelease = true`；加進 `minimum_release_age_excludes`
+是讓剛發布的版本不被 mise 預設的 24 小時延遲擋掉。清單裡原本的值會保留，已經有
+apm-go 時不會重複加入。版本前綴在 `.chezmoitemplates/versions.toml` 的 `apmGo`。
+
+### neovim 版本提醒
+
+neovim 釘在 `.chezmoitemplates/versions.toml` 的版本（Arch 家族除外，那裡跟著 pacman）。
+`chezmoi apply` 與 `chezmoi update` 的最後會跑 `run_after_90-neovim-update-check`，
+上游有更新的 stable 版時提醒你：
+
+- apply 的輸出裡每次都印一行 `chezmoi: neovim X is available (pinned Y ...)`。
+- 系統通知**每個上游版本只跳一次**：macOS 用 `osascript`，Linux 桌面用 `notify-send`，
+  WSL 與 Windows 用 Windows 的 toast。沒有桌面（ssh、headless）時只有那一行輸出。
+- 網路查詢一天最多一次；查不到就安靜地略過，不會讓 apply 失敗。
+
+腳本只提醒，不會改 pin。要升級就改 `versions.toml` 的 `neovim`，並依
+`run_before_50-neovim.sh.tmpl` 註解所說，先看過 nvim-treesitter `main` 與 LazyVim 的需求。
+狀態存在 `~/.local/state/chezmoi-neovim-check/`（Windows 是
+`%LOCALAPPDATA%\chezmoi-neovim-check\`），刪掉這個目錄就會再通知一次。
+
 ---
 
 ## Agent 工作流程

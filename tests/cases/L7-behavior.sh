@@ -642,3 +642,283 @@ PSEOF
     rm -rf "$_ew"
 fi
 unset _e _ebin _epid _ino _i _out _cc_tool _PWSH _WT _WU _id _ew _en _edir
+
+# ================= F. 90-neovim-update-check =================
+# git 與通知器都是 stub：git 依 STUB_TAGS 吐 ls-remote 的輸出（STUB_GIT_FAIL 時失敗），
+# 通知器把收到的參數記下來（STUB_NOTIFY_FAIL 時失敗）。要釘的是噪音上限：網路查詢
+# 一天一次、通知每個上游版本一次、任何失敗都 exit 0。
+_f="$TMP/l7f"
+rm -rf "$_f"; mkdir -p "$_f/stub"
+_f_pin=$(sed -n 's/^neovim = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+cat > "$_f/stub/git" <<'STUB'
+#!/bin/sh
+echo "$@" >> "$STUB_GIT_LOG"
+[ -n "${STUB_GIT_FAIL:-}" ] && exit 128
+for t in $STUB_TAGS; do printf '0000\trefs/tags/%s\n' "$t"; done
+STUB
+cat > "$_f/stub/notify-send" <<'STUB'
+#!/bin/sh
+[ -n "${STUB_NOTIFY_FAIL:-}" ] && exit 1
+echo "$@" >> "$STUB_NOTIFY_LOG"
+STUB
+cp "$_f/stub/notify-send" "$_f/stub/osascript"
+# WSL：把 -EncodedCommand 解回來存檔，順便證明它是合法的 UTF-16LE base64。
+cat > "$_f/stub/powershell.exe" <<'STUB'
+#!/bin/sh
+[ -n "${STUB_NOTIFY_FAIL:-}" ] && exit 1
+[ "$3" = "-EncodedCommand" ] || exit 2
+printf '%s' "$4" | base64 -d | iconv -f UTF-16LE -t UTF-8 > "$STUB_NOTIFY_LOG.payload" || exit 3
+echo "$*" >> "$STUB_NOTIFY_LOG"
+STUB
+chmod +x "$_f/stub/"*
+render_file linux .chezmoiscripts/run_after_90-neovim-update-check.sh.tmpl > "$_f/linux.sh"
+render_file darwin-arm64 .chezmoiscripts/run_after_90-neovim-update-check.sh.tmpl > "$_f/darwin.sh"
+render_file native-wsl .chezmoiscripts/run_after_90-neovim-update-check.sh.tmpl > "$_f/wsl.sh"
+
+_run_f() { # script home tags [VAR=value...]
+    _fs=$1; _fh=$2; _ft=$3; shift 3
+    env HOME="$_fh" XDG_STATE_HOME= STUB_TAGS="$_ft" STUB_GIT_LOG="$_fh/git.log" \
+        STUB_NOTIFY_LOG="$_fh/notify.log" PATH="$_f/stub:$PATH" "$@" zsh "$_fs" 2>&1
+}
+_lines() { if [ -f "$1" ]; then wc -l < "$1" | tr -d ' '; else echo 0; fi; }
+_fstate() { cat "$1/.local/state/chezmoi-neovim-check/$2" 2>/dev/null || echo absent; }
+
+if ! command -v zsh >/dev/null 2>&1; then
+    skip "POSIX 90-neovim-update-check 的行為" "找不到 zsh"
+else
+
+# 上游比 pin 新：印一行、跳一次通知、兩個狀態檔都記下最新版。順便釘數字排序：
+# 0.12.10 必須勝過 0.12.9，nightly/stable/rc 不算版本。
+_h="$_f/home-new"
+_tags="v0.11.7 v99.12.9 v99.12.10 nightly stable v99.13.0-rc1"
+if _out=$(_run_f "$_f/linux.sh" "$_h" "$_tags"); then _pass "90-neovim-update-check: 有新版時 exit 0"
+else _fail "90-neovim-update-check: 有新版時 exit 0" "$_out"; fi
+assert_contains "90-neovim-update-check: apply 輸出提到新版與 pin" "$_out" \
+    "neovim 99.12.10 is available (pinned $_f_pin in .chezmoitemplates/versions.toml)"
+assert_eq "90-neovim-update-check: 跳了一次通知" "1" "$(_lines "$_h/notify.log")"
+assert_contains "90-neovim-update-check: 通知內容有新版與 pin" "$(cat "$_h/notify.log" 2>&1)" \
+    "neovim 99.12.10 is out; dotfiles pin $_f_pin"
+assert_eq "90-neovim-update-check: 快取記下最新版（數字排序，0.12.10 > 0.12.9）" "99.12.10" "$(_fstate "$_h" latest)"
+assert_eq "90-neovim-update-check: notified 記下最新版" "99.12.10" "$(_fstate "$_h" notified)"
+
+# 同一天再 apply：不連網路、不再跳通知，但輸出那一行還在。
+_out=$(_run_f "$_f/linux.sh" "$_h" "$_tags")
+assert_eq "90-neovim-update-check: 24 小時內不再查詢網路" "1" "$(_lines "$_h/git.log")"
+assert_eq "90-neovim-update-check: 同一個版本不再跳通知" "1" "$(_lines "$_h/notify.log")"
+assert_contains "90-neovim-update-check: 同一個版本仍在輸出裡提醒" "$_out" "neovim 99.12.10 is available"
+
+# 快取過期且上游又出了新版：再查一次、再跳一次。
+touch -t 200001010000 "$_h/.local/state/chezmoi-neovim-check/latest"
+_run_f "$_f/linux.sh" "$_h" "$_tags v99.14.0" >/dev/null
+assert_eq "90-neovim-update-check: 快取過期後重新查詢" "2" "$(_lines "$_h/git.log")"
+assert_eq "90-neovim-update-check: 新的上游版本再跳一次通知" "2" "$(_lines "$_h/notify.log")"
+assert_eq "90-neovim-update-check: notified 換成新的上游版本" "99.14.0" "$(_fstate "$_h" notified)"
+
+# 已是最新：什麼都不印、不通知。
+_h="$_f/home-current"
+_out=$(_run_f "$_f/linux.sh" "$_h" "v$_f_pin v0.11.7")
+assert_eq "90-neovim-update-check: pin 就是最新版時沒有輸出" "" "$_out"
+assert_eq "90-neovim-update-check: pin 就是最新版時不通知" "0" "$(_lines "$_h/notify.log")"
+
+# 網路不通：exit 0、沒有輸出、不寫快取。
+_h="$_f/home-offline"
+if _out=$(_run_f "$_f/linux.sh" "$_h" "v99.0.0" STUB_GIT_FAIL=1); then
+    _pass "90-neovim-update-check: 網路不通時 exit 0"
+else _fail "90-neovim-update-check: 網路不通時 exit 0" "$_out"; fi
+assert_eq "90-neovim-update-check: 網路不通時沒有輸出" "" "$_out"
+assert_eq "90-neovim-update-check: 網路不通時不寫快取" "absent" "$(_fstate "$_h" latest)"
+
+# 通知器失敗（ssh、沒有 session bus）：exit 0，而且不記 notified，下一次 apply 再試。
+_h="$_f/home-headless"
+if _out=$(_run_f "$_f/linux.sh" "$_h" "v99.0.0" STUB_NOTIFY_FAIL=1); then
+    _pass "90-neovim-update-check: 通知失敗時 exit 0"
+else _fail "90-neovim-update-check: 通知失敗時 exit 0" "$_out"; fi
+assert_eq "90-neovim-update-check: 通知失敗時不記 notified" "absent" "$(_fstate "$_h" notified)"
+_run_f "$_f/linux.sh" "$_h" "v99.0.0" >/dev/null
+assert_eq "90-neovim-update-check: 通知恢復後補跳一次" "1" "$(_lines "$_h/notify.log")"
+
+# 快取被改成奇怪的東西：不可以進到通知的指令列。
+_h="$_f/home-tampered"
+mkdir -p "$_h/.local/state/chezmoi-neovim-check"
+printf '99.0.0"; touch %s/pwned; "\n' "$_h" > "$_h/.local/state/chezmoi-neovim-check/latest"
+_out=$(_run_f "$_f/linux.sh" "$_h" "" STUB_GIT_FAIL=1)
+assert_eq "90-neovim-update-check: 不合格的快取內容被忽略" "" "$_out"
+assert_eq "90-neovim-update-check: 不合格的快取內容沒有被執行" "absent" \
+    "$([ -e "$_h/pwned" ] && echo present || echo absent)"
+
+# macOS 與 WSL 只有通知器不同。
+_h="$_f/home-darwin"
+_run_f "$_f/darwin.sh" "$_h" "v99.0.0" >/dev/null
+assert_contains "macOS: 通知交給 osascript" "$(cat "$_h/notify.log" 2>&1)" \
+    '-e display notification "neovim 99.0.0 is out'
+_h="$_f/home-wsl"
+if command -v iconv >/dev/null 2>&1 && command -v base64 >/dev/null 2>&1; then
+    _run_f "$_f/wsl.sh" "$_h" "v99.0.0" >/dev/null
+    assert_eq "WSL: 通知交給 powershell.exe 一次" "1" "$(_lines "$_h/notify.log")"
+    assert_contains "WSL: 解碼後的 toast 腳本帶著標題與內容" "$(head -1 "$_h/notify.log.payload" 2>&1)" \
+        "\$ToastTitle = 'Neovim update available'; \$ToastBody = 'neovim 99.0.0 is out; dotfiles pin $_f_pin"
+    assert_eq "WSL: notified 記下版本" "99.0.0" "$(_fstate "$_h" notified)"
+else
+    skip "WSL 90-neovim-update-check 的 toast 編碼" "找不到 iconv 或 base64"
+fi
+
+fi
+
+# ---- Windows ----
+# 腳本本身沒有 Windows 專屬的路徑邏輯（狀態目錄來自 $env:LOCALAPPDATA），所以用
+# Linux 的 pwsh 加上 stub 跑。pwsh.exe 那條路要把 git 與 powershell.exe 換成 .cmd
+# stub，而 powershell.exe 是以檔名解析的，換不掉。只有 pwsh.exe 時跳過。
+_FPWSH=$(command -v pwsh 2>/dev/null || true)
+if [ -z "$_FPWSH" ]; then
+    skip "Windows 90-neovim-update-check 的行為" "找不到 Linux 的 pwsh"
+else
+    render_file windows .chezmoiscripts/run_after_90-neovim-update-check.ps1.tmpl > "$_f/win.ps1"
+    _run_fw() { # local tags [VAR=value...]
+        _fl=$1; _ft=$2; shift 2
+        mkdir -p "$_fl" "$_f/pf"
+        env LOCALAPPDATA="$_fl" ProgramFiles="$_f/pf" STUB_TAGS="$_ft" STUB_GIT_LOG="$_fl/git.log" \
+            STUB_NOTIFY_LOG="$_fl/notify.log" PATH="$_f/stub:$PATH" "$@" \
+            "$_FPWSH" -NoLogo -NoProfile -File "$_f/win.ps1" 2>&1
+    }
+    _wstate() { cat "$1/chezmoi-neovim-check/$2" 2>/dev/null || echo absent; }
+
+    _l="$_f/win-new"
+    if _out=$(_run_fw "$_l" "v0.11.7 v99.12.9 v99.12.10 nightly"); then _pass "Windows 90-neovim-update-check: 有新版時 exit 0"
+    else _fail "Windows 90-neovim-update-check: 有新版時 exit 0" "$_out"; fi
+    assert_contains "Windows 90-neovim-update-check: apply 輸出提到新版與 pin" "$_out" \
+        "neovim 99.12.10 is available (pinned $_f_pin"
+    assert_eq "Windows 90-neovim-update-check: 跳了一次通知" "1" "$(_lines "$_l/notify.log")"
+    assert_contains "Windows 90-neovim-update-check: toast 腳本帶著標題與內容" \
+        "$(head -1 "$_l/notify.log.payload" 2>&1)" "\$ToastBody = 'neovim 99.12.10 is out; dotfiles pin $_f_pin"
+    assert_eq "Windows 90-neovim-update-check: 快取記下最新版（[version] 排序）" "99.12.10" "$(_wstate "$_l" latest)"
+    _run_fw "$_l" "v99.12.10" >/dev/null
+    assert_eq "Windows 90-neovim-update-check: 24 小時內不再查詢網路" "1" "$(_lines "$_l/git.log")"
+    assert_eq "Windows 90-neovim-update-check: 同一個版本不再跳通知" "1" "$(_lines "$_l/notify.log")"
+
+    _l="$_f/win-current"
+    _out=$(_run_fw "$_l" "v$_f_pin")
+    assert_eq "Windows 90-neovim-update-check: pin 就是最新版時沒有輸出" "" "$_out"
+
+    _l="$_f/win-offline"
+    if _out=$(_run_fw "$_l" "v99.0.0" STUB_GIT_FAIL=1); then
+        _pass "Windows 90-neovim-update-check: 網路不通時 exit 0"
+    else _fail "Windows 90-neovim-update-check: 網路不通時 exit 0" "$_out"; fi
+    assert_eq "Windows 90-neovim-update-check: 網路不通時沒有輸出" "" "$_out"
+
+    _l="$_f/win-headless"
+    if _out=$(_run_fw "$_l" "v99.0.0" STUB_NOTIFY_FAIL=1); then
+        _pass "Windows 90-neovim-update-check: 通知失敗時 exit 0"
+    else _fail "Windows 90-neovim-update-check: 通知失敗時 exit 0" "$_out"; fi
+    assert_eq "Windows 90-neovim-update-check: 通知失敗時不記 notified" "absent" "$(_wstate "$_l" notified)"
+fi
+unset _f _f_pin _h _l _tags _out _fs _fh _ft _fl _FPWSH
+
+# ================= G. 56-apm-go =================
+# mise 是 stub：minimum_release_age_excludes 存在一個檔案裡（一行一個），
+# `settings get` 照真 mise 的格式印成 TOML 陣列，`settings add` 附加一行，
+# 每次呼叫都依序記在 log 裡。要釘的是：既有的清單保留、已存在的值不重複加、
+# 排除要在 mise use 之前生效。
+_g="$TMP/l7g"
+rm -rf "$_g"; mkdir -p "$_g/stub" "$_g/nomise"
+_g_pin=$(sed -n 's/^apmGo = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+cat > "$_g/stub/mise" <<'STUB'
+#!/bin/sh
+echo "$*" >> "$STUB_LOG"
+if [ "$1 $2 $3" = "settings get minimum_release_age_excludes" ]; then
+    printf '['; sep=''
+    while IFS= read -r x; do printf '%s"%s"' "$sep" "$x"; sep=', '; done < "$STUB_EXCLUDES"
+    printf ']\n'
+elif [ "$1 $2 $3" = "settings add minimum_release_age_excludes" ]; then
+    printf '%s\n' "$4" >> "$STUB_EXCLUDES"
+fi
+exit 0
+STUB
+chmod +x "$_g/stub/mise"
+# arch 的渲染：與 linux 只差 brew shellenv 那一行（理由見 E 段）。
+render_file arch .chezmoiscripts/run_after_56-apm-go.sh.tmpl > "$_g/56.sh"
+
+_run_g() { # dir initial-excludes...
+    _gd=$1; shift
+    mkdir -p "$_gd"; : > "$_gd/excludes"; : > "$_gd/mise.log"
+    for _x in "$@"; do printf '%s\n' "$_x" >> "$_gd/excludes"; done
+    STUB_LOG="$_gd/mise.log" STUB_EXCLUDES="$_gd/excludes" PATH="$_g/stub:$PATH" \
+        zsh "$_g/56.sh" 2>&1
+}
+# 第二次執行沿用同一份 excludes，模擬下一次 apply。
+_rerun_g() { # dir
+    STUB_LOG="$1/mise.log" STUB_EXCLUDES="$1/excludes" PATH="$_g/stub:$PATH" zsh "$_g/56.sh" 2>&1
+}
+_g_tool="github:gn00678465/apm-go[prerelease=true]@$_g_pin"
+
+if ! command -v zsh >/dev/null 2>&1; then
+    skip "POSIX 56-apm-go 的行為" "找不到 zsh"
+else
+
+_d="$_g/empty"
+if _out=$(_run_g "$_d"); then _pass "POSIX 56-apm-go: 執行成功"
+else _fail "POSIX 56-apm-go: 執行成功" "$_out"; fi
+assert_eq "POSIX 56-apm-go: 空清單時加入 apm-go" "github:gn00678465/apm-go" "$(cat "$_d/excludes")"
+assert_eq "POSIX 56-apm-go: 先加排除、再 mise use（版本解析時排除已生效）" \
+    "$(printf 'settings get minimum_release_age_excludes\nsettings add minimum_release_age_excludes github:gn00678465/apm-go\nuse --global %s' "$_g_tool")" \
+    "$(cat "$_d/mise.log")"
+_rerun_g "$_d" >/dev/null
+assert_eq "POSIX 56-apm-go: 重跑不重複加入" "github:gn00678465/apm-go" "$(cat "$_d/excludes")"
+
+# 使用者原本就有別的值：保留，並附加在後面。
+_d="$_g/claude"
+_run_g "$_d" claude >/dev/null
+assert_eq "POSIX 56-apm-go: 既有的 claude 保留，apm-go 附加在後" \
+    "$(printf 'claude\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+_rerun_g "$_d" >/dev/null
+assert_eq "POSIX 56-apm-go: 有既有值時重跑也不重複" \
+    "$(printf 'claude\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+
+# 已經在清單裡（不論位置）：不呼叫 settings add。
+_d="$_g/present"
+_run_g "$_d" claude github:gn00678465/apm-go npm:* >/dev/null
+assert_not_contains "POSIX 56-apm-go: 已存在時不呼叫 settings add" "$(cat "$_d/mise.log")" 'settings add'
+assert_contains "POSIX 56-apm-go: 已存在時仍執行 mise use" "$(cat "$_d/mise.log")" "use --global $_g_tool"
+
+# 只是前綴相同的值不算已存在。
+_d="$_g/prefix"
+_run_g "$_d" github:gn00678465/apm-go-fork >/dev/null
+assert_eq "POSIX 56-apm-go: 前綴相同的別的 tool 不算已存在" \
+    "$(printf 'github:gn00678465/apm-go-fork\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+
+if _out=$(PATH="$_g/nomise" "$(command -v zsh)" "$_g/56.sh" 2>&1); then
+    _pass "POSIX 56-apm-go: mise 不存在時退出碼是 0"
+else _fail "POSIX 56-apm-go: mise 不存在時退出碼是 0" "$_out"; fi
+
+fi
+
+# ---- Windows ----
+# 同 F 段：腳本沒有 Windows 專屬的路徑邏輯，用 Linux 的 pwsh 加 stub 跑。
+_GPWSH=$(command -v pwsh 2>/dev/null || true)
+if [ -z "$_GPWSH" ]; then
+    skip "Windows 56-apm-go 的行為" "找不到 Linux 的 pwsh"
+else
+    render_file windows .chezmoiscripts/run_after_56-apm-go.ps1.tmpl > "$_g/56.ps1"
+    mkdir -p "$_g/local" "$_g/pf"
+    _run_gw() { # dir
+        LOCALAPPDATA="$_g/local" ProgramFiles="$_g/pf" STUB_LOG="$1/mise.log" STUB_EXCLUDES="$1/excludes" \
+            PATH="$_g/stub:$PATH" "$_GPWSH" -NoLogo -NoProfile -File "$_g/56.ps1" 2>&1
+    }
+    _d="$_g/win-claude"
+    mkdir -p "$_d"; printf 'claude\n' > "$_d/excludes"
+    if _out=$(_run_gw "$_d"); then _pass "Windows 56-apm-go: 執行成功"
+    else _fail "Windows 56-apm-go: 執行成功" "$_out"; fi
+    assert_eq "Windows 56-apm-go: 既有的 claude 保留，apm-go 附加在後" \
+        "$(printf 'claude\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+    assert_eq "Windows 56-apm-go: 先加排除、再 mise use" \
+        "$(printf 'settings get minimum_release_age_excludes\nsettings add minimum_release_age_excludes github:gn00678465/apm-go\nuse --global %s' "$_g_tool")" \
+        "$(cat "$_d/mise.log")"
+    _run_gw "$_d" >/dev/null
+    assert_eq "Windows 56-apm-go: 重跑不重複加入" \
+        "$(printf 'claude\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+    _d="$_g/win-prefix"
+    mkdir -p "$_d"; printf 'github:gn00678465/apm-go-fork\n' > "$_d/excludes"
+    _run_gw "$_d" >/dev/null
+    assert_eq "Windows 56-apm-go: 前綴相同的別的 tool 不算已存在" \
+        "$(printf 'github:gn00678465/apm-go-fork\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+fi
+unset _g _g_pin _g_tool _d _out _gd _x _GPWSH

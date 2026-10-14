@@ -32,8 +32,8 @@ if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
 
 # yes 是 mise 的設定而不是 use 的旗標；chezmoi 無人值守跑這支腳本。
 $env:MISE_YES = '1'
-mise use --global neovim@0.12.5
-if ($LASTEXITCODE -ne 0) { throw "mise use --global neovim@0.12.5 failed ($LASTEXITCODE)" }
+mise use --global neovim@0.12.6
+if ($LASTEXITCODE -ne 0) { throw "mise use --global neovim@0.12.6 failed ($LASTEXITCODE)" }
 
 # Windows 的 neovim standard-path（實測 nvim 0.12.5，見
 # docs/research/windows-native-support.md）：

@@ -58,12 +58,15 @@ _arch_pair() { # os-a os-b path label
     assert_bytes_eq "$4：$1 與 $2 的渲染相同（腳本不該依賴 arch）" "$TMP/arch-a" "$TMP/arch-b"
 }
 for _s in 30-install-winget-packages.ps1 35-install-ps-modules.ps1 \
-          40-git-lfs.ps1 50-neovim.ps1 55-cc-statusline.ps1 60-pwsh-profile.ps1; do
+          40-git-lfs.ps1 50-neovim.ps1 55-cc-statusline.ps1 56-apm-go.ps1 \
+          60-pwsh-profile.ps1 90-neovim-update-check.ps1; do
     _arch_pair windows windows-arm64 ".chezmoiscripts/$_s" "$_s"
 done
 _arch_pair windows windows-arm64 ".config/powershell/profile.ps1" "profile.ps1"
 _arch_pair linux linux-arm64 ".chezmoiscripts/50-neovim.sh" "50-neovim.sh"
 _arch_pair linux linux-arm64 ".chezmoiscripts/55-cc-statusline.sh" "55-cc-statusline.sh"
+_arch_pair linux linux-arm64 ".chezmoiscripts/56-apm-go.sh" "56-apm-go.sh"
+_arch_pair linux linux-arm64 ".chezmoiscripts/90-neovim-update-check.sh" "90-neovim-update-check.sh"
 
 # ---------- B2. Arch 家族等價----------
 # omarchy（ID=omarchy + ID_LIKE=arch）與 arch（ID=arch）在 platform.toml 之後必須
@@ -78,6 +81,8 @@ unset _t
 # macOS 的渲染必須逐位元組不變。三份 golden 都是改動前（base
 # 4e6f13c）的渲染：linux、darwin-arm64（/opt/homebrew）、darwin-amd64（/usr/local）。
 # linux-arm64 由上面 B 段的跨 arch 等價涵蓋。
+# 渲染結果含 versions.toml 的 neovim pin，所以 bump pin 時這三份要一起重新產生
+# （0.12.5 → 0.12.6 時重產過，diff 只有版本號那兩行）。
 for _os in linux darwin-arm64 darwin-amd64; do
     _g="$GOLDEN/render/$_os"
     if [ ! -f "$_g/50-neovim.sh" ]; then
@@ -102,7 +107,9 @@ for _t in .chezmoiscripts/30-install-winget-packages.ps1 \
           .chezmoiscripts/40-git-lfs.ps1 \
           .chezmoiscripts/50-neovim.ps1 \
           .chezmoiscripts/55-cc-statusline.ps1 \
+          .chezmoiscripts/56-apm-go.ps1 \
           .chezmoiscripts/60-pwsh-profile.ps1 \
+          .chezmoiscripts/90-neovim-update-check.ps1 \
           .config/powershell/profile.ps1; do
     _name=$(basename "$_t")
     if [ ! -f "$_GOLDEN_RENDER/$_name" ]; then
@@ -116,7 +123,7 @@ done
 
 # golden 檔案不可以多也不可以少 —— 否則刪掉一支 Windows 腳本連同它的 golden 就沒人發現。
 assert_eq "golden/render/windows 的檔案集合" \
-    "$(printf '30-install-winget-packages.ps1\n35-install-ps-modules.ps1\n40-git-lfs.ps1\n50-neovim.ps1\n55-cc-statusline.ps1\n60-pwsh-profile.ps1\nprofile.ps1\n')" \
+    "$(printf '30-install-winget-packages.ps1\n35-install-ps-modules.ps1\n40-git-lfs.ps1\n50-neovim.ps1\n55-cc-statusline.ps1\n56-apm-go.ps1\n60-pwsh-profile.ps1\n90-neovim-update-check.ps1\nprofile.ps1\n')" \
     "$(ls "$_GOLDEN_RENDER" 2>/dev/null | LC_ALL=C sort)"
 
 unset _s _t _name _GOLDEN_RENDER

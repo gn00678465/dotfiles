@@ -1,0 +1,82 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $v := includeTemplate "versions.toml" . | fromToml -}}
+{{ if $p.isWindows -}}
+#Requires -Version 7
+# neovim 有比 versions.toml 更新的 stable 版時通知使用者。POSIX 版是
+# 90-neovim-update-check.sh.tmpl，兩邊逐條對稱。pin 是刻意的（見 50-neovim），
+# 所以這支只回報，不升級任何東西。
+#
+# 每次 apply 都會跑，所以噪音要有上限：
+#   - 網路查詢一天最多一次（看快取檔的修改時間）；
+#   - 桌面通知每個上游版本只跳一次（notified 檔），之後的 apply 只在輸出裡印一行；
+#   - 網路不通、沒有 powershell.exe 或任何其他錯誤一律安靜地 exit 0。這支腳本
+#     不可以讓 apply 失敗。
+# 想再看一次通知就刪掉狀態目錄。
+$ErrorActionPreference = 'Stop'
+
+{{ includeTemplate "windows-path.ps1" . }}
+
+$pinned = '{{ $v.neovim }}'
+$semver = '^[0-9]+\.[0-9]+\.[0-9]+$'
+$stateDir = Join-Path $env:LOCALAPPDATA 'chezmoi-neovim-check'
+$cache = Join-Path $stateDir 'latest'
+$notified = Join-Path $stateDir 'notified'
+
+try {
+    New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
+
+    $latest = ''
+    $fresh = $false
+    if (Test-Path -LiteralPath $cache) {
+        $latest = (Get-Content -LiteralPath $cache -Raw).Trim()
+        $fresh = (Get-Item -LiteralPath $cache).LastWriteTime -gt (Get-Date).AddDays(-1)
+    }
+    if (-not $latest -or -not $fresh) {
+        # 用 git 而不是 GitHub API：沒有 JSON 要解析、沒有 rate limit，git 本來就是前提。
+        # 最大的 vX.Y.Z tag 就是最新的 stable；stable、nightly 這兩個 tag 不符合樣式。
+        $env:GIT_TERMINAL_PROMPT = '0'
+        $env:GIT_HTTP_LOW_SPEED_LIMIT = '1000'
+        $env:GIT_HTTP_LOW_SPEED_TIME = '10'
+        $tags = git ls-remote --tags --refs https://github.com/neovim/neovim 'v*' 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $versions = @($tags | ForEach-Object { ($_ -split 'refs/tags/v', 2)[1] } |
+                Where-Object { $_ -match $semver })
+            if ($versions.Count) {
+                # 以 [version] 排序，0.12.10 才會大於 0.12.9。
+                $latest = $versions | Sort-Object { [version]$_ } -Descending | Select-Object -First 1
+                Set-Content -LiteralPath $cache -Value $latest -NoNewline
+            }
+        }
+    }
+
+    # 這個值會進到下面的通知指令裡；不管快取檔或遠端給了什麼，只收數字與點。
+    if ($latest -notmatch $semver) { exit 0 }
+    if ([version]$latest -le [version]$pinned) { exit 0 }
+
+    [Console]::Error.WriteLine("chezmoi: neovim $latest is available (pinned $pinned in .chezmoitemplates/versions.toml)")
+
+    if ((Test-Path -LiteralPath $notified) -and
+        (Get-Content -LiteralPath $notified -Raw).Trim() -eq $latest) {
+        exit 0
+    }
+    if (-not (Get-Command powershell.exe -ErrorAction SilentlyContinue)) { exit 0 }
+
+    # toast 要 Windows PowerShell 5.1 才載得到，理由見 windows-toast.ps1。
+    # -EncodedCommand 收 UTF-16LE 的 base64，免掉跨 process 的引號問題。
+    $title = 'Neovim update available'
+    $body = "neovim $latest is out; dotfiles pin $pinned in .chezmoitemplates/versions.toml"
+    $toast = "`$ToastTitle = '$title'; `$ToastBody = '$body'`n" + @'
+{{ includeTemplate "windows-toast.ps1" . | trim }}
+'@
+    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($toast))
+    powershell.exe -NoProfile -NonInteractive -EncodedCommand $enc *> $null
+    # 真的顯示了才記下這個版本，失敗的話下一次 apply 再試。
+    if ($LASTEXITCODE -eq 0) {
+        Set-Content -LiteralPath $notified -Value $latest -NoNewline
+    }
+}
+catch {
+    exit 0
+}
+exit 0
+{{ end -}}

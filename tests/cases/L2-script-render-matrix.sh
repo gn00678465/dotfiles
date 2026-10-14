@@ -31,7 +31,12 @@ _expect() {
         run_before_50-neovim.ps1.tmpl)               echo 'windows windows-arm64' ;;
         run_after_55-cc-statusline.sh.tmpl)                   echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
         run_after_55-cc-statusline.ps1.tmpl)                  echo 'windows windows-arm64' ;;
+        run_after_56-apm-go.sh.tmpl)                          echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
+        run_after_56-apm-go.ps1.tmpl)                         echo 'windows windows-arm64' ;;
         run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows windows-arm64' ;;
+        # pacman 平台的 neovim 不走 versions.toml 的 pin，沒有東西可以比。
+        run_after_90-neovim-update-check.sh.tmpl)             echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
+        run_after_90-neovim-update-check.ps1.tmpl)            echo 'windows windows-arm64' ;;
         run_after_default-shell.sh.tmpl)                      echo 'linux linux-arm64 arch omarchy' ;;
         *) echo '__UNKNOWN__' ;;
     esac
@@ -51,7 +56,11 @@ for _s in run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl \
           run_before_50-neovim.ps1.tmpl \
           run_after_55-cc-statusline.sh.tmpl \
           run_after_55-cc-statusline.ps1.tmpl \
+          run_after_56-apm-go.sh.tmpl \
+          run_after_56-apm-go.ps1.tmpl \
           run_after_60-pwsh-profile.ps1.tmpl \
+          run_after_90-neovim-update-check.sh.tmpl \
+          run_after_90-neovim-update-check.ps1.tmpl \
           run_after_default-shell.sh.tmpl; do
     if [ -f "$REPO/.chezmoiscripts/$_s" ]; then
         _pass "腳本存在：$_s"
@@ -139,6 +148,30 @@ for _s in run_before_50-neovim.sh.tmpl run_before_50-neovim.ps1.tmpl; do
 done
 unset _s
 
+# 90-neovim-update-check：拿來比較的 pin 必須就是 50-neovim 裝的那一個，否則升級
+# 之後通知還會繼續跳（或該跳的時候不跳）。通知器依平台不同，各自只能出現自己那一個。
+_pin_nvim=$(sed -n 's/^neovim = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+_chk_linux=$(render_file linux .chezmoiscripts/run_after_90-neovim-update-check.sh.tmpl)
+_chk_darwin=$(render_file darwin-arm64 .chezmoiscripts/run_after_90-neovim-update-check.sh.tmpl)
+_chk_wsl=$(render_file native-wsl .chezmoiscripts/run_after_90-neovim-update-check.sh.tmpl)
+_chk_win=$(render_file windows .chezmoiscripts/run_after_90-neovim-update-check.ps1.tmpl)
+assert_not_blank "versions.toml 有 neovim 的 pin" "$_pin_nvim"
+assert_contains "POSIX 90-neovim-update-check 比較的是 versions.toml 的 pin" "$_chk_linux" "pinned='$_pin_nvim'"
+assert_contains "Windows 90-neovim-update-check 比較的是 versions.toml 的 pin" "$_chk_win" "\$pinned = '$_pin_nvim'"
+assert_contains "linux 用 notify-send" "$_chk_linux" 'notify-send --app-name=chezmoi'
+assert_not_contains "linux 沒有 osascript" "$_chk_linux" 'osascript'
+assert_not_contains "linux 沒有 powershell.exe" "$_chk_linux" 'powershell.exe'
+assert_contains "macOS 用 osascript" "$_chk_darwin" 'osascript -e "display notification'
+assert_not_contains "macOS 沒有 notify-send" "$_chk_darwin" 'notify-send'
+assert_contains "WSL 經 interop 交給 powershell.exe" "$_chk_wsl" 'powershell.exe -NoProfile -NonInteractive -EncodedCommand'
+assert_not_contains "WSL 沒有 notify-send" "$_chk_wsl" 'notify-send'
+assert_contains "Windows 交給 powershell.exe（5.1 才有 WinRT toast）" "$_chk_win" 'powershell.exe -NoProfile -NonInteractive -EncodedCommand'
+# toast 的內容由 WSL 與 Windows 共用同一份 partial。
+for _c in "$_chk_wsl" "$_chk_win"; do
+    assert_contains "toast 走 windows-toast partial" "$_c" 'ToastNotificationManager]::CreateToastNotifier'
+done
+unset _pin_nvim _chk_linux _chk_darwin _chk_wsl _chk_win _c
+
 # 55-cc-statusline：兩個平台必須從 versions.toml 取同一個版本，並且複製到
 # modify_settings.json 寫進 statusLine.command 的路徑。
 _cc_posix=$(render_file linux .chezmoiscripts/run_after_55-cc-statusline.sh.tmpl)
@@ -158,6 +191,24 @@ for _s in run_after_55-cc-statusline.sh.tmpl run_after_55-cc-statusline.ps1.tmpl
 done
 unset _s _cc_posix _cc_win _cc_pin_posix _cc_pin_win
 
+# 56-apm-go：兩個平台必須以 versions.toml 的前綴、帶 prerelease 選項安裝，並把同一個
+# backend 加進 minimum_release_age_excludes。
+_apm_pin=$(sed -n 's/^apmGo = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+_apm_posix=$(render_file linux .chezmoiscripts/run_after_56-apm-go.sh.tmpl)
+_apm_win=$(render_file windows .chezmoiscripts/run_after_56-apm-go.ps1.tmpl)
+assert_not_blank "versions.toml 有 apmGo" "$_apm_pin"
+assert_contains "POSIX 56-apm-go 以 prerelease 選項與 versions.toml 的前綴安裝" "$_apm_posix" \
+    "mise use --global \"\${backend}[prerelease=true]@$_apm_pin\""
+assert_contains "Windows 56-apm-go 以 prerelease 選項與 versions.toml 的前綴安裝" "$_apm_win" \
+    "\$tool = \"\${backend}[prerelease=true]@$_apm_pin\""
+assert_contains "POSIX 56-apm-go 的 backend 是 github:gn00678465/apm-go" "$_apm_posix" "backend='github:gn00678465/apm-go'"
+assert_contains "Windows 56-apm-go 的 backend 是 github:gn00678465/apm-go" "$_apm_win" "\$backend = 'github:gn00678465/apm-go'"
+for _c in "$_apm_posix" "$_apm_win"; do
+    assert_contains "56-apm-go 用 settings add（附加，不覆寫既有清單）" "$_c" 'mise settings add minimum_release_age_excludes'
+    assert_not_contains "56-apm-go 不用 settings set（會蓋掉既有清單）" "$_c" 'mise settings set'
+done
+unset _apm_pin _apm_posix _apm_win _c
+
 # 60-pwsh-profile 必須挑 CurrentUserAllHosts（profile.ps1）而不是
 # CurrentUserCurrentHost（Microsoft.PowerShell_profile.ps1）：Windows Terminal、
 # VS Code 的整合終端機、裸 pwsh.exe 是三個不同的 host，只有 AllHosts 三者都載入。
@@ -176,7 +227,9 @@ unset _pwsh_profile
 for _s in run_onchange_before_30-install-winget-packages.ps1.tmpl \
           run_onchange_after_40-git-lfs.ps1.tmpl \
           run_before_50-neovim.ps1.tmpl \
-          run_after_55-cc-statusline.ps1.tmpl; do
+          run_after_55-cc-statusline.ps1.tmpl \
+          run_after_56-apm-go.ps1.tmpl \
+          run_after_90-neovim-update-check.ps1.tmpl; do
     _c=$(render_file windows ".chezmoiscripts/$_s")
     assert_contains "$_s 有套用 windows-path partial" "$_c" 'Microsoft\WinGet\Links'
     assert_contains "$_s 的 PATH 補強有含 mise shims" "$_c" 'mise\shims'

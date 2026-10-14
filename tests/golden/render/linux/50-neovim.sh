@@ -21,7 +21,7 @@ fi
 # that is guaranteed to work here, and chezmoi runs this unattended.
 export MISE_YES=1
 
-# Writes neovim = "0.12.5" to ~/.config/mise/config.toml and installs it.
+# Writes neovim = "0.12.6" to ~/.config/mise/config.toml and installs it.
 #
 # Pinned rather than @latest, for two risks the other tools here do not carry:
 #   - mise installs neovim's *official prebuilt* Linux binary, built on
@@ -33,7 +33,7 @@ export MISE_YES=1
 # So bumping this is a deliberate act: re-read the Requirements sections of
 # nvim-treesitter `main` and LazyVim first.
 # Background: docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md
-mise use --global neovim@0.12.5
+mise use --global neovim@0.12.6
 
 # The LazyVim starter is a template, not a tracked dependency: clone it once and
 # drop its .git. Whatever chezmoi does not explicitly own under
