@@ -187,6 +187,23 @@ chezmoi 完整管理 `~/.zshrc`。`chezmoi apply` 與 `chezmoi update` 會覆寫
 - 不要在這個檔案裡輸出文字。啟動時有輸出，p10k 會顯示 console output 警告。
 - 檔案不存在時不會產生錯誤。
 
+### mise 管理的 CLI
+
+`run_after_56-apm-go` 以 mise 安裝 [apm-go](https://github.com/gn00678465/apm-go)，在全域的
+`~/.config/mise/config.toml` 寫入：
+
+```toml
+[tools]
+"github:gn00678465/apm-go" = { version = "0.4", prerelease = true }
+
+[settings]
+minimum_release_age_excludes = ["github:gn00678465/apm-go"]
+```
+
+0.4 目前只有 prerelease，所以要 `prerelease = true`；加進 `minimum_release_age_excludes`
+是讓剛發布的版本不被 mise 預設的 24 小時延遲擋掉。清單裡原本的值會保留，已經有
+apm-go 時不會重複加入。版本前綴在 `.chezmoitemplates/versions.toml` 的 `apmGo`。
+
 ### neovim 版本提醒
 
 neovim 釘在 `.chezmoitemplates/versions.toml` 的版本（Arch 家族除外，那裡跟著 pacman）。

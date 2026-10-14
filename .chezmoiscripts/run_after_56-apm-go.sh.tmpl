@@ -1,0 +1,37 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $v := includeTemplate "versions.toml" . | fromToml -}}
+{{ if $p.isPosix -}}
+#!/bin/zsh
+# apm-go through mise's github backend. mise writes both pieces into the global
+# ~/.config/mise/config.toml:
+#   [tools]    "github:gn00678465/apm-go" = { version = "<prefix>", prerelease = true }
+#   [settings] minimum_release_age_excludes = [..., "github:gn00678465/apm-go"]
+# The bracket in the tool spec is how `mise use` takes tool options; mise
+# parses it as TOML, so `prerelease = true` is written as a boolean.
+# `run_` like 55-cc-statusline: a removed tool comes back on the next apply.
+set -euo pipefail
+{{ if ne $p.brewPrefix "" }}
+eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
+{{- end }}
+
+if ! command -v mise &>/dev/null; then
+  echo "chezmoi: mise not found, skipping apm-go" >&2
+  exit 0
+fi
+
+# `yes` is a mise setting, not a flag on `use`; chezmoi runs this unattended.
+export MISE_YES=1
+backend='github:gn00678465/apm-go'
+
+# Before `mise use`: the exclusion has to be in place when the version is
+# resolved, or a release younger than the 24h default is skipped.
+# `mise settings add` appends without checking for duplicates, so look first.
+# `settings get` prints a TOML array: ["npm:*", "github:gn00678465/apm-go"].
+excludes=$(mise settings get minimum_release_age_excludes)
+if [[ $excludes != *"\"$backend\""* ]]; then
+  mise settings add minimum_release_age_excludes "$backend"
+fi
+
+# ${backend}, not $backend[...]: zsh would read the bracket as a subscript.
+mise use --global "${backend}[prerelease=true]@{{ $v.apmGo }}"
+{{ end -}}

@@ -21,3 +21,8 @@ psfzf = "2.7.12"
 # github backend 安裝，不帶 v 前綴。mise 的預設 minimum_release_age 是 24h：
 # 發布未滿一天的版本可能會被略過。
 ccStatusline = "2.2.0"
+# apm-go，由 56-apm-go 以 mise 的 github backend 安裝。這是前綴而不是確切版本：
+# 0.4 目前只有 prerelease（v0.4.0-rc.*），所以 tool 帶 prerelease = true，前綴才會
+# 對到 rc；同時把它加進 minimum_release_age_excludes，剛發布的 rc 不會被 24h 的
+# 預設延遲擋掉。升級：改這裡。
+apmGo = "0.4"

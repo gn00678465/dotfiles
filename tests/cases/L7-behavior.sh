@@ -812,3 +812,113 @@ else
     assert_eq "Windows 90-neovim-update-check: 通知失敗時不記 notified" "absent" "$(_wstate "$_l" notified)"
 fi
 unset _f _f_pin _h _l _tags _out _fs _fh _ft _fl _FPWSH
+
+# ================= G. 56-apm-go =================
+# mise 是 stub：minimum_release_age_excludes 存在一個檔案裡（一行一個），
+# `settings get` 照真 mise 的格式印成 TOML 陣列，`settings add` 附加一行，
+# 每次呼叫都依序記在 log 裡。要釘的是：既有的清單保留、已存在的值不重複加、
+# 排除要在 mise use 之前生效。
+_g="$TMP/l7g"
+rm -rf "$_g"; mkdir -p "$_g/stub" "$_g/nomise"
+_g_pin=$(sed -n 's/^apmGo = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+cat > "$_g/stub/mise" <<'STUB'
+#!/bin/sh
+echo "$*" >> "$STUB_LOG"
+if [ "$1 $2 $3" = "settings get minimum_release_age_excludes" ]; then
+    printf '['; sep=''
+    while IFS= read -r x; do printf '%s"%s"' "$sep" "$x"; sep=', '; done < "$STUB_EXCLUDES"
+    printf ']\n'
+elif [ "$1 $2 $3" = "settings add minimum_release_age_excludes" ]; then
+    printf '%s\n' "$4" >> "$STUB_EXCLUDES"
+fi
+exit 0
+STUB
+chmod +x "$_g/stub/mise"
+# arch 的渲染：與 linux 只差 brew shellenv 那一行（理由見 E 段）。
+render_file arch .chezmoiscripts/run_after_56-apm-go.sh.tmpl > "$_g/56.sh"
+
+_run_g() { # dir initial-excludes...
+    _gd=$1; shift
+    mkdir -p "$_gd"; : > "$_gd/excludes"; : > "$_gd/mise.log"
+    for _x in "$@"; do printf '%s\n' "$_x" >> "$_gd/excludes"; done
+    STUB_LOG="$_gd/mise.log" STUB_EXCLUDES="$_gd/excludes" PATH="$_g/stub:$PATH" \
+        zsh "$_g/56.sh" 2>&1
+}
+# 第二次執行沿用同一份 excludes，模擬下一次 apply。
+_rerun_g() { # dir
+    STUB_LOG="$1/mise.log" STUB_EXCLUDES="$1/excludes" PATH="$_g/stub:$PATH" zsh "$_g/56.sh" 2>&1
+}
+_g_tool="github:gn00678465/apm-go[prerelease=true]@$_g_pin"
+
+if ! command -v zsh >/dev/null 2>&1; then
+    skip "POSIX 56-apm-go 的行為" "找不到 zsh"
+else
+
+_d="$_g/empty"
+if _out=$(_run_g "$_d"); then _pass "POSIX 56-apm-go: 執行成功"
+else _fail "POSIX 56-apm-go: 執行成功" "$_out"; fi
+assert_eq "POSIX 56-apm-go: 空清單時加入 apm-go" "github:gn00678465/apm-go" "$(cat "$_d/excludes")"
+assert_eq "POSIX 56-apm-go: 先加排除、再 mise use（版本解析時排除已生效）" \
+    "$(printf 'settings get minimum_release_age_excludes\nsettings add minimum_release_age_excludes github:gn00678465/apm-go\nuse --global %s' "$_g_tool")" \
+    "$(cat "$_d/mise.log")"
+_rerun_g "$_d" >/dev/null
+assert_eq "POSIX 56-apm-go: 重跑不重複加入" "github:gn00678465/apm-go" "$(cat "$_d/excludes")"
+
+# 使用者原本就有別的值：保留，並附加在後面。
+_d="$_g/claude"
+_run_g "$_d" claude >/dev/null
+assert_eq "POSIX 56-apm-go: 既有的 claude 保留，apm-go 附加在後" \
+    "$(printf 'claude\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+_rerun_g "$_d" >/dev/null
+assert_eq "POSIX 56-apm-go: 有既有值時重跑也不重複" \
+    "$(printf 'claude\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+
+# 已經在清單裡（不論位置）：不呼叫 settings add。
+_d="$_g/present"
+_run_g "$_d" claude github:gn00678465/apm-go npm:* >/dev/null
+assert_not_contains "POSIX 56-apm-go: 已存在時不呼叫 settings add" "$(cat "$_d/mise.log")" 'settings add'
+assert_contains "POSIX 56-apm-go: 已存在時仍執行 mise use" "$(cat "$_d/mise.log")" "use --global $_g_tool"
+
+# 只是前綴相同的值不算已存在。
+_d="$_g/prefix"
+_run_g "$_d" github:gn00678465/apm-go-fork >/dev/null
+assert_eq "POSIX 56-apm-go: 前綴相同的別的 tool 不算已存在" \
+    "$(printf 'github:gn00678465/apm-go-fork\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+
+if _out=$(PATH="$_g/nomise" "$(command -v zsh)" "$_g/56.sh" 2>&1); then
+    _pass "POSIX 56-apm-go: mise 不存在時退出碼是 0"
+else _fail "POSIX 56-apm-go: mise 不存在時退出碼是 0" "$_out"; fi
+
+fi
+
+# ---- Windows ----
+# 同 F 段：腳本沒有 Windows 專屬的路徑邏輯，用 Linux 的 pwsh 加 stub 跑。
+_GPWSH=$(command -v pwsh 2>/dev/null || true)
+if [ -z "$_GPWSH" ]; then
+    skip "Windows 56-apm-go 的行為" "找不到 Linux 的 pwsh"
+else
+    render_file windows .chezmoiscripts/run_after_56-apm-go.ps1.tmpl > "$_g/56.ps1"
+    mkdir -p "$_g/local" "$_g/pf"
+    _run_gw() { # dir
+        LOCALAPPDATA="$_g/local" ProgramFiles="$_g/pf" STUB_LOG="$1/mise.log" STUB_EXCLUDES="$1/excludes" \
+            PATH="$_g/stub:$PATH" "$_GPWSH" -NoLogo -NoProfile -File "$_g/56.ps1" 2>&1
+    }
+    _d="$_g/win-claude"
+    mkdir -p "$_d"; printf 'claude\n' > "$_d/excludes"
+    if _out=$(_run_gw "$_d"); then _pass "Windows 56-apm-go: 執行成功"
+    else _fail "Windows 56-apm-go: 執行成功" "$_out"; fi
+    assert_eq "Windows 56-apm-go: 既有的 claude 保留，apm-go 附加在後" \
+        "$(printf 'claude\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+    assert_eq "Windows 56-apm-go: 先加排除、再 mise use" \
+        "$(printf 'settings get minimum_release_age_excludes\nsettings add minimum_release_age_excludes github:gn00678465/apm-go\nuse --global %s' "$_g_tool")" \
+        "$(cat "$_d/mise.log")"
+    _run_gw "$_d" >/dev/null
+    assert_eq "Windows 56-apm-go: 重跑不重複加入" \
+        "$(printf 'claude\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+    _d="$_g/win-prefix"
+    mkdir -p "$_d"; printf 'github:gn00678465/apm-go-fork\n' > "$_d/excludes"
+    _run_gw "$_d" >/dev/null
+    assert_eq "Windows 56-apm-go: 前綴相同的別的 tool 不算已存在" \
+        "$(printf 'github:gn00678465/apm-go-fork\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
+fi
+unset _g _g_pin _g_tool _d _out _gd _x _GPWSH

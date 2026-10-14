@@ -71,6 +71,8 @@
 .chezmoiscripts/50-neovim.sh
 .chezmoiscripts/55-cc-statusline.ps1
 .chezmoiscripts/55-cc-statusline.sh
+.chezmoiscripts/56-apm-go.ps1
+.chezmoiscripts/56-apm-go.sh
 .chezmoiscripts/60-pwsh-profile.ps1
 .chezmoiscripts/90-neovim-update-check.ps1
 .chezmoiscripts/90-neovim-update-check.sh

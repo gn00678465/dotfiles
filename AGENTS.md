@@ -190,6 +190,14 @@ Keep the POSIX and Windows scripts consistent:
   plain file. Claude Code runs the binary every second, and a running binary
   cannot be overwritten. Replace it through a rename in the same directory.
   Keep `run_after_` on both platforms, so a removed binary is restored.
+- `56-apm-go`: Install `github:gn00678465/apm-go` through `mise use --global`
+  with the `[prerelease=true]` tool option and the `apmGo` prefix from
+  `versions.toml`; mise writes the inline table into the global
+  `config.toml`. Before `mise use`, add the backend to
+  `minimum_release_age_excludes` with `mise settings add`, only when
+  `mise settings get` does not already list it as a quoted entry. Never use
+  `mise settings set`: it replaces the user's existing entries.
+  `tests/cases/L7` section G covers both scripts.
 - `60-pwsh-profile`: Resolve `$PROFILE.CurrentUserAllHosts` at run time and
   write a one-line loader there. Documents can be redirected to OneDrive;
   the target cannot be computed by a chezmoi path template. Keep the logic
