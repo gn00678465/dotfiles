@@ -28,7 +28,7 @@ fi
 # that is guaranteed to work here, and chezmoi runs this unattended.
 export MISE_YES=1
 
-# Writes neovim = "0.12.5" to ~/.config/mise/config.toml and installs it.
+# Writes neovim = "{{ $v.neovim }}" to ~/.config/mise/config.toml and installs it.
 #
 # Pinned rather than @latest, for two risks the other tools here do not carry:
 #   - mise installs neovim's *official prebuilt* Linux binary, built on

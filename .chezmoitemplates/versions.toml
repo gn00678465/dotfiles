@@ -6,8 +6,10 @@
   neovim 這個 pin 不要隨手 bump —— 理由（glibc 底線、nvim-treesitter main 分支
   的最低版本會中途調高）寫在 .chezmoiscripts/run_before_50-neovim.sh.tmpl
   的註解與 docs/research/nvim-treesitter-mise-lazyvim-debian-errors.md。
+  上游有更新的 stable 版時，90-neovim-update-check 會在 apply 時提醒（每個版本
+  只跳一次系統通知）；它只提醒，bump 仍然是手動的決定。
 */ -}}
-neovim = "0.12.5"
+neovim = "0.12.6"
 lazyvimStarter = "https://github.com/LazyVim/starter"
 # 我們自己的標記檔，不是 LazyVim 的。作用見 50-neovim 腳本裡的註解。
 lazyvimMarker = ".chezmoi-lazyvim-starter"

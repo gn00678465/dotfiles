@@ -1,0 +1,103 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $v := includeTemplate "versions.toml" . | fromToml -}}
+{{- /* 只在 brew 平台：那裡的 neovim 由 50-neovim 以 mise 釘在 versions.toml 的版本。
+       pacman 平台的 neovim 跟著 pacman 走，這個 pin 不適用，渲染成空。 */ -}}
+{{ if ne $p.brewPrefix "" -}}
+#!/bin/zsh
+# Tell the user when neovim has a stable release newer than the versions.toml
+# pin. The pin is deliberate (see 50-neovim), so this only reports; it never
+# bumps anything.
+#
+# Noise budget, because this runs on every apply:
+#   - the network query runs at most once a day (the cache file's mtime);
+#   - the desktop notification fires once per upstream version (the notified
+#     file); later applies only print one line into the apply output;
+#   - an unreachable network, a missing notifier or any other failure exits 0
+#     silently. Nothing here may fail the apply.
+# Delete the state directory to see the notification again.
+set -uo pipefail
+
+pinned='{{ $v.neovim }}'
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/chezmoi-neovim-check"
+cache="$state_dir/latest"
+notified="$state_dir/notified"
+semver='^[0-9]+\.[0-9]+\.[0-9]+$'
+
+mkdir -p "$state_dir" 2>/dev/null || exit 0
+
+latest=''
+if [[ -f $cache ]]; then
+  latest=$(<"$cache")
+fi
+if [[ -z $latest || -z $(find "$cache" -mmin -1440 2>/dev/null) ]]; then
+  # git rather than the GitHub API: no JSON to parse, no rate limit, and git is
+  # already a prerequisite here. The highest vX.Y.Z tag is the latest stable
+  # release; `stable` and `nightly` do not match the pattern.
+  if tags=$(GIT_TERMINAL_PROMPT=0 GIT_HTTP_LOW_SPEED_LIMIT=1000 GIT_HTTP_LOW_SPEED_TIME=10 \
+      git ls-remote --tags --refs https://github.com/neovim/neovim 'v*' 2>/dev/null); then
+    versions=()
+    for ref in ${(f)tags}; do
+      ref=${ref##*refs/tags/v}
+      [[ $ref =~ $semver ]] && versions+=("$ref")
+    done
+    if (( ${#versions} )); then
+      # (On): descending, digit runs compared as numbers, so 0.12.10 > 0.12.9.
+      latest=${${(On)versions}[1]}
+      print -r -- "$latest" > "$cache"
+    fi
+  fi
+fi
+
+# The value goes into a notification command line below; accept only digits
+# and dots, whatever the cache file or the remote contained.
+[[ $latest =~ $semver ]] || exit 0
+
+autoload -Uz is-at-least
+if is-at-least "$latest" "$pinned"; then
+  exit 0
+fi
+
+echo "chezmoi: neovim $latest is available (pinned $pinned in .chezmoitemplates/versions.toml)" >&2
+
+if [[ -f $notified && $(<"$notified") == "$latest" ]]; then
+  exit 0
+fi
+
+title='Neovim update available'
+body="neovim $latest is out; dotfiles pin $pinned in .chezmoitemplates/versions.toml"
+{{ if eq $p.os "darwin" -}}
+notify() {
+  osascript -e "display notification \"$2\" with title \"$1\"" &>/dev/null
+}
+{{- else if .isWSL -}}
+# WSL has no notification daemon of its own; hand the toast to Windows through
+# interop. powershell.exe (5.1), not pwsh: see windows-toast.ps1.
+# -EncodedCommand takes UTF-16LE base64, which sidesteps quoting across the
+# WSL/Windows boundary.
+notify() {
+  command -v powershell.exe &>/dev/null || return 1
+  local toast enc
+  toast="\$ToastTitle = '$1'; \$ToastBody = '$2'"$'\n'
+  toast+=$(cat <<'PS'
+{{ includeTemplate "windows-toast.ps1" . | trim }}
+PS
+)
+  enc=$(print -rn -- "$toast" | iconv -f UTF-8 -t UTF-16LE | base64 | tr -d '\n') || return 1
+  powershell.exe -NoProfile -NonInteractive -EncodedCommand "$enc" &>/dev/null
+}
+{{- else -}}
+# notify-send fails without a session bus (ssh, headless); that is the silent
+# path, and the echo above stays in the apply output.
+notify() {
+  command -v notify-send &>/dev/null || return 1
+  notify-send --app-name=chezmoi "$1" "$2" &>/dev/null
+}
+{{- end }}
+
+# Mark the version only once a notification was actually shown, so a headless
+# session does not use up the one notification for this version.
+if notify "$title" "$body"; then
+  print -r -- "$latest" > "$notified"
+fi
+exit 0
+{{ end -}}
