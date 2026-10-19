@@ -922,3 +922,100 @@ else
         "$(printf 'github:gn00678465/apm-go-fork\ngithub:gn00678465/apm-go')" "$(cat "$_d/excludes")"
 fi
 unset _g _g_pin _g_tool _d _out _gd _x _GPWSH
+
+# ================= H. 57-gh-stack =================
+# gh 是 stub：已安裝的擴充存在一個檔案裡，每列照非 TTY 的 `gh extension list`
+# 格式（NAME\tREPO\tVERSION），install/remove 改這個檔案，每次呼叫依序記在 log。
+# 要釘的是：釘在 versions.toml 的 tag、版本相同時不動、換 pin 時先移除、
+# 別人的 `gh stack` 不碰。
+_x="$TMP/l7h"
+rm -rf "$_x"; mkdir -p "$_x/stub" "$_x/nogh"
+_x_pin=$(sed -n 's/^ghStack = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+cat > "$_x/stub/gh" <<'STUB'
+#!/bin/sh
+echo "$*" >> "$STUB_LOG"
+case "$1 $2" in
+    'extension list')
+        [ -s "$STUB_EXTS" ] || { echo 'no installed extensions found' >&2; exit 1; }
+        cat "$STUB_EXTS" ;;
+    'extension install')
+        printf 'gh stack\t%s\t%s\n' "$3" "$5" >> "$STUB_EXTS" ;;
+    'extension remove')
+        grep -v "^gh $3	" "$STUB_EXTS" > "$STUB_EXTS.new" || true
+        mv "$STUB_EXTS.new" "$STUB_EXTS" ;;
+esac
+exit 0
+STUB
+chmod +x "$_x/stub/gh"
+render_file arch .chezmoiscripts/run_after_57-gh-stack.sh.tmpl > "$_x/57.sh"
+
+_run_x() { # dir  (exts 與 log 都在 dir 底下)
+    STUB_LOG="$1/gh.log" STUB_EXTS="$1/exts" PATH="$_x/stub:$PATH" zsh "$_x/57.sh" 2>&1
+}
+_seed_x() { # dir rows...
+    mkdir -p "$1"; : > "$1/exts"; : > "$1/gh.log"; _sd=$1; shift
+    for _r in "$@"; do printf '%s\n' "$_r" >> "$_sd/exts"; done
+}
+_tab=$(printf '\t')
+
+if ! command -v zsh >/dev/null 2>&1; then
+    skip "POSIX 57-gh-stack 的行為" "找不到 zsh"
+else
+
+_d="$_x/fresh"; _seed_x "$_d"
+if _out=$(_run_x "$_d"); then _pass "POSIX 57-gh-stack: 執行成功"
+else _fail "POSIX 57-gh-stack: 執行成功" "$_out"; fi
+assert_eq "POSIX 57-gh-stack: 沒有擴充時以 --pin 安裝" \
+    "$(printf 'extension list\nextension install github/gh-stack --pin %s' "$_x_pin")" "$(cat "$_d/gh.log")"
+_run_x "$_d" >/dev/null
+assert_eq "POSIX 57-gh-stack: 版本相同時不再安裝" "1" "$(grep -c '^extension install' "$_d/gh.log")"
+
+# 舊的 pin：先移除再裝，最後只剩新版那一列。
+_d="$_x/old"; _seed_x "$_d" "gh stack${_tab}github/gh-stack${_tab}v0.0.1" "gh dash${_tab}dlvhdr/gh-dash${_tab}v4.0.0"
+_run_x "$_d" >/dev/null
+assert_contains "POSIX 57-gh-stack: 換 pin 時先移除舊版" "$(cat "$_d/gh.log")" 'extension remove stack'
+assert_eq "POSIX 57-gh-stack: 換 pin 後是新 tag，其他擴充不動" \
+    "$(printf 'gh dash\tdlvhdr/gh-dash\tv4.0.0\ngh stack\tgithub/gh-stack\t%s' "$_x_pin")" "$(cat "$_d/exts")"
+
+# 別人的擴充提供了 gh stack：跳過，不移除也不安裝。
+_d="$_x/other"; _seed_x "$_d" "gh stack${_tab}someone/gh-stack${_tab}v9.9.9"
+if _out=$(_run_x "$_d"); then _pass "POSIX 57-gh-stack: 別人的 gh stack 存在時 exit 0"
+else _fail "POSIX 57-gh-stack: 別人的 gh stack 存在時 exit 0" "$_out"; fi
+assert_contains "POSIX 57-gh-stack: 說明 gh stack 由誰提供" "$_out" 'gh stack is provided by someone/gh-stack'
+assert_eq "POSIX 57-gh-stack: 別人的 gh stack 不被移除或覆蓋" "extension list" "$(cat "$_d/gh.log")"
+
+if _out=$(PATH="$_x/nogh" "$(command -v zsh)" "$_x/57.sh" 2>&1); then
+    _pass "POSIX 57-gh-stack: gh 不存在時退出碼是 0"
+else _fail "POSIX 57-gh-stack: gh 不存在時退出碼是 0" "$_out"; fi
+
+fi
+
+# ---- Windows ----
+# 同 F 段：腳本沒有 Windows 專屬的路徑邏輯，用 Linux 的 pwsh 加 stub 跑。
+_XPWSH=$(command -v pwsh 2>/dev/null || true)
+if [ -z "$_XPWSH" ]; then
+    skip "Windows 57-gh-stack 的行為" "找不到 Linux 的 pwsh"
+else
+    render_file windows .chezmoiscripts/run_after_57-gh-stack.ps1.tmpl > "$_x/57.ps1"
+    mkdir -p "$_x/local" "$_x/pf"
+    _run_xw() { # dir
+        LOCALAPPDATA="$_x/local" ProgramFiles="$_x/pf" STUB_LOG="$1/gh.log" STUB_EXTS="$1/exts" \
+            PATH="$_x/stub:$PATH" "$_XPWSH" -NoLogo -NoProfile -File "$_x/57.ps1" 2>&1
+    }
+    _d="$_x/win-fresh"; _seed_x "$_d"
+    if _out=$(_run_xw "$_d"); then _pass "Windows 57-gh-stack: 執行成功"
+    else _fail "Windows 57-gh-stack: 執行成功" "$_out"; fi
+    assert_eq "Windows 57-gh-stack: 沒有擴充時以 --pin 安裝" \
+        "$(printf 'extension list\nextension install github/gh-stack --pin %s' "$_x_pin")" "$(cat "$_d/gh.log")"
+    _run_xw "$_d" >/dev/null
+    assert_eq "Windows 57-gh-stack: 版本相同時不再安裝" "1" "$(grep -c '^extension install' "$_d/gh.log")"
+    _d="$_x/win-old"; _seed_x "$_d" "gh stack${_tab}github/gh-stack${_tab}v0.0.1"
+    _run_xw "$_d" >/dev/null
+    assert_eq "Windows 57-gh-stack: 換 pin 後是新 tag" \
+        "$(printf 'gh stack\tgithub/gh-stack\t%s' "$_x_pin")" "$(cat "$_d/exts")"
+    _d="$_x/win-other"; _seed_x "$_d" "gh stack${_tab}someone/gh-stack${_tab}v9.9.9"
+    if _out=$(_run_xw "$_d"); then _pass "Windows 57-gh-stack: 別人的 gh stack 存在時 exit 0"
+    else _fail "Windows 57-gh-stack: 別人的 gh stack 存在時 exit 0" "$_out"; fi
+    assert_eq "Windows 57-gh-stack: 別人的 gh stack 不被移除或覆蓋" "extension list" "$(cat "$_d/gh.log")"
+fi
+unset _x _x_pin _d _out _sd _r _tab _XPWSH

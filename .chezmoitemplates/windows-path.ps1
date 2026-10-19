@@ -7,6 +7,7 @@ foreach ($dir in @(
     (Join-Path $env:LOCALAPPDATA 'mise\shims')
     (Join-Path $env:LOCALAPPDATA 'Programs\oh-my-posh\bin')
     (Join-Path $env:ProgramFiles 'Git\cmd')
+    (Join-Path $env:ProgramFiles 'GitHub CLI')
 )) {
     if ((Test-Path -LiteralPath $dir) -and (($env:PATH -split ';') -notcontains $dir)) {
         $env:PATH = "$dir;$env:PATH"

@@ -33,6 +33,8 @@ _expect() {
         run_after_55-cc-statusline.ps1.tmpl)                  echo 'windows windows-arm64' ;;
         run_after_56-apm-go.sh.tmpl)                          echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
         run_after_56-apm-go.ps1.tmpl)                         echo 'windows windows-arm64' ;;
+        run_after_57-gh-stack.sh.tmpl)                        echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
+        run_after_57-gh-stack.ps1.tmpl)                       echo 'windows windows-arm64' ;;
         run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows windows-arm64' ;;
         # pacman 平台的 neovim 不走 versions.toml 的 pin，沒有東西可以比。
         run_after_90-neovim-update-check.sh.tmpl)             echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
@@ -58,6 +60,8 @@ for _s in run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl \
           run_after_55-cc-statusline.ps1.tmpl \
           run_after_56-apm-go.sh.tmpl \
           run_after_56-apm-go.ps1.tmpl \
+          run_after_57-gh-stack.sh.tmpl \
+          run_after_57-gh-stack.ps1.tmpl \
           run_after_60-pwsh-profile.ps1.tmpl \
           run_after_90-neovim-update-check.sh.tmpl \
           run_after_90-neovim-update-check.ps1.tmpl \
@@ -209,6 +213,20 @@ for _c in "$_apm_posix" "$_apm_win"; do
 done
 unset _apm_pin _apm_posix _apm_win _c
 
+# 57-gh-stack：兩個平台裝同一個 repo、釘 versions.toml 的同一個 tag。
+_ghs_pin=$(sed -n 's/^ghStack = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+_ghs_posix=$(render_file linux .chezmoiscripts/run_after_57-gh-stack.sh.tmpl)
+_ghs_win=$(render_file windows .chezmoiscripts/run_after_57-gh-stack.ps1.tmpl)
+assert_not_blank "versions.toml 有 ghStack" "$_ghs_pin"
+assert_contains "POSIX 57-gh-stack 釘 versions.toml 的 tag" "$_ghs_posix" "pin='$_ghs_pin'"
+assert_contains "Windows 57-gh-stack 釘 versions.toml 的 tag" "$_ghs_win" "\$pin = '$_ghs_pin'"
+assert_contains "POSIX 57-gh-stack 以 --pin 安裝 github/gh-stack" "$_ghs_posix" 'gh extension install "$repo" --pin "$pin"'
+assert_contains "Windows 57-gh-stack 以 --pin 安裝 github/gh-stack" "$_ghs_win" 'gh extension install $repo --pin $pin'
+for _c in "$_ghs_posix" "$_ghs_win"; do
+    assert_contains "57-gh-stack 的 repo 是 github/gh-stack" "$_c" "github/gh-stack'"
+done
+unset _ghs_pin _ghs_posix _ghs_win _c
+
 # 60-pwsh-profile 必須挑 CurrentUserAllHosts（profile.ps1）而不是
 # CurrentUserCurrentHost（Microsoft.PowerShell_profile.ps1）：Windows Terminal、
 # VS Code 的整合終端機、裸 pwsh.exe 是三個不同的 host，只有 AllHosts 三者都載入。
@@ -229,10 +247,13 @@ for _s in run_onchange_before_30-install-winget-packages.ps1.tmpl \
           run_before_50-neovim.ps1.tmpl \
           run_after_55-cc-statusline.ps1.tmpl \
           run_after_56-apm-go.ps1.tmpl \
+          run_after_57-gh-stack.ps1.tmpl \
           run_after_90-neovim-update-check.ps1.tmpl; do
     _c=$(render_file windows ".chezmoiscripts/$_s")
     assert_contains "$_s 有套用 windows-path partial" "$_c" 'Microsoft\WinGet\Links'
     assert_contains "$_s 的 PATH 補強有含 mise shims" "$_c" 'mise\shims'
+    # winget 的 GitHub.cli 是 MSI，裝在 Program Files，不會出現在 WinGet\Links。
+    assert_contains "$_s 的 PATH 補強有含 GitHub CLI" "$_c" "'GitHub CLI'"
 done
 
 # PowerShell profile 的內容原本完全沒有被釘住：把主題檔名改掉、或整段拿掉
@@ -288,11 +309,16 @@ unset _ten_arch _ten_linux _ten_arch_pkgs
 
 # S8：pacman 工具清單 = brew 工具清單 + neovim（Arch 的 neovim 由 pacman 來，
 # 不走 mise，D1）。兩份清單只看安裝行，理由同上面 tree-sitter-cli 那一段。
+# 唯一名稱不同的是 gh：Arch 的套件叫 github-cli。
 _brew_list=$(printf '%s\n' "$_brew" | sed -n 's/^for formula in \(.*\); do$/\1/p' | head -1)
 _pac=$(render_file arch .chezmoiscripts/run_onchange_before_30-install-pacman-packages.sh.tmpl)
 _pac_list=$(printf '%s\n' "$_pac" | sed -n 's/^for pkg in \(.*\); do$/\1/p' | head -1)
 assert_not_blank "brew 清單可解析" "$_brew_list"
-assert_eq "pacman 工具清單 = brew 工具清單 + neovim" "$_brew_list neovim" "$_pac_list"
+assert_eq "pacman 工具清單 = brew 工具清單 + neovim（gh 在 Arch 叫 github-cli）" \
+    "$(printf '%s\n' "$_brew_list" | sed 's/\(^\| \)gh\( \|$\)/\1github-cli\2/') neovim" "$_pac_list"
+assert_contains "brew 清單裝 gh（57-gh-stack 的前提）" " $_brew_list " ' gh '
+assert_contains "winget 清單裝 GitHub.cli（57-gh-stack 的前提）" \
+    "$(render_file windows .chezmoiscripts/run_onchange_before_30-install-winget-packages.ps1.tmpl)" "'GitHub.cli'"
 assert_contains "pacman 清單裝的是 tree-sitter-cli（CLI）" "$_pac_list" 'tree-sitter-cli'
 assert_contains "30-install-pacman-packages 用 -S --needed --noconfirm" "$_pac" 'pacman -S --needed --noconfirm'
 assert_not_contains "30-install-pacman-packages 沒有 pacman -Sy" "$_pac" 'pacman -Sy'

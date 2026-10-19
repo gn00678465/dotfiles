@@ -312,6 +312,7 @@ $wingetPackages = @(
     'jdx.mise'
     'junegunn.fzf'
     'GitHub.GitLFS'
+    'GitHub.cli'
     'BurntSushi.ripgrep.MSVC'
     'sharkdp.fd'
     'JesseDuffield.lazygit'

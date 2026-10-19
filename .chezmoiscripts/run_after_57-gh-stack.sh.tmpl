@@ -1,0 +1,51 @@
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $v := includeTemplate "versions.toml" . | fromToml -}}
+{{ if $p.isPosix -}}
+#!/bin/zsh
+# gh-stack, the gh extension for stacked PRs (`gh stack`), pinned to the tag in
+# versions.toml. gh itself comes from 30-install-*-packages.
+# `run_` like 55-cc-statusline: a removed extension comes back on the next
+# apply. `gh extension install` needs no `gh auth login`.
+set -euo pipefail
+{{ if ne $p.brewPrefix "" }}
+eval "$({{ $p.brewPrefix }}/bin/brew shellenv)"
+{{- end }}
+
+if ! command -v gh &>/dev/null; then
+  echo "chezmoi: gh not found, skipping gh-stack" >&2
+  exit 0
+fi
+
+repo='github/gh-stack'
+pin='{{ $v.ghStack }}'
+
+# Non-TTY `gh extension list` prints tab-separated NAME, REPO, VERSION; for a
+# binary extension VERSION is the release tag. With no extensions installed it
+# exits 1, which is not an error here.
+list=$(gh extension list 2>/dev/null || true)
+current='' other=''
+for line in ${(f)list}; do
+  fields=("${(@ps:\t:)line}")
+  [[ ${fields[1]-} == 'gh stack' ]] || continue
+  if [[ ${fields[2]-} == "$repo" ]]; then
+    current=${fields[3]-}
+  else
+    other=${fields[2]-}
+  fi
+done
+
+if [[ -n $other ]]; then
+  # Another extension owns `gh stack`. It is the user's; do not remove it.
+  echo "chezmoi: gh stack is provided by $other, skipping $repo" >&2
+  exit 0
+fi
+if [[ $current == "$pin" ]]; then
+  exit 0
+fi
+# `install` on an already installed extension only warns and keeps the old
+# version, so a pin change has to remove it first.
+if [[ -n $current ]]; then
+  gh extension remove stack
+fi
+gh extension install "$repo" --pin "$pin"
+{{ end -}}

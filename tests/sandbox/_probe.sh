@@ -214,9 +214,9 @@ fi
 # identical to the scripts'; L11 asserts that, because a package added there
 # and missed here would be silently unverified.
 apt_packages='zsh git curl build-essential procps file'
-brew_formulas='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli'
+brew_formulas='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli gh'
 pacman_packages='zsh git curl base-devel'
-pacman_tools='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim'
+pacman_tools='mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli github-cli neovim'
 
 if [ $arch = 1 ]; then
     c_pacman() { pacman -Q "$1" 2>/dev/null || { echo 'not installed'; return 1; }; }

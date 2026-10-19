@@ -59,7 +59,7 @@ Homebrew：
 | 時機 | 做什麼 | 問什麼 |
 |---|---|---|
 | `run_onchange_before_10-install-packages` | `pacman -S --needed` 裝 `zsh git curl base-devel` | `sudo` 密碼 |
-| `run_onchange_before_30-install-pacman-packages` | 裝 `mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli neovim`（omarchy 出廠大多已裝） | `sudo` 密碼（快取通常還在） |
+| `run_onchange_before_30-install-pacman-packages` | 裝 `mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli github-cli neovim`（omarchy 出廠大多已裝） | `sudo` 密碼（快取通常還在） |
 | `run_after_default-shell` | 改登入 shell 為 zsh | **你自己的**密碼 |
 
 只用 `pacman -S --needed --noconfirm`，不做 `-Sy` 或 `-Syu`。`-Sy` 之後接 `-S` 會進入
@@ -187,7 +187,7 @@ chezmoi 完整管理 `~/.zshrc`。`chezmoi apply` 與 `chezmoi update` 會覆寫
 - 不要在這個檔案裡輸出文字。啟動時有輸出，p10k 會顯示 console output 警告。
 - 檔案不存在時不會產生錯誤。
 
-### mise 管理的 CLI
+### 額外安裝的 CLI（mise、gh 擴充）
 
 `run_after_56-apm-go` 以 mise 安裝 [apm-go](https://github.com/gn00678465/apm-go)，在全域的
 `~/.config/mise/config.toml` 寫入：
@@ -203,6 +203,11 @@ minimum_release_age_excludes = ["github:gn00678465/apm-go"]
 0.4 目前只有 prerelease，所以要 `prerelease = true`；加進 `minimum_release_age_excludes`
 是讓剛發布的版本不被 mise 預設的 24 小時延遲擋掉。清單裡原本的值會保留，已經有
 apm-go 時不會重複加入。版本前綴在 `.chezmoitemplates/versions.toml` 的 `apmGo`。
+
+`run_after_57-gh-stack` 以 `gh extension install github/gh-stack --pin <tag>` 安裝
+[gh-stack](https://github.com/github/gh-stack)（`gh stack`，管理連鎖的 PR），tag 在
+`versions.toml` 的 `ghStack`。gh 本身由各平台的套件清單安裝；安裝擴充不需要先
+`gh auth login`，但 `gh stack submit` 等操作需要。
 
 ### neovim 版本提醒
 

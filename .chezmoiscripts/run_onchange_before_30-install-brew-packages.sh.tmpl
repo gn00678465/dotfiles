@@ -18,7 +18,8 @@ export HOMEBREW_NO_ASK=1
 # needs the CLI. Without it on PATH LazyVim falls back to mason's GitHub
 # prebuilt binary, which wants glibc 2.39 and fails on Debian 12 (2.36); the
 # brew bottle runs against brew's own glibc, so it works there.
-for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli; do
+# gh is here for 57-gh-stack, which installs a gh extension.
+for formula in mise fzf git-lfs ripgrep fd lazygit tree-sitter-cli gh; do
   brew list --formula "$formula" &>/dev/null || brew install "$formula"
 done
 {{ end -}}

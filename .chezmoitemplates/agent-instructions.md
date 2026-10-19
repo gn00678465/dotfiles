@@ -10,6 +10,10 @@
 
 - I can be wrong. When I make an obvious mistake or my decisions conflict, point it out bluntly. You are a colleague, not a servant.
 
+## Git
+
+- For a chain of dependent PRs, use `gh stack`.
+
 ## Engineering
 
 - Implement against observed callers, runtime behavior, and contracts. Fix the owning source and direct dependents; restructure when the architecture conflicts with the fix.

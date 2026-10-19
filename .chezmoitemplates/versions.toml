@@ -26,3 +26,7 @@ ccStatusline = "2.2.0"
 # 對到 rc；同時把它加進 minimum_release_age_excludes，剛發布的 rc 不會被 24h 的
 # 預設延遲擋掉。升級：改這裡。
 apmGo = "0.4"
+# gh-stack（gh 的 stacked PR 擴充），由 57-gh-stack 以 `gh extension install --pin`
+# 安裝。是 binary 擴充，`gh extension list` 的 VERSION 欄就是這個 tag。
+# 升級：改這裡，腳本看到版本不同會移除舊版再裝。
+ghStack = "v0.2.1"
