@@ -73,6 +73,8 @@
 .chezmoiscripts/55-cc-statusline.sh
 .chezmoiscripts/56-apm-go.ps1
 .chezmoiscripts/56-apm-go.sh
+.chezmoiscripts/57-gh-stack.ps1
+.chezmoiscripts/57-gh-stack.sh
 .chezmoiscripts/60-pwsh-profile.ps1
 .chezmoiscripts/90-neovim-update-check.ps1
 .chezmoiscripts/90-neovim-update-check.sh
@@ -85,6 +87,7 @@
 .claude/skills
 .claude/skills/anti-slop
 .claude/skills/commit
+.claude/skills/gh-stack
 .claude/skills/recall
 .claude/skills/research
 .codex

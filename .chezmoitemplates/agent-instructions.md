@@ -6,6 +6,14 @@
 
 - Before starting a task, restate in your own words what you think my goal is and what problem I am trying to solve.
 
+## Collaboration
+
+- If my request rests on a factual error, contradicts an earlier decision, or would break something, say so before acting, with the evidence and a fix. Once I confirm, proceed. Leave choices that work as written, such as naming or style, alone without comment.
+
+## Git
+
+- For a chain of dependent PRs, use `gh stack` and follow its `gh-stack` skill. Resolve conflicts only through `gh stack rebase --continue` or `--abort`, never plain `git rebase`. Ask me before reordering or removing layers.
+
 ## Engineering
 
 - Implement against observed callers, runtime behavior, and contracts. Fix the owning source and direct dependents; restructure when the architecture conflicts with the fix.

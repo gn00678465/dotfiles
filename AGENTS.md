@@ -135,7 +135,8 @@ Keep the POSIX and Windows scripts consistent:
   `30-install-pacman-packages` for Arch, and to `30-install-winget-packages`
   for Windows.
 - `30-install-pacman-packages`: The pacman tool list. It equals the brew list
-  plus `neovim`, because Arch installs neovim through pacman. `tests/cases/L2`
+  plus `neovim`, because Arch installs neovim through pacman. The one name
+  that differs is `gh`, which Arch packages as `github-cli`. `tests/cases/L2`
   compares the two lists. All names are in the official `core` and `extra`
   repositories; do not add AUR packages. Both pacman scripts include
   `.chezmoitemplates/pacman-install.sh`, which runs only
@@ -198,6 +199,20 @@ Keep the POSIX and Windows scripts consistent:
   `mise settings get` does not already list it as a quoted entry. Never use
   `mise settings set`: it replaces the user's existing entries.
   `tests/cases/L7` section G covers both scripts.
+- `57-gh-stack`: Install the `github/gh-stack` gh extension with
+  `gh extension install --pin` at the `ghStack` tag in `versions.toml`; gh
+  comes from the `30-install-*` lists. `install` on an installed extension
+  only warns and keeps the old version, so on a pin change remove it first.
+  When another repository provides `gh stack`, skip without removing it.
+  On Windows, gh is an MSI under `Program Files\GitHub CLI`, which
+  `windows-path.ps1` adds. `tests/cases/L7` section H covers both scripts.
+  The official `gh-stack` agent skill comes from `.chezmoiexternal.toml.tmpl`
+  into `~/.agents/skills/gh-stack` (Claude Code reads it through
+  `dot_claude/skills/symlink_gh-stack`). Its URL uses the same `ghStack` tag,
+  so the skill and the extension change version together; to bump, change
+  `ghStack` and recompute `ghStackSha256`. `tests/cases/L5` asserts both use
+  the same tag. Do not install it with `gh skill install`: that needs
+  `gh auth login`, and older gh has no `skill` command.
 - `60-pwsh-profile`: Resolve `$PROFILE.CurrentUserAllHosts` at run time and
   write a one-line loader there. Documents can be redirected to OneDrive;
   the target cannot be computed by a chezmoi path template. Keep the logic
