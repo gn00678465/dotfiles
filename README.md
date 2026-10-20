@@ -209,6 +209,19 @@ apm-go 時不會重複加入。版本前綴在 `.chezmoitemplates/versions.toml`
 `versions.toml` 的 `ghStack`。gh 本身由各平台的套件清單安裝；安裝擴充不需要先
 `gh auth login`，但 `gh stack submit` 等操作需要。
 
+gh-stack 官方的 agent skill 由 `.chezmoiexternal.toml.tmpl` 放進 `~/.agents/skills/gh-stack`
+（Codex 直接讀，Claude Code 經 `~/.claude/skills/gh-stack` 的 symlink 讀），抓的是同一個
+`ghStack` tag，所以擴充與 skill 永遠是同一版。升級時改 `versions.toml` 的兩個值：
+
+```toml
+ghStack = "v0.3.0"                 # 新的 tag
+ghStackSha256 = "<新 tarball 的 sha256>"
+```
+
+sha256 是 `https://github.com/github/gh-stack/archive/refs/tags/<tag>.tar.gz` 的雜湊。下一次
+apply 時，`57-gh-stack` 看到版本不同會移除舊擴充再裝新版，chezmoi 也會下載新的 tarball、
+驗證 checksum 後換掉整個 skill 目錄（checksum 不符就拒絕安裝）。
+
 ### neovim 版本提醒
 
 neovim 釘在 `.chezmoitemplates/versions.toml` 的版本（Arch 家族除外，那裡跟著 pacman）。

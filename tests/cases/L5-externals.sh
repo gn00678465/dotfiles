@@ -12,10 +12,12 @@ _posix_expected=$(printf '%s\n' \
     '.oh-my-zsh/custom/plugins/fzf-tab' \
     '.oh-my-zsh/custom/plugins/zsh-autosuggestions' \
     '.oh-my-zsh/custom/plugins/zsh-syntax-highlighting' \
-    '.oh-my-zsh/custom/themes/powerlevel10k' | LC_ALL=C sort)
+    '.oh-my-zsh/custom/themes/powerlevel10k' \
+    '.agents/skills/gh-stack' | LC_ALL=C sort)
 
 _windows_expected=$(printf '%s\n' \
-    '.config/oh-my-posh/powerlevel10k_rainbow.omp.json' | LC_ALL=C sort)
+    '.config/oh-my-posh/powerlevel10k_rainbow.omp.json' \
+    '.agents/skills/gh-stack' | LC_ALL=C sort)
 
 for _os in $POSIX_OSES; do
     assert_eq "$_os 的 external 清單" "$_posix_expected" "$(_sections "$_os")"
@@ -49,6 +51,27 @@ done
 _win_ext=$(render_file windows .chezmoiexternal.toml.tmpl)
 assert_contains "oh-my-posh powerlevel10k_rainbow 主題的 sha256" "$_win_ext" \
     "d55074433400c2a532ab883986f4e2ebd2b35d9f5d61f355f27eeb1243a78713"
+
+# gh-stack 的 skill 與 57-gh-stack 裝的擴充必須是同一個版本：skill 教的旗標與
+# exit code 屬於某一版 CLI。兩者都從 versions.toml 的 ghStack 取值，這裡釘住
+# 「external 的網址」與「擴充的 --pin」真的拿到同一個 tag，checksum 也來自 versions.toml。
+_ghs_tag=$(sed -n 's/^ghStack = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+_ghs_sum=$(sed -n 's/^ghStackSha256 = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+assert_not_blank "versions.toml 有 ghStack" "$_ghs_tag"
+assert_eq "versions.toml 的 ghStackSha256 是 64 個十六進位字元" "64" \
+    "$(printf '%s' "$_ghs_sum" | tr -cd '0-9a-f' | wc -c | tr -d ' ')"
+for _os in linux windows; do
+    _ext=$(render_file "$_os" .chezmoiexternal.toml.tmpl)
+    assert_contains "$_os 的 gh-stack skill external 抓 ghStack 那個 tag" "$_ext" \
+        "https://github.com/github/gh-stack/archive/refs/tags/$_ghs_tag.tar.gz"
+    assert_contains "$_os 的 gh-stack skill external 用 versions.toml 的 checksum" "$_ext" \
+        "checksum.sha256 = \"$_ghs_sum\""
+done
+assert_contains "57-gh-stack 的擴充 pin 與 skill 同一個 tag" \
+    "$(render_file linux .chezmoiscripts/run_after_57-gh-stack.sh.tmpl)" "pin='$_ghs_tag'"
+assert_eq "Claude Code 經 symlink 讀同一份 gh-stack skill" "../../.agents/skills/gh-stack" \
+    "$(cat "$REPO/dot_claude/skills/symlink_gh-stack")"
+unset _ghs_tag _ghs_sum _ext
 
 # cc-statusline 改由 55-cc-statusline 以 mise 安裝。external 若留著，chezmoi 會
 # 用舊版本蓋掉腳本複製的 binary。

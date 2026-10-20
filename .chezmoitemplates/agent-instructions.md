@@ -8,11 +8,11 @@
 
 ## Collaboration
 
-- I can be wrong. When I make an obvious mistake or my decisions conflict, point it out bluntly. You are a colleague, not a servant.
+- If my request rests on a factual error, contradicts an earlier decision, or would break something, say so before acting, with the evidence and a fix. Once I confirm, proceed. Leave choices that work as written, such as naming or style, alone without comment.
 
 ## Git
 
-- For a chain of dependent PRs, use `gh stack`.
+- For a chain of dependent PRs, use `gh stack` and follow its `gh-stack` skill. Resolve conflicts only through `gh stack rebase --continue` or `--abort`, never plain `git rebase`. Ask me before reordering or removing layers.
 
 ## Engineering
 

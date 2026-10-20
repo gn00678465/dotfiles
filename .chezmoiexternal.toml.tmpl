@@ -1,4 +1,5 @@
 {{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $v := includeTemplate "versions.toml" . | fromToml -}}
 {{ if $p.isPosix -}}
 # Oh My Zsh itself. `exact` means chezmoi deletes anything in ~/.oh-my-zsh that
 # is not in this tarball -- which is why every plugin/theme below must also be an
@@ -54,3 +55,16 @@
     url = "https://github.com/JanDeDobbeleer/oh-my-posh/raw/v31.1.2/themes/powerlevel10k_rainbow.omp.json"
     checksum.sha256 = "d55074433400c2a532ab883986f4e2ebd2b35d9f5d61f355f27eeb1243a78713"
 {{ end }}
+
+# gh-stack 官方的 agent skill，與 57-gh-stack 裝的擴充釘同一個 tag（versions.toml 的
+# ghStack），兩者一起換版。Codex 直接讀 ~/.agents/skills；Claude Code 經
+# dot_claude/skills/symlink_gh-stack 讀。不用 `gh skill install`：它要先 gh auth login，
+# 舊版 gh 也沒有這個指令。`exact`：這個目錄只放上游的檔案。
+[".agents/skills/gh-stack"]
+    type = "archive"
+    url = "https://github.com/github/gh-stack/archive/refs/tags/{{ $v.ghStack }}.tar.gz"
+    exact = true
+    stripComponents = 3
+    # 比對的是 stripComponents 之前的路徑：gh-stack-<版本>/skills/gh-stack/...
+    include = ["*/skills/gh-stack/**"]
+    checksum.sha256 = "{{ $v.ghStackSha256 }}"

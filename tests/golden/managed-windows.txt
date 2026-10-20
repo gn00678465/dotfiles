@@ -87,6 +87,7 @@
 .claude/skills
 .claude/skills/anti-slop
 .claude/skills/commit
+.claude/skills/gh-stack
 .claude/skills/recall
 .claude/skills/research
 .codex

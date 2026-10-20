@@ -28,5 +28,9 @@ ccStatusline = "2.2.0"
 apmGo = "0.4"
 # gh-stack（gh 的 stacked PR 擴充），由 57-gh-stack 以 `gh extension install --pin`
 # 安裝。是 binary 擴充，`gh extension list` 的 VERSION 欄就是這個 tag。
-# 升級：改這裡，腳本看到版本不同會移除舊版再裝。
+# 同一個 tag 也決定 ~/.agents/skills/gh-stack（.chezmoiexternal 抓這個 tag 的原始碼
+# tarball），所以擴充與 skill 一起換版。
+# 升級：改 ghStack，並重算 ghStackSha256（GitHub 的 archive/refs/tags/<tag>.tar.gz；
+# 等同 `git archive --format=tar --prefix=gh-stack-<不帶 v 的版本>/ <tag> | gzip -cn`）。
 ghStack = "v0.2.1"
+ghStackSha256 = "263af23a0bd8aed815a7db02c088a3606f4f1ae2774ce7806004ff2895945202"

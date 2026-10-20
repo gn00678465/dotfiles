@@ -206,6 +206,13 @@ Keep the POSIX and Windows scripts consistent:
   When another repository provides `gh stack`, skip without removing it.
   On Windows, gh is an MSI under `Program Files\GitHub CLI`, which
   `windows-path.ps1` adds. `tests/cases/L7` section H covers both scripts.
+  The official `gh-stack` agent skill comes from `.chezmoiexternal.toml.tmpl`
+  into `~/.agents/skills/gh-stack` (Claude Code reads it through
+  `dot_claude/skills/symlink_gh-stack`). Its URL uses the same `ghStack` tag,
+  so the skill and the extension change version together; to bump, change
+  `ghStack` and recompute `ghStackSha256`. `tests/cases/L5` asserts both use
+  the same tag. Do not install it with `gh skill install`: that needs
+  `gh auth login`, and older gh has no `skill` command.
 - `60-pwsh-profile`: Resolve `$PROFILE.CurrentUserAllHosts` at run time and
   write a one-line loader there. Documents can be redirected to OneDrive;
   the target cannot be computed by a chezmoi path template. Keep the logic
