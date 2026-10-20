@@ -230,6 +230,14 @@ omarchy in `~/.local/share/omarchy` instead of `/usr/share/omarchy`.
 `~/.config/git/config` is fully managed on all platforms; on omarchy, this
 replaces the file that the omarchy installer wrote.
 
+`dot_zshrc.tmpl` turns on `SH_WORD_SPLIT` and turns off `EQUALS` and
+`NOMATCH` only when `CLAUDECODE` is set. Claude Code runs its Bash tool
+through the login shell and applies the options it captures from
+`~/.zshrc`, while the model writes bash: unquoted `$var` that should split,
+`echo =====`, and globs that match nothing. Keep the block after Oh My Zsh
+and p10k, which expect zsh's defaults, and before `~/.zshrc.local`. Codex
+runs `zsh -lc`, which does not read `~/.zshrc`, so this does not cover it.
+
 Keep `init.ps1` and `tests/sandbox/_probe.ps1` ASCII-only, including comments.
 Windows PowerShell 5.1 reads BOM-less scripts with the ANSI code page;
 incorrectly decoded comments can cause parse errors. Scripts under
