@@ -187,6 +187,12 @@ chezmoi 完整管理 `~/.zshrc`。`chezmoi apply` 與 `chezmoi update` 會覆寫
 - 不要在這個檔案裡輸出文字。啟動時有輸出，p10k 會顯示 console output 警告。
 - 檔案不存在時不會產生錯誤。
 
+在 Claude Code 裡執行的指令也走 zsh，但模型是照 bash 的語意寫指令。所以只有在
+Claude Code 裡（環境變數 `CLAUDECODE` 存在時），`~/.zshrc` 才會讓 zsh 的行為接近 bash：
+沒加引號的 `$var` 會拆字、`=====` 不會被當成 `=指令` 展開、沒有匹配的萬用字元原樣傳給指令。
+一般終端機的 zsh 維持預設值。要關掉，在 `~/.zshrc.local` 寫回
+`unsetopt SH_WORD_SPLIT; setopt EQUALS NOMATCH`。
+
 ### mise 管理的 CLI
 
 `run_after_56-apm-go` 以 mise 安裝 [apm-go](https://github.com/gn00678465/apm-go)，在全域的

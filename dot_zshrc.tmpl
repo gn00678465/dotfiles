@@ -48,6 +48,17 @@ alias pbpaste='powershell.exe -NoProfile -Command Get-Clipboard'
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
+# Claude Code runs its Bash tool through this shell and applies the options it
+# captures from this file to every command, but the model writes bash: unquoted
+# $var expected to split, `echo =====`, globs that match nothing. CLAUDECODE is
+# set only inside Claude Code, so an interactive shell keeps zsh's defaults.
+# After OMZ and p10k, which expect those defaults; before .zshrc.local, so a
+# machine can override it.
+if [[ -n ${CLAUDECODE-} ]]; then
+  setopt SH_WORD_SPLIT
+  unsetopt EQUALS NOMATCH
+fi
+
 # Per-machine settings live outside chezmoi so apply/update never overwrite them.
 # Keep it last so it can override anything above; the `||` form keeps the exit
 # status 0 when the file is absent, otherwise p10k shows the first prompt as failed.
