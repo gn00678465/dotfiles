@@ -17,10 +17,10 @@ writes its brief.
    the requirements any solution must meet: what must be shared, what must stay
    apart, what must survive, what must stay unchanged. Tag each requirement with
    its source: `user` with a citation when the user stated it or a project
-   decision settled it, `inferred` when you derived it. Ask the user to confirm
-   the `inferred` ones before you spawn, or carry them into the brief as
+   decision settled it, `derived` when you derived it. Ask the user to confirm
+   the `derived` ones before you spawn, or carry them into the brief as
    unconfirmed. Done when every requirement has a tag.
-2. **Narrow the question.** Give each `researcher` one decision. Split a broad
+2. **Narrow to one decision.** Give each `researcher` one decision. Split a broad
    topic into the decisions that wait on it.
 3. **Spawn one `researcher` in the background.**
    - Claude Code: call the Agent tool with `subagent_type: "researcher"`.
@@ -32,13 +32,14 @@ writes its brief.
    - the decision, its goal, and the tagged requirements;
    - versions and platforms that apply;
    - earlier notes on the topic, by path, to read first and extend. For each
-     note, state the premises it rested on (platform, version, the question it
-     answered) and which of them differ now;
+     note, state the premises it rested on (OS, version, where state such as
+     credentials is stored, and the question it answered) and which of them
+     differ now;
    - the directory where this repo keeps research notes, when you know it.
 5. **Continue the user's task.** Do not wait on the agent and do not repeat its
    reading yourself.
 6. **Relay the result.** When the `researcher` reports, give the user the file
-   path, the options that meet the requirements, the requirements still
-   unconfirmed, and the items it marked unverified or unknown.
+   path, the options that meet the requirements, the unconfirmed requirements,
+   and the items it marked unverified or unknown.
 
 Derived from the `research` skill in mattpocock/skills (MIT). See `LICENSE`.
