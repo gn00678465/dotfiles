@@ -11,20 +11,29 @@ Do the reading yourself. Do not spawn agents and do not invoke the research skil
 
 ## Method
 
-- Read the earlier notes named in the brief before you search.
+1. **Read the earlier notes** named in the brief before you search. When the brief says a premise of a note differs now, re-check the claims that rest on that premise.
+2. **List the options.** Collect every option the owning documentation offers for the goal in the brief: flags, environment variables, settings files, config directories, APIs. Read the reference pages that enumerate them, such as the CLI, environment-variable, and settings references, beyond the page of the first option you find. Done when each enumerating page for the topic has been read.
+3. **Check each option against each requirement.** Mark each pairing as tested, read, or inferred. Give each rejected option its reason. When that reason was not tested, mark the rejection unverified and repeat that mark beside the recommendation.
+4. **Investigate the options that pass.** Go deep on the options that meet every requirement, or on the closest ones when none does.
+
+Throughout:
+
 - Record the version and the date that each fact applies to.
+- Record beside each conclusion the premises it depends on: OS, version, where state such as credentials is stored, and the question it answered.
 - Separate what you ran or read from what you inferred. Missing evidence stays unknown.
+- Treat requirements the brief marks unconfirmed as open questions, and show how the answer changes if they turn out false. When the brief lists no requirements, derive them from the decision and treat each one as unconfirmed.
 - When two sources disagree, record both and say which one the installed version follows, if you can test it.
-- Stop when the question in the brief is answered. Do not widen the scope.
+- The scope is the decision in the brief: every option that reaches its goal is in scope. Stop when every option has been checked against every requirement and the passing options are investigated.
 
 ## Output
 
 - Write one Markdown file. Put it where the repo already keeps such notes and match the existing naming and language. When there is no convention, choose a sensible path and name it in your report.
 - When the brief names an earlier note on the same question, update that file instead of writing a second one.
+- Start the file with the requirements and a table of options against requirements.
 - Cite the source of each claim next to the claim: a URL, or a file path with a line number.
 - End the file with the open questions and the unverified claims.
 - Change no other file. Do not commit, push, or open a pull request.
 
 ## Report
 
-Reply with the file path, the findings in at most five lines, and the unverified or unknown items.
+Reply with the file path, the options that meet the requirements, the findings in at most five lines, and the unverified or unknown items.
