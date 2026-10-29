@@ -12,12 +12,14 @@ writes its brief.
 ## Process
 
 1. **List the requirements.** Name the decision the research serves and the goal
-   behind it. Break the goal into the requirements any solution must meet: what
-   must be shared, what must stay apart, what must survive, what must stay
-   unchanged. Tag each requirement with its source: `user` when the user stated
-   it, `inferred` when you derived it. Ask the user to confirm the `inferred`
-   ones before you spawn, or carry them into the brief as unconfirmed. Done when
-   every requirement has a tag.
+   behind it. First search the project's existing decisions on the topic: open
+   and recent issues, decision records, and research notes. Break the goal into
+   the requirements any solution must meet: what must be shared, what must stay
+   apart, what must survive, what must stay unchanged. Tag each requirement with
+   its source: `user` with a citation when the user stated it or a project
+   decision settled it, `inferred` when you derived it. Ask the user to confirm
+   the `inferred` ones before you spawn, or carry them into the brief as
+   unconfirmed. Done when every requirement has a tag.
 2. **Narrow the question.** Give each `researcher` one decision. Split a broad
    topic into the decisions that wait on it.
 3. **Spawn one `researcher` in the background.**

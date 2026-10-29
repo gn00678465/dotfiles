@@ -12,7 +12,7 @@ Do the reading yourself. Do not spawn agents and do not invoke the research skil
 ## Method
 
 1. **Read the earlier notes** named in the brief before you search. When the brief says a premise of a note differs now, re-check the claims that rest on that premise.
-2. **List the options.** Collect every option the owning documentation offers for the goal in the brief: flags, environment variables, settings files, config directories, APIs. Read the reference pages that enumerate them, such as the CLI, environment-variable, and settings references, beyond the page of the first option you find. Done when each enumerating page for the topic has been read.
+2. **List the options.** Collect every option the owning documentation offers for the goal in the brief: flags, environment variables, settings files, config directories, APIs. Read the reference pages that enumerate them, such as the CLI, environment-variable, and settings references, beyond the page of the first option you find. Done when every entry on those pages that bears on the goal has its own row, including entries you can reject at a glance.
 3. **Check each option against each requirement.** Mark each pairing as tested, read, or inferred. Give each rejected option its reason. When that reason was not tested, mark the rejection unverified and repeat that mark beside the recommendation.
 4. **Investigate the options that pass.** Go deep on the options that meet every requirement, or on the closest ones when none does.
 
