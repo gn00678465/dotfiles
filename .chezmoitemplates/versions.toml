@@ -26,3 +26,7 @@ ccStatusline = "2.2.0"
 # 對到 rc；同時把它加進 minimum_release_age_excludes，剛發布的 rc 不會被 24h 的
 # 預設延遲擋掉。升級：改這裡。
 apmGo = "0.4"
+# gitleaks（secret 掃描），由 57-gitleaks 以 mise 的 aqua backend 安裝（aqua 會驗證
+# checksum），不帶 v 前綴。mise 的預設 minimum_release_age 是 24h：發布未滿一天的
+# 版本可能會被略過。升級：改這裡。
+gitleaks = "8.30.1"

@@ -33,6 +33,8 @@ _expect() {
         run_after_55-cc-statusline.ps1.tmpl)                  echo 'windows windows-arm64' ;;
         run_after_56-apm-go.sh.tmpl)                          echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
         run_after_56-apm-go.ps1.tmpl)                         echo 'windows windows-arm64' ;;
+        run_after_57-gitleaks.sh.tmpl)                        echo 'linux linux-arm64 arch omarchy darwin-arm64 darwin-amd64' ;;
+        run_after_57-gitleaks.ps1.tmpl)                       echo 'windows windows-arm64' ;;
         run_after_60-pwsh-profile.ps1.tmpl)                   echo 'windows windows-arm64' ;;
         # pacman 平台的 neovim 不走 versions.toml 的 pin，沒有東西可以比。
         run_after_90-neovim-update-check.sh.tmpl)             echo 'linux linux-arm64 darwin-arm64 darwin-amd64' ;;
@@ -58,6 +60,8 @@ for _s in run_onchange_before_05-wsl-user-runtime-dir.sh.tmpl \
           run_after_55-cc-statusline.ps1.tmpl \
           run_after_56-apm-go.sh.tmpl \
           run_after_56-apm-go.ps1.tmpl \
+          run_after_57-gitleaks.sh.tmpl \
+          run_after_57-gitleaks.ps1.tmpl \
           run_after_60-pwsh-profile.ps1.tmpl \
           run_after_90-neovim-update-check.sh.tmpl \
           run_after_90-neovim-update-check.ps1.tmpl \
@@ -209,6 +213,21 @@ for _c in "$_apm_posix" "$_apm_win"; do
 done
 unset _apm_pin _apm_posix _apm_win _c
 
+# 57-gitleaks：兩個平台必須以 versions.toml 的版本、經 aqua backend 安裝同一個 tool。
+_gl_pin=$(sed -n 's/^gitleaks = "\(.*\)"$/\1/p' "$REPO/.chezmoitemplates/versions.toml")
+_gl_posix=$(render_file linux .chezmoiscripts/run_after_57-gitleaks.sh.tmpl)
+_gl_win=$(render_file windows .chezmoiscripts/run_after_57-gitleaks.ps1.tmpl)
+assert_not_blank "versions.toml 有 gitleaks" "$_gl_pin"
+assert_contains "POSIX 57-gitleaks 以 versions.toml 的版本安裝" "$_gl_posix" \
+    "mise use --global 'aqua:gitleaks/gitleaks@$_gl_pin'"
+assert_contains "Windows 57-gitleaks 以 versions.toml 的版本安裝" "$_gl_win" \
+    "\$tool = 'aqua:gitleaks/gitleaks@$_gl_pin'"
+for _s in run_after_57-gitleaks.sh.tmpl run_after_57-gitleaks.ps1.tmpl; do
+    if [ -f "$REPO/.chezmoiscripts/$_s" ]; then _pass "57-gitleaks 是 run_ 不是 run_onchange_：$_s"
+    else _fail "57-gitleaks 是 run_ 不是 run_onchange_：$_s" "找不到 $_s"; fi
+done
+unset _s _gl_pin _gl_posix _gl_win
+
 # 60-pwsh-profile 必須挑 CurrentUserAllHosts（profile.ps1）而不是
 # CurrentUserCurrentHost（Microsoft.PowerShell_profile.ps1）：Windows Terminal、
 # VS Code 的整合終端機、裸 pwsh.exe 是三個不同的 host，只有 AllHosts 三者都載入。
@@ -229,6 +248,7 @@ for _s in run_onchange_before_30-install-winget-packages.ps1.tmpl \
           run_before_50-neovim.ps1.tmpl \
           run_after_55-cc-statusline.ps1.tmpl \
           run_after_56-apm-go.ps1.tmpl \
+          run_after_57-gitleaks.ps1.tmpl \
           run_after_90-neovim-update-check.ps1.tmpl; do
     _c=$(render_file windows ".chezmoiscripts/$_s")
     assert_contains "$_s 有套用 windows-path partial" "$_c" 'Microsoft\WinGet\Links'

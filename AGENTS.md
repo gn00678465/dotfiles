@@ -198,6 +198,10 @@ Keep the POSIX and Windows scripts consistent:
   `mise settings get` does not already list it as a quoted entry. Never use
   `mise settings set`: it replaces the user's existing entries.
   `tests/cases/L7` section G covers both scripts.
+- `57-gitleaks`: Install gitleaks through `mise use --global` with the
+  `aqua:gitleaks/gitleaks` backend at the version in `versions.toml`; aqua
+  verifies the release checksum. Keep `run_after_` on both platforms, so a
+  removed tool is restored.
 - `60-pwsh-profile`: Resolve `$PROFILE.CurrentUserAllHosts` at run time and
   write a one-line loader there. Documents can be redirected to OneDrive;
   the target cannot be computed by a chezmoi path template. Keep the logic
