@@ -210,6 +210,16 @@ minimum_release_age_excludes = ["github:gn00678465/apm-go"]
 是讓剛發布的版本不被 mise 預設的 24 小時延遲擋掉。清單裡原本的值會保留，已經有
 apm-go 時不會重複加入。版本前綴在 `.chezmoitemplates/versions.toml` 的 `apmGo`。
 
+`run_after_57-gitleaks` 以 mise 的 aqua backend 安裝 [gitleaks](https://github.com/gitleaks/gitleaks)
+（secret 掃描），在全域的 `~/.config/mise/config.toml` 寫入：
+
+```toml
+[tools]
+"aqua:gitleaks/gitleaks" = "8.30.1"
+```
+
+版本在 `.chezmoitemplates/versions.toml` 的 `gitleaks`。
+
 ### neovim 版本提醒
 
 neovim 釘在 `.chezmoitemplates/versions.toml` 的版本（Arch 家族除外，那裡跟著 pacman）。
