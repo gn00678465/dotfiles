@@ -103,6 +103,9 @@
 .config/nvim/lua/plugins/completion.lua
 .config/uv
 .config/uv/uv.toml
+.gemini
+.gemini/antigravity-cli
+.gemini/antigravity-cli/settings.json
 .gitconfig
 .p10k.zsh
 .zprofile

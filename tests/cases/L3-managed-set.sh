@@ -49,6 +49,8 @@ unset _os _t _win _lin _m
 # 用 `git check-attr` 問 git 自己的判定，而不是比對 .gitattributes 的字串 ——
 # 後者只證明檔案裡有那行字，不證明它對任何一個路徑真的生效。
 for _f in dot_codex/modify_private_config.toml \
+          dot_claude/modify_settings.json \
+          dot_gemini/antigravity-cli/modify_settings.json \
           .chezmoiscripts/run_before_50-neovim.ps1.tmpl \
           .chezmoiscripts/run_onchange_before_30-install-pacman-packages.sh.tmpl \
           tests/sandbox/_probe.ps1 \
