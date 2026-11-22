@@ -39,12 +39,43 @@ done
 # 「先算繪成模板；若算繪結果以 chezmoi:modify-template 開頭，就直接當成新內容，
 # 完全不執行」。所以這一條結構性斷言，才是 codex 設定能在 Windows 上運作的理由。
 # （真的在 Windows 上跑一次是 L8。）
-for _m in dot_codex/modify_private_config.toml dot_claude/modify_settings.json; do
+for _m in dot_codex/modify_private_config.toml dot_claude/modify_settings.json dot_gemini/antigravity-cli/modify_settings.json; do
     _first=$(head -1 "$REPO/$_m")
     assert_contains "$_m 是 modify-template（Windows 上不會被 exec）" \
         "$_first" "chezmoi:modify-template"
     assert_not_contains "$_m 不得是 shell 腳本" "$_first" "#!"
 done
+
+_agy_home="$TMP/l6-agy"
+for _os in linux windows; do
+    _d="$_agy_home-$_os"
+    rm -rf "$_d"; mkdir -p "$_d/.gemini/antigravity-cli"
+    cat > "$_d/.gemini/antigravity-cli/settings.json" <<'EOF'
+{
+  "colorScheme": "tokyo night",
+  "model": "Gemini 4 Hydrogen (High)",
+  "statusLine": { "type": "", "command": "", "enabled": false },
+  "useG1Credits": true
+}
+EOF
+    _out=$(chezmoi --source "$REPO" --config "$FIXTURES/os-$_os.toml" --destination "$_d" \
+            --persistent-state "$_d.state" --no-tty apply --exclude=scripts,externals \
+            "$_d/.gemini/antigravity-cli/settings.json" 2>&1 \
+        | grep -v 'config file template has changed' || true)
+    if [ -n "$_out" ]; then _fail "agy settings $_os apply 無錯誤" "$_out"; else _pass "agy settings $_os apply 無錯誤"; fi
+    _agy_out=$(cat "$_d/.gemini/antigravity-cli/settings.json")
+    assert_contains "agy settings ($_os) 保留 colorScheme" "$_agy_out" '"colorScheme": "tokyo night"'
+    assert_contains "agy settings ($_os) 保留 useG1Credits" "$_agy_out" '"useG1Credits": true'
+    assert_contains "agy settings ($_os) 寫入 statusLine.type" "$_agy_out" '"type": "command"'
+    assert_contains "agy settings ($_os) 寫入 statusLine.enabled" "$_agy_out" '"enabled": true'
+    if [ "$_os" = "windows" ]; then
+        assert_contains "agy settings (windows) 寫入 cc-statusline.exe" "$_agy_out" '~/.claude/cc-statusline/cc-statusline.exe'
+    else
+        assert_contains "agy settings (linux) 寫入 cc-statusline" "$_agy_out" 'STATUSLINE_USAGE_STYLE=dots ~/.claude/cc-statusline/cc-statusline'
+    fi
+done
+rm -rf "$_agy_home-linux" "$_agy_home-windows" "$_agy_home-linux.state" "$_agy_home-windows.state"
+unset _agy_home _d _agy_out
 
 unset _c _d_lin _d_win _out _m _first
 

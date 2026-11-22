@@ -99,6 +99,9 @@
 .config/git/config
 .config/powershell
 .config/powershell/profile.ps1
+.gemini
+.gemini/antigravity-cli
+.gemini/antigravity-cli/settings.json
 .gitconfig
 AppData
 AppData/Local

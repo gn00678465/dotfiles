@@ -1,0 +1,22 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+    只管理下面明確列出的 key，其餘一律保留 —— 包含 Antigravity CLI 自己寫進來的
+    colorScheme、hooks、model、trustedWorkspaces、useG1Credits 等狀態。
+    這個檔案不可以有 .tmpl 後綴，見 docs/research/chezmoi-templates-partial-config.md。
+*/ -}}
+{{- $cur := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $cur = fromJson .chezmoi.stdin -}}
+{{- end -}}
+
+{{- $p := includeTemplate "platform.toml" . | fromToml -}}
+{{- $agyCommand := "STATUSLINE_USAGE_STYLE=dots ~/.claude/cc-statusline/cc-statusline" -}}
+{{- if $p.isWindows -}}
+{{-   $agyCommand = "~/.claude/cc-statusline/cc-statusline.exe" -}}
+{{- end -}}
+{{- $cur = $cur | setValueAtPath "statusLine" (dict
+      "type"    "command"
+      "command" $agyCommand
+      "enabled" true) -}}
+
+{{ $cur | toPrettyJson }}
