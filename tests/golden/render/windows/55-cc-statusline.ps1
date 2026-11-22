@@ -31,7 +31,7 @@ if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
 
 # yes 是 mise 的設定而不是 use 的旗標；chezmoi 無人值守跑這支腳本。
 $env:MISE_YES = '1'
-$tool = 'github:gn00678465/StatusLine@2.2.0'
+$tool = 'github:gn00678465/StatusLine@2.3.0'
 mise use --global $tool
 if ($LASTEXITCODE -ne 0) { throw "mise use --global $tool failed ($LASTEXITCODE)" }
 
